@@ -1,0 +1,183 @@
+name: GRIDLINE Android
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Also build the signed release AAB"
+        type: boolean
+        default: false
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Engine-independent simulation tests: no Unity licence required, runs on every push.
+  core-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Gridline.Core tests
+        run: dotnet test tools/coretests --logger "trx;LogFileName=core-tests.trx" --results-directory artifacts/core-tests
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: core-tests
+          path: artifacts/core-tests
+
+  licence:
+    runs-on: ubuntu-latest
+    outputs:
+      available: ${{ steps.check.outputs.available }}
+    steps:
+      - id: check
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+        run: |
+          if { [ -n "$UNITY_LICENSE" ] || [ -n "$UNITY_SERIAL" ]; } && [ -n "$UNITY_EMAIL" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Unity licence missing::Add UNITY_LICENSE (Personal .ulf contents) or UNITY_SERIAL (Pro/Plus), plus UNITY_EMAIL and UNITY_PASSWORD, as repository secrets. Unity tests and the Android build are skipped until then. See docs/BUILD.md."
+          fi
+
+  unity-tests:
+    needs: [core-tests, licence]
+    if: needs.licence.outputs.available == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-Tests-${{ hashFiles('Packages/packages-lock.json', 'Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}
+          restore-keys: Library-Tests-
+      - uses: game-ci/unity-test-runner@v4
+        id: tests
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          testMode: all
+          artifactsPath: artifacts/unity-tests
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: Unity test results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unity-tests
+          path: ${{ steps.tests.outputs.artifactsPath }}
+
+  build-apk:
+    needs: [unity-tests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: false
+          swap-storage: false
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-Android-${{ hashFiles('Packages/packages-lock.json', 'Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}
+          restore-keys: Library-Android-
+      - uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: Android
+          buildMethod: BuildScript.BuildAndroid
+          buildName: Gridline
+          androidExportType: androidPackage
+          versioning: Custom
+          version: 0.1.${{ github.run_number }}
+          androidVersionCode: ${{ github.run_number }}
+      - name: Verify APK exists
+        run: |
+          set -euo pipefail
+          apk=$(find build -name '*.apk' | head -1)
+          if [ -z "$apk" ]; then echo "::error::No APK produced"; find build -maxdepth 3 -ls || true; exit 1; fi
+          ls -la "$apk"
+          size=$(stat -c %s "$apk")
+          [ "$size" -gt 5242880 ] || { echo "::error::APK suspiciously small ($size bytes)"; exit 1; }
+          sha256sum "$apk" | tee "$(dirname "$apk")/SHA256SUMS"
+          find build -name 'build_report*.json' -exec cat {} \;
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gridline-apk-${{ github.run_number }}
+          path: build/Android
+          retention-days: 30
+
+  build-aab:
+    needs: [unity-tests]
+    if: github.event_name == 'workflow_dispatch' && inputs.release
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: false
+          swap-storage: false
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-Android-${{ hashFiles('Packages/packages-lock.json', 'Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}
+          restore-keys: Library-Android-
+      - uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: Android
+          buildMethod: BuildScript.BuildAndroidRelease
+          buildName: Gridline
+          androidExportType: androidAppBundle
+          versioning: Custom
+          version: 0.1.${{ github.run_number }}
+          androidVersionCode: ${{ github.run_number }}
+          androidKeystoreName: upload.keystore
+          androidKeystoreBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          androidKeystorePass: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          androidKeyaliasName: ${{ secrets.ANDROID_KEYALIAS_NAME }}
+          androidKeyaliasPass: ${{ secrets.ANDROID_KEYALIAS_PASS }}
+      - name: Verify AAB exists
+        run: |
+          set -euo pipefail
+          aab=$(find build -name '*.aab' | head -1)
+          [ -n "$aab" ] || { echo "::error::No AAB produced"; exit 1; }
+          ls -la "$aab"; sha256sum "$aab" | tee "$(dirname "$aab")/SHA256SUMS"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gridline-aab-${{ github.run_number }}
+          path: build/Android
+          retention-days: 90

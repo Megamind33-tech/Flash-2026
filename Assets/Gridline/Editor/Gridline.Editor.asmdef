@@ -1,0 +1,21 @@
+{
+    "name": "Gridline.Editor",
+    "rootNamespace": "Gridline.EditorTools",
+    "references": [
+        "Gridline.Core",
+        "Gridline.Runtime",
+        "RVP.Runtime",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

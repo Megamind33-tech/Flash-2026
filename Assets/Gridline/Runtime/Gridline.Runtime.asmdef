@@ -1,0 +1,18 @@
+{
+    "name": "Gridline.Runtime",
+    "rootNamespace": "Gridline",
+    "references": [
+        "Gridline.Core",
+        "RVP.Runtime",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

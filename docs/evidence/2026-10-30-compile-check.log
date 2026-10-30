@@ -1,0 +1,8 @@
+ok  UnityEngine.UI.dll
+ok  Gridline.Core.dll
+ok  RVP.Runtime.dll
+ok  Gridline.Runtime.dll
+ok  Gridline.Editor.dll
+ok  Gridline.Tests.EditMode.dll
+ok  Gridline.Tests.PlayMode.dll
+All GRIDLINE assemblies compile against 6000.3.27f1 reference assemblies.

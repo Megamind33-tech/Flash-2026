@@ -1,0 +1,6 @@
+# Method: Gridline.Runtime TrackPath compiled against Unity 6000.3.27f1 CoreModule and executed on .NET 8 (no Unity licence).
+circuit=Ashford Airfield Circuit points=1178 length=2355.5 m
+AI speed profile 59-223 km/h; racing line max offset 3.30 m (half width 6)
+projection round trip: max distance error 0.000 m, lateral error 0.000 m
+kerbed 23% of lap, gravel traps 11% of lap
+profile lap time: 71.1 s at pace 1.00, 77.3 s at pace 0.92 (theoretical; real lap depends on RVP physics)
