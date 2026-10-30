@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Gridline.Core;
 using Gridline.Platform;
 using Gridline.Race;
@@ -9,19 +10,22 @@ using UnityEngine.UIElements;
 
 namespace Gridline.UI
 {
-    /// <summary>Main menu (MainMenu.uxml): career card, next event, settings sheet, career history and the showroom car.</summary>
+    /// <summary>Main menu (MainMenu.uxml): NativeUI-style list pages, player status (money/reputation) and the showroom car.</summary>
     [RequireComponent(typeof(UIDocument))]
     public class MainMenuController : MonoBehaviour
     {
         public static readonly string[] RequiredElements =
         {
-            "menu", "driver-name", "driver-rank", "stat-money", "stat-points", "stat-wins", "stat-podiums",
-            "event-name", "event-track", "event-map", "event-laps", "event-entry", "event-prize", "event-best", "race-button",
-            "career-button", "settings-button", "version", "settings-sheet", "settings-close", "steer-touch", "steer-tilt",
-            "sensitivity", "sensitivity-value", "gear-auto", "gear-manual", "quality-0", "quality-1", "quality-2",
-            "fps-off", "fps-on", "reset-career", "career-sheet", "career-close", "history", "ledger",
-            "confirm", "confirm-cancel", "confirm-ok",
+            "menu", "nui", "nui-banner", "nui-subtitle", "nui-counter", "page-main", "race-button", "race-fee", "career-button",
+            "settings-button", "page-settings", "opt-steering", "opt-steering-value", "sens-down", "sens-up", "sensitivity-value",
+            "opt-gearbox", "opt-gearbox-value", "opt-graphics", "opt-graphics-value", "opt-fps", "opt-fps-value", "reset-career",
+            "settings-back", "page-career", "stat-races", "stat-wins", "stat-points", "stat-best", "history", "career-back",
+            "page-confirm", "confirm-ok", "confirm-cancel", "nui-desc", "nui-desc-text", "event-map",
+            "status-money", "status-name", "rep-fill", "rep-rank", "version",
         };
+
+        static readonly string[] Pages = { "page-main", "page-settings", "page-career", "page-confirm" };
+        const int RepPerRank = 25;
 
         public GameObject carPrefab;
         public Material playerLivery;
@@ -30,7 +34,7 @@ namespace Gridline.UI
         public float orbitSpeed = 6f;
 
         VisualElement root;
-        ScreenNavigator nav;
+        readonly Stack<string> pageStack = new Stack<string>();
         float orbit;
 
         void Start()
@@ -40,42 +44,32 @@ namespace Gridline.UI
             if (carPrefab != null && showroomAnchor != null) PlaceShowroomCar(VehicleSetup.CreateVisualClone(carPrefab, showroomAnchor, playerLivery));
             root = GetComponent<UIDocument>().rootVisualElement;
             ScreenNavigator.Validate(root, RequiredElements, nameof(MainMenuController));
-            nav = new ScreenNavigator(root);
             SafeArea.Apply(root.Q("menu"));
             Bind();
-            Refresh();
+            ShowPage("page-main", false);
             Debug.Log("[GRIDLINE] Menu ready. Version " + Application.version);
         }
 
         void Bind()
         {
             Click("race-button", OnRace);
-            Click("settings-button", () => nav.Open("settings-sheet"));
-            Click("settings-close", () => nav.Close("settings-sheet"));
-            Click("career-button", () => { FillCareer(); nav.Open("career-sheet"); });
-            Click("career-close", () => nav.Close("career-sheet"));
-            Click("steer-touch", () => Change(s => s.steeringMode = SteeringMode.TouchButtons));
-            Click("steer-tilt", () => Change(s => s.steeringMode = SteeringMode.Tilt));
-            Click("gear-auto", () => Change(s => s.transmission = TransmissionMode.Automatic));
-            Click("gear-manual", () => Change(s => s.transmission = TransmissionMode.Manual));
-            for (int i = 0; i < 3; i++)
-            {
-                int level = i;
-                Click("quality-" + i, () => Change(s => s.qualityLevel = level));
-            }
-            Click("fps-off", () => Change(s => s.showFps = false));
-            Click("fps-on", () => Change(s => s.showFps = true));
-            Click("reset-career", () => nav.Open("confirm"));
-            Click("confirm-cancel", () => nav.Close("confirm"));
+            Click("career-button", () => ShowPage("page-career"));
+            Click("settings-button", () => ShowPage("page-settings"));
+            Click("settings-back", Back);
+            Click("career-back", Back);
+            Click("opt-steering", () => Change(s => s.steeringMode = s.steeringMode == SteeringMode.Tilt ? SteeringMode.TouchButtons : SteeringMode.Tilt));
+            Click("opt-gearbox", () => Change(s => s.transmission = s.transmission == TransmissionMode.Manual ? TransmissionMode.Automatic : TransmissionMode.Manual));
+            Click("opt-graphics", () => Change(s => s.qualityLevel = (s.qualityLevel + 1) % 3));
+            Click("opt-fps", () => Change(s => s.showFps = !s.showFps));
+            Click("sens-down", () => Change(s => s.steeringSensitivity = Mathf.Clamp(Mathf.Round((s.steeringSensitivity - 0.1f) * 10f) / 10f, 0.3f, 2f)));
+            Click("sens-up", () => Change(s => s.steeringSensitivity = Mathf.Clamp(Mathf.Round((s.steeringSensitivity + 0.1f) * 10f) / 10f, 0.3f, 2f)));
+            Click("reset-career", () => ShowPage("page-confirm"));
+            Click("confirm-cancel", Back);
             Click("confirm-ok", () =>
             {
                 GameServices.ResetCareer();
-                nav.Close("confirm");
-                Refresh();
+                Back();
             });
-            var slider = root.Q<Slider>("sensitivity");
-            if (slider != null)
-                slider.RegisterValueChangedCallback(e => Change(s => s.steeringSensitivity = Mathf.Round(e.newValue * 10f) / 10f, false));
             var map = root.Q("event-map");
             if (map != null) map.Add(new TrackMap(CircuitLayout.BuildCentreline(CircuitLayout.AshfordControlPoints, 6f)));
         }
@@ -86,101 +80,122 @@ namespace Gridline.UI
             if (b != null) b.clicked += action;
         }
 
-        void Change(System.Action<GameSettings> edit, bool refreshSlider = true)
+        void ShowPage(string page, bool push = true)
+        {
+            if (push && pageStack.Count > 0 && pageStack.Peek() == page) return;
+            if (push) pageStack.Push(page);
+            else
+            {
+                pageStack.Clear();
+                pageStack.Push(page);
+            }
+            foreach (var p in Pages) ScreenNavigator.SetVisible(root.Q(p), p == page);
+            Refresh();
+        }
+
+        void Back()
+        {
+            if (pageStack.Count <= 1) return;
+            pageStack.Pop();
+            string page = pageStack.Peek();
+            foreach (var p in Pages) ScreenNavigator.SetVisible(root.Q(p), p == page);
+            Refresh();
+        }
+
+        void Change(System.Action<GameSettings> edit)
         {
             edit(GameServices.Settings);
             GameServices.ApplySettings();
             GameServices.Persist();
-            Refresh(refreshSlider);
+            Refresh();
         }
 
-        void Refresh(bool refreshSlider = true)
+        void Refresh()
         {
             var save = GameServices.Save;
             var c = save.career;
             var cfg = GameServices.Economy;
-            Set("driver-name", c.driverName.ToUpperInvariant());
-            Set("driver-rank", "AMATEUR  ·  REPUTATION " + c.reputation + "  ·  " + c.racesEntered + " RACES");
-            Set("stat-money", "$" + c.money.ToString("N0"));
-            Set("stat-points", c.championshipPoints.ToString());
-            Set("stat-wins", c.wins.ToString());
-            Set("stat-podiums", c.podiums.ToString());
+            string page = pageStack.Count > 0 ? pageStack.Peek() : "page-main";
 
-            Set("event-name", RaceSession.EventName.ToUpperInvariant());
-            Set("event-track", CircuitLayout.AshfordName + "  ·  2.36 km  ·  " + (RaceSession.AiOpponents + 1) + " cars");
-            Set("event-laps", RaceSession.Laps + " LAPS");
-            bool sponsored = c.money < cfg.amateurEntryFee && cfg.sponsorCoversEntryWhenBroke;
-            Set("event-entry", sponsored ? "ENTRY SPONSORED" : "ENTRY $" + cfg.amateurEntryFee.ToString("N0"));
-            Set("event-prize", "WIN $" + cfg.PrizeFor(1).ToString("N0"));
-            Set("event-best", "PERSONAL BEST " + RaceClassification.FormatTime(c.GetBestLap(CircuitLayout.AshfordId)));
+            Set("status-money", "$" + c.money.ToString("N0"));
+            Set("status-name", c.driverName.ToUpperInvariant());
+            int rank = 1 + c.reputation / RepPerRank;
+            Set("rep-rank", rank.ToString());
+            var fill = root.Q("rep-fill");
+            if (fill != null) fill.style.width = Length.Percent(100f * (c.reputation % RepPerRank) / RepPerRank);
             Set("version", "v" + Application.version + "  ·  Unity " + Application.unityVersion);
 
+            bool sponsored = c.money < cfg.amateurEntryFee && cfg.sponsorCoversEntryWhenBroke;
+            Set("race-fee", sponsored ? "SPONSORED" : "$" + cfg.amateurEntryFee.ToString("N0"));
+
             var s = save.settings;
-            Segment("steer-touch", s.steeringMode == SteeringMode.TouchButtons);
-            Segment("steer-tilt", s.steeringMode == SteeringMode.Tilt);
-            Segment("gear-auto", s.transmission == TransmissionMode.Automatic);
-            Segment("gear-manual", s.transmission == TransmissionMode.Manual);
-            for (int i = 0; i < 3; i++) Segment("quality-" + i, s.qualityLevel == i);
-            Segment("fps-off", !s.showFps);
-            Segment("fps-on", s.showFps);
+            Set("opt-steering-value", s.steeringMode == SteeringMode.Tilt ? "Tilt" : "Touch");
             Set("sensitivity-value", s.steeringSensitivity.ToString("0.0"));
-            if (refreshSlider) root.Q<Slider>("sensitivity")?.SetValueWithoutNotify(s.steeringSensitivity);
+            Set("opt-gearbox-value", s.transmission == TransmissionMode.Manual ? "Manual" : "Automatic");
+            Set("opt-graphics-value", new[] { "Low · 30 FPS", "Medium", "High" }[Mathf.Clamp(s.qualityLevel, 0, 2)]);
+            Set("opt-fps-value", s.showFps ? "On" : "Off");
+
+            Set("stat-races", c.racesEntered.ToString());
+            Set("stat-wins", c.wins + " / " + c.podiums);
+            Set("stat-points", c.championshipPoints.ToString());
+            Set("stat-best", RaceClassification.FormatTime(c.GetBestLap(CircuitLayout.AshfordId)));
+
+            string subtitle, desc;
+            int count;
+            switch (page)
+            {
+                case "page-settings":
+                    subtitle = "SETTINGS"; count = 7;
+                    desc = "Tap an option to change it. Tilt steering uses the phone's motion sensor; a Bluetooth controller also works.";
+                    break;
+                case "page-career":
+                    subtitle = "CAREER"; count = 5;
+                    desc = "Amateur driver · reputation " + c.reputation + " · rank " + rank + ". Win events to earn money and attract team offers.";
+                    FillHistory();
+                    break;
+                case "page-confirm":
+                    subtitle = "RESET CAREER?"; count = 2;
+                    desc = "Your money, reputation, records and race history will be erased. Settings are kept.";
+                    break;
+                default:
+                    subtitle = "THE RACING LEAGUE"; count = 3;
+                    desc = RaceSession.EventName + "\n" + CircuitLayout.AshfordName + " · 2.36 km · " + RaceSession.Laps + " laps · " +
+                           (RaceSession.AiOpponents + 1) + " cars\nWin $" + cfg.PrizeFor(1).ToString("N0") + " · Personal best " +
+                           RaceClassification.FormatTime(c.GetBestLap(CircuitLayout.AshfordId));
+                    break;
+            }
+            Set("nui-subtitle", subtitle);
+            Set("nui-counter", count + " ITEMS");
+            Set("nui-desc-text", desc);
+            ScreenNavigator.SetVisible(root.Q("event-map"), page == "page-main");
         }
 
-        void FillCareer()
+        void FillHistory()
         {
-            var save = GameServices.Save;
             var history = root.Q<ScrollView>("history");
             history.Clear();
-            if (save.history.Count == 0) history.Add(Row("—", "No races yet", "Enter your first event from the menu.", ""));
-            for (int i = save.history.Count - 1; i >= 0; i--)
+            var h = GameServices.Save.history;
+            for (int i = h.Count - 1; i >= 0 && i >= h.Count - 6; i--)
             {
-                var h = save.history[i];
-                history.Add(Row("P" + h.position, "Race " + h.raceIndex + "  ·  " + CircuitLayout.AshfordName,
-                    "Best lap " + RaceClassification.FormatTime(h.bestLapMs) + "  ·  " + h.fieldSize + " starters",
-                    (h.moneyEarned >= 0 ? "+$" : "−$") + Mathf.Abs(h.moneyEarned).ToString("N0")));
+                var e = h[i];
+                var row = new VisualElement();
+                row.AddToClassList("nui__item");
+                row.AddToClassList("history-item");
+                var l = new Label("Race " + e.raceIndex + " · P" + e.position + "/" + e.fieldSize + " · " + RaceClassification.FormatTime(e.bestLapMs));
+                l.AddToClassList("nui__label");
+                var m = new Label((e.moneyEarned >= 0 ? "+$" : "−$") + Mathf.Abs(e.moneyEarned).ToString("N0"));
+                m.AddToClassList("nui__value");
+                m.AddToClassList(e.moneyEarned >= 0 ? "t-money" : "t-red");
+                row.Add(l);
+                row.Add(m);
+                history.Add(row);
             }
-            var ledger = root.Q<ScrollView>("ledger");
-            ledger.Clear();
-            var entries = save.career.ledger;
-            for (int i = entries.Count - 1; i >= 0 && i >= entries.Count - 12; i--)
-            {
-                var e = entries[i];
-                ledger.Add(Row("", e.reason, "Balance $" + e.balanceAfter.ToString("N0"), (e.amount >= 0 ? "+$" : "−$") + Mathf.Abs(e.amount).ToString("N0")));
-            }
-        }
-
-        static VisualElement Row(string pos, string title, string detail, string money)
-        {
-            var row = new VisualElement();
-            row.AddToClassList("history-row");
-            var p = new Label(pos);
-            p.AddToClassList("history-row__pos");
-            var main = new VisualElement();
-            main.AddToClassList("history-row__main");
-            main.Add(new Label(title));
-            var d = new Label(detail);
-            d.AddToClassList("t-muted");
-            d.AddToClassList("t-regular");
-            main.Add(d);
-            var m = new Label(money);
-            m.AddToClassList("history-row__money");
-            m.AddToClassList(money.StartsWith("+") ? "t-green" : "t-muted");
-            row.Add(p);
-            row.Add(main);
-            row.Add(m);
-            return row;
         }
 
         void Set(string name, string text)
         {
             var l = root.Q<Label>(name);
             if (l != null) l.text = text;
-        }
-
-        void Segment(string name, bool on)
-        {
-            root.Q(name)?.EnableInClassList("segment--on", on);
         }
 
         void OnRace()
@@ -204,14 +219,14 @@ namespace Gridline.UI
 
         void Update()
         {
-            // Android system back button closes the top sheet/modal.
-            if (UnityEngine.Input.GetKeyDown(KeyCode.Escape) && nav != null) nav.Back();
+            // Android system back button walks back through the menu pages.
+            if (UnityEngine.Input.GetKeyDown(KeyCode.Escape) && root != null) Back();
             if (menuCamera == null || showroomAnchor == null) return;
             orbit += orbitSpeed * Time.deltaTime;
             Vector3 focus = showroomAnchor.position + Vector3.up * 0.7f;
             Quaternion rot = Quaternion.Euler(0f, orbit + 210f, 0f);
             menuCamera.transform.position = focus + rot * new Vector3(0f, 1.1f, -6.2f);
-            // Keep the car right of centre, clear of the menu column on the left.
+            // Keep the car right of centre, clear of the menu list on the left.
             menuCamera.transform.rotation = Quaternion.LookRotation(focus - menuCamera.transform.position) * Quaternion.Euler(0f, -16f, 0f);
         }
     }

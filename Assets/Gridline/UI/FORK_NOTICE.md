@@ -19,5 +19,7 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER I
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 Other UI assets:
-- Fonts/  Titillium Web (Accademia di Belle Arti di Urbino) — SIL Open Font License 1.1 (Fonts/OFL.txt)
+- Fonts/  Bebas Neue (Dharma Type) and Barlow / Barlow Condensed (The Barlow Project) — SIL Open Font License 1.1 (Fonts/OFL-*.txt)
 - Icons/  Google Material Icons, recoloured white — Apache License 2.0 (Icons/LICENSE-Apache-2.0.txt)
+- Menu layout follows NativeUI's list-menu structure (Guad/NativeUI, MIT, Copyright (c) 2016 Guad) — layout only; no GTA textures.
+- Textures/ramp_*.png are generated alpha ramps; Textures/menu_banner.jpg is a crop of GRIDLINE's own Blender look-dev render.

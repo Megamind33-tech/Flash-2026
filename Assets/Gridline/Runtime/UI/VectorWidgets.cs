@@ -4,59 +4,6 @@ using UnityEngine.UIElements;
 
 namespace Gridline.UI
 {
-    /// <summary>Tachometer arc drawn with UI Toolkit's vector Painter2D (resolution independent).</summary>
-    public class RpmGauge : VisualElement
-    {
-        float value;
-        public Color trackColor = new Color(1f, 1f, 1f, 0.12f);
-        public Color fillColor = new Color(0.95f, 0.96f, 0.97f, 1f);
-        public Color redlineColor = new Color(0.88f, 0.06f, 0.12f, 1f);
-        public float redline = 0.86f;
-        const float StartDeg = 150f, SweepDeg = 240f;
-
-        public RpmGauge()
-        {
-            pickingMode = PickingMode.Ignore;
-            style.position = Position.Absolute;
-            style.left = 0;
-            style.right = 0;
-            style.top = 0;
-            style.bottom = 0;
-            generateVisualContent += Draw;
-        }
-
-        public void SetValue(float v)
-        {
-            v = Mathf.Clamp01(v);
-            if (Mathf.Abs(v - value) < 0.004f) return;
-            value = v;
-            MarkDirtyRepaint();
-        }
-
-        void Draw(MeshGenerationContext mgc)
-        {
-            Rect r = contentRect;
-            if (r.width < 4f || r.height < 4f) return;
-            var p = mgc.painter2D;
-            Vector2 c = new Vector2(r.width * 0.5f, r.width * 0.5f + 8f);
-            float radius = r.width * 0.5f - 16f;
-            p.lineCap = LineCap.Round;
-            p.lineWidth = 14f;
-            Arc(p, c, radius, 0f, 1f, trackColor);
-            Arc(p, c, radius, redline, 1f, new Color(redlineColor.r, redlineColor.g, redlineColor.b, 0.35f));
-            if (value > 0.001f) Arc(p, c, radius, 0f, Mathf.Min(value, redline), fillColor);
-            if (value > redline) Arc(p, c, radius, redline, value, redlineColor);
-        }
-
-        static void Arc(Painter2D p, Vector2 c, float radius, float from, float to, Color color)
-        {
-            p.strokeColor = color;
-            p.BeginPath();
-            p.Arc(c, radius, Angle.Degrees(StartDeg + SweepDeg * from), Angle.Degrees(StartDeg + SweepDeg * to), ArcDirection.Clockwise);
-            p.Stroke();
-        }
-    }
-
     /// <summary>Circuit outline from the real centreline data, with optional live car markers.</summary>
     public class TrackMap : VisualElement
     {
@@ -64,7 +11,7 @@ namespace Gridline.UI
         readonly List<Vector2> markers = new List<Vector2>();
         readonly List<Color> markerColors = new List<Color>();
         Vector2 min, size;
-        public Color lineColor = new Color(1f, 1f, 1f, 0.85f);
+        public Color lineColor = new Color(1f, 1f, 1f, 0.8f);
         public Color startColor = new Color(0.88f, 0.06f, 0.12f, 1f);
 
         public TrackMap(IList<Vector3> centreline)
@@ -114,7 +61,7 @@ namespace Gridline.UI
             var p = mgc.painter2D;
             p.lineJoin = LineJoin.Round;
             p.lineCap = LineCap.Round;
-            p.lineWidth = 6f;
+            p.lineWidth = 5f;
             p.strokeColor = lineColor;
             p.BeginPath();
             p.MoveTo(Map(outline[0], r, scale, offset));

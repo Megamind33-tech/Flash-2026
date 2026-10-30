@@ -1,151 +1,76 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
     <Style src="../Styles/Gridline.uss" />
     <ui:VisualElement name="menu" class="gl-root menu-root">
-        <ui:VisualElement class="menu-left">
-            <ui:VisualElement>
-                <ui:VisualElement class="brand">
-                    <ui:VisualElement class="accent-bar" />
-                    <ui:VisualElement>
-                        <ui:Label text="GRIDLINE" class="brand__word t-shadow" />
-                        <ui:Label text="THE RACING LEAGUE" class="brand__tag" />
-                    </ui:VisualElement>
-                </ui:VisualElement>
-
-                <ui:VisualElement class="panel driver-card">
-                    <ui:VisualElement class="row">
-                        <ui:VisualElement class="icon icon--lg ic-driver" style="margin-right: 18px;" />
-                        <ui:VisualElement class="grow">
-                            <ui:Label name="driver-name" text="ROOKIE" class="driver-card__name" />
-                            <ui:Label name="driver-rank" text="AMATEUR · REPUTATION 0" class="driver-card__rank" />
-                        </ui:VisualElement>
-                    </ui:VisualElement>
-                    <ui:VisualElement class="stat-grid">
-                        <ui:VisualElement class="stat">
-                            <ui:Label text="BALANCE" class="t-label" />
-                            <ui:Label name="stat-money" text="$0" class="stat__value" />
-                        </ui:VisualElement>
-                        <ui:VisualElement class="stat">
-                            <ui:Label text="POINTS" class="t-label" />
-                            <ui:Label name="stat-points" text="0" class="stat__value" />
-                        </ui:VisualElement>
-                        <ui:VisualElement class="stat">
-                            <ui:Label text="WINS" class="t-label" />
-                            <ui:Label name="stat-wins" text="0" class="stat__value" />
-                        </ui:VisualElement>
-                        <ui:VisualElement class="stat stat--last">
-                            <ui:Label text="PODIUMS" class="t-label" />
-                            <ui:Label name="stat-podiums" text="0" class="stat__value" />
-                        </ui:VisualElement>
-                    </ui:VisualElement>
-                </ui:VisualElement>
+        <ui:VisualElement name="nui" class="nui">
+            <ui:VisualElement name="nui-banner" class="nui__banner" style="background-image: url('../Textures/menu_banner.jpg');">
+                <ui:VisualElement class="nui__banner-shade" picking-mode="Ignore" />
+                <ui:Label text="GRIDLINE" class="nui__title" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement class="nui__subtitle">
+                <ui:Label name="nui-subtitle" text="THE RACING LEAGUE" class="nui__subtitle-text" />
+                <ui:Label name="nui-counter" text="1/3" class="nui__counter" />
             </ui:VisualElement>
 
-            <ui:VisualElement class="panel event-card">
-                <ui:VisualElement class="event-body">
-                    <ui:VisualElement class="grow">
-                        <ui:Label text="NEXT EVENT" class="t-label" />
-                        <ui:Label name="event-name" text="ASHFORD CLUB SPRINT" class="event-card__name" />
-                        <ui:Label name="event-track" text="Ashford Airfield Circuit · 2.36 km" class="event-card__track" />
-                        <ui:VisualElement class="row" style="margin-top: 6px;">
-                            <ui:VisualElement class="icon icon--sm icon--amber ic-timer" style="margin-right: 10px;" />
-                            <ui:Label name="event-best" text="PERSONAL BEST --:--.---" class="event-card__track t-amber" />
-                        </ui:VisualElement>
-                    </ui:VisualElement>
-                    <ui:VisualElement name="event-map" class="event-map" />
-                </ui:VisualElement>
-                <ui:VisualElement class="event-meta">
-                    <ui:VisualElement class="chip"><ui:VisualElement class="icon icon--sm ic-flag" /><ui:Label name="event-laps" text="3 LAPS" class="chip__value" /></ui:VisualElement>
-                    <ui:VisualElement class="chip"><ui:VisualElement class="icon icon--sm ic-money" /><ui:Label name="event-entry" text="ENTRY $250" class="chip__value" /></ui:VisualElement>
-                    <ui:VisualElement class="chip"><ui:VisualElement class="icon icon--sm icon--amber ic-trophy" /><ui:Label name="event-prize" text="WIN $3,000" class="chip__value" /></ui:VisualElement>
-                </ui:VisualElement>
-                <ui:Button name="race-button" class="gl-btn gl-btn--primary gl-btn--hero">
-                    <ui:VisualElement class="icon icon--lg ic-play" />
-                    <ui:Label text="RACE" />
+            <ui:VisualElement name="page-main">
+                <ui:Button name="race-button" class="nui__item nui__item--selected">
+                    <ui:Label text="Enter Race" class="nui__label" />
+                    <ui:Label name="race-fee" text="$250" class="nui__value" />
+                </ui:Button>
+                <ui:Button name="career-button" class="nui__item">
+                    <ui:Label text="Career" class="nui__label" />
+                    <ui:VisualElement class="icon nui__arrow ic-right" />
+                </ui:Button>
+                <ui:Button name="settings-button" class="nui__item">
+                    <ui:Label text="Settings" class="nui__label" />
+                    <ui:VisualElement class="icon nui__arrow ic-right" />
                 </ui:Button>
             </ui:VisualElement>
-        </ui:VisualElement>
 
-        <ui:VisualElement class="menu-right">
-            <ui:VisualElement class="menu-actions">
-                <ui:Button name="career-button" class="gl-btn gl-btn--icon"><ui:VisualElement class="icon icon--lg ic-board" /></ui:Button>
-                <ui:Button name="settings-button" class="gl-btn gl-btn--icon"><ui:VisualElement class="icon icon--lg ic-settings" /></ui:Button>
-            </ui:VisualElement>
-            <ui:Label name="version" text="v0.1.0" class="menu-version" />
-        </ui:VisualElement>
-
-        <!-- Settings sheet -->
-        <ui:VisualElement name="settings-sheet" class="sheet-scrim hidden">
-            <ui:VisualElement class="sheet">
-                <ui:VisualElement class="sheet__header">
-                    <ui:Label text="SETTINGS" class="sheet__title" />
-                    <ui:Button name="settings-close" class="gl-btn gl-btn--icon"><ui:VisualElement class="icon ic-close" /></ui:Button>
+            <ui:VisualElement name="page-settings" class="hidden">
+                <ui:Button name="opt-steering" class="nui__item"><ui:Label text="Steering" class="nui__label" /><ui:VisualElement class="icon nui__arrow ic-left" /><ui:Label name="opt-steering-value" text="Touch" class="nui__value" /><ui:VisualElement class="icon nui__arrow ic-right" /></ui:Button>
+                <ui:VisualElement class="nui__item">
+                    <ui:Label text="Steering Sensitivity" class="nui__label" />
+                    <ui:Button name="sens-down" class="hud-btn" style="width: 64px; height: 64px; background-color: rgba(0,0,0,0);"><ui:VisualElement class="icon nui__arrow ic-left" /></ui:Button>
+                    <ui:Label name="sensitivity-value" text="1.0" class="nui__value" style="min-width: 54px; -unity-text-align: middle-center;" />
+                    <ui:Button name="sens-up" class="hud-btn" style="width: 64px; height: 64px; background-color: rgba(0,0,0,0);"><ui:VisualElement class="icon nui__arrow ic-right" /></ui:Button>
                 </ui:VisualElement>
-                <ui:ScrollView class="grow">
-                    <ui:VisualElement class="setting">
-                        <ui:Label text="STEERING" class="t-label setting__label" />
-                        <ui:VisualElement class="segmented">
-                            <ui:Button name="steer-touch" class="segment"><ui:VisualElement class="icon icon--sm ic-touch" /><ui:Label text="TOUCH" /></ui:Button>
-                            <ui:Button name="steer-tilt" class="segment"><ui:VisualElement class="icon icon--sm ic-tilt" /><ui:Label text="TILT" /></ui:Button>
-                        </ui:VisualElement>
-                    </ui:VisualElement>
-                    <ui:VisualElement class="setting">
-                        <ui:VisualElement class="row setting__label">
-                            <ui:Label text="STEERING SENSITIVITY" class="t-label grow" />
-                            <ui:Label name="sensitivity-value" text="1.0" class="chip__value" />
-                        </ui:VisualElement>
-                        <ui:Slider name="sensitivity" low-value="0.3" high-value="2" value="1" class="gl-slider" />
-                    </ui:VisualElement>
-                    <ui:VisualElement class="setting">
-                        <ui:Label text="GEARBOX" class="t-label setting__label" />
-                        <ui:VisualElement class="segmented">
-                            <ui:Button name="gear-auto" text="AUTOMATIC" class="segment" />
-                            <ui:Button name="gear-manual" text="MANUAL" class="segment" />
-                        </ui:VisualElement>
-                    </ui:VisualElement>
-                    <ui:VisualElement class="setting">
-                        <ui:Label text="GRAPHICS" class="t-label setting__label" />
-                        <ui:VisualElement class="segmented">
-                            <ui:Button name="quality-0" text="LOW" class="segment" />
-                            <ui:Button name="quality-1" text="MEDIUM" class="segment" />
-                            <ui:Button name="quality-2" text="HIGH" class="segment" />
-                        </ui:VisualElement>
-                    </ui:VisualElement>
-                    <ui:VisualElement class="setting">
-                        <ui:Label text="FRAME RATE COUNTER" class="t-label setting__label" />
-                        <ui:VisualElement class="segmented">
-                            <ui:Button name="fps-off" text="OFF" class="segment" />
-                            <ui:Button name="fps-on" text="ON" class="segment" />
-                        </ui:VisualElement>
-                    </ui:VisualElement>
-                    <ui:Button name="reset-career" class="gl-btn gl-btn--danger"><ui:VisualElement class="icon ic-reset" /><ui:Label text="RESET CAREER" /></ui:Button>
-                </ui:ScrollView>
+                <ui:Button name="opt-gearbox" class="nui__item"><ui:Label text="Gearbox" class="nui__label" /><ui:VisualElement class="icon nui__arrow ic-left" /><ui:Label name="opt-gearbox-value" text="Automatic" class="nui__value" /><ui:VisualElement class="icon nui__arrow ic-right" /></ui:Button>
+                <ui:Button name="opt-graphics" class="nui__item"><ui:Label text="Graphics" class="nui__label" /><ui:VisualElement class="icon nui__arrow ic-left" /><ui:Label name="opt-graphics-value" text="Medium" class="nui__value" /><ui:VisualElement class="icon nui__arrow ic-right" /></ui:Button>
+                <ui:Button name="opt-fps" class="nui__item"><ui:Label text="Frame Rate Counter" class="nui__label" /><ui:VisualElement class="icon nui__arrow ic-left" /><ui:Label name="opt-fps-value" text="Off" class="nui__value" /><ui:VisualElement class="icon nui__arrow ic-right" /></ui:Button>
+                <ui:Button name="reset-career" class="nui__item nui__item--danger"><ui:Label text="Reset Career" class="nui__label" /></ui:Button>
+                <ui:Button name="settings-back" class="nui__item"><ui:VisualElement class="icon nui__arrow ic-back" style="margin-right: 14px;" /><ui:Label text="Back" class="nui__label" /></ui:Button>
+            </ui:VisualElement>
+
+            <ui:VisualElement name="page-career" class="hidden">
+                <ui:VisualElement class="nui__item"><ui:Label text="Races" class="nui__label" /><ui:Label name="stat-races" text="0" class="nui__value" /></ui:VisualElement>
+                <ui:VisualElement class="nui__item"><ui:Label text="Wins / Podiums" class="nui__label" /><ui:Label name="stat-wins" text="0 / 0" class="nui__value" /></ui:VisualElement>
+                <ui:VisualElement class="nui__item"><ui:Label text="Championship Points" class="nui__label" /><ui:Label name="stat-points" text="0" class="nui__value" /></ui:VisualElement>
+                <ui:VisualElement class="nui__item"><ui:Label text="Best Lap · Ashford" class="nui__label" /><ui:Label name="stat-best" text="--:--.---" class="nui__value" /></ui:VisualElement>
+                <ui:ScrollView name="history" style="max-height: 300px;" />
+                <ui:Button name="career-back" class="nui__item"><ui:VisualElement class="icon nui__arrow ic-back" style="margin-right: 14px;" /><ui:Label text="Back" class="nui__label" /></ui:Button>
+            </ui:VisualElement>
+
+            <ui:VisualElement name="page-confirm" class="hidden">
+                <ui:Button name="confirm-ok" class="nui__item nui__item--danger"><ui:Label text="Yes, reset my career" class="nui__label" /></ui:Button>
+                <ui:Button name="confirm-cancel" class="nui__item nui__item--selected"><ui:Label text="Cancel" class="nui__label" /></ui:Button>
+            </ui:VisualElement>
+
+            <ui:VisualElement name="nui-desc" class="nui__desc row">
+                <ui:Label name="nui-desc-text" text="" class="nui__desc-text grow" />
+                <ui:VisualElement name="event-map" class="event-map" />
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <!-- Career / history sheet -->
-        <ui:VisualElement name="career-sheet" class="sheet-scrim hidden">
-            <ui:VisualElement class="sheet">
-                <ui:VisualElement class="sheet__header">
-                    <ui:Label text="CAREER" class="sheet__title" />
-                    <ui:Button name="career-close" class="gl-btn gl-btn--icon"><ui:VisualElement class="icon ic-close" /></ui:Button>
-                </ui:VisualElement>
-                <ui:Label text="RECENT RACES" class="t-label" />
-                <ui:ScrollView name="history" class="grow" />
-                <ui:Label text="LATEST TRANSACTIONS" class="t-label" style="margin-top: 20px;" />
-                <ui:ScrollView name="ledger" style="height: 300px;" />
+        <ui:VisualElement class="status" picking-mode="Ignore">
+            <ui:Label name="status-money" text="$0" class="status__money" />
+            <ui:Label name="status-name" text="ROOKIE" class="status__name" />
+            <ui:VisualElement class="rep">
+                <ui:Label text="REPUTATION" class="rep__label" />
+                <ui:VisualElement class="rep__bar"><ui:VisualElement name="rep-fill" class="rep__fill" style="width: 0%;" /></ui:VisualElement>
+                <ui:VisualElement class="rep__rank"><ui:Label name="rep-rank" text="1" class="rep__rank-text" /></ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <!-- Confirm modal -->
-        <ui:VisualElement name="confirm" class="modal-scrim hidden">
-            <ui:VisualElement class="panel modal">
-                <ui:Label text="RESET CAREER?" class="modal__title" />
-                <ui:Label text="Your balance, reputation, records and race history will be erased. Settings are kept." class="modal__body" />
-                <ui:VisualElement class="modal__actions">
-                    <ui:Button name="confirm-cancel" text="CANCEL" class="gl-btn gl-btn--spaced" />
-                    <ui:Button name="confirm-ok" text="RESET" class="gl-btn gl-btn--primary" />
-                </ui:VisualElement>
-            </ui:VisualElement>
-        </ui:VisualElement>
+        <ui:Label name="version" text="v0.1.0" class="menu-footer" />
     </ui:VisualElement>
 </ui:UXML>

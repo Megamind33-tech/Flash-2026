@@ -16,31 +16,34 @@ namespace Gridline.UI
     {
         public static readonly string[] RequiredElements =
         {
-            "hud", "lap", "tower-rows", "position", "lap-time", "best-lap", "penalty", "hud-map", "camera-button", "pause-button",
-            "fps", "notice", "lights", "light-0", "light-1", "light-2", "light-3", "light-4", "gauge", "gear", "speed",
+            "hud", "hud-map", "rpm-fill", "progress-fill", "fps", "position", "lap", "lap-time", "best-lap", "penalty-row", "penalty",
+            "tower-rows", "camera-button", "pause-button", "big-text", "big-sub", "notice", "speed", "gear", "rpm",
             "controls", "pad-left", "pad-right", "pad-brake", "pad-throttle", "pad-up", "pad-down",
-            "pause", "resume", "restart", "pause-camera", "retire",
+            "pause", "pause-info", "resume", "restart", "pause-camera", "retire",
             "results", "results-title", "results-sub", "results-rows", "reward-lines", "reward-balance", "continue", "race-again",
         };
+
+        const int RpmSegments = 22;
+        const float RedlineFraction = 0.86f;
 
         public TouchControls Touch { get; private set; }
 
         RaceDirector director;
         GameSettings settings;
         VisualElement root;
-        Label lap, lapTime, bestLap, penalty, position, speed, gear, fps, notice;
-        VisualElement[] lights;
-        VisualElement lightsRoot;
-        RpmGauge rpm;
+        Label lap, lapTime, bestLap, penalty, position, speed, gear, fps, notice, bigText, bigSub;
+        VisualElement penaltyRow, rpmFill, progressFill;
+        readonly List<VisualElement> rpmSegments = new List<VisualElement>();
         TrackMap map;
-        readonly List<TowerRow> tower = new List<TowerRow>();
+        readonly List<BoardRow> board = new List<BoardRow>();
         readonly Dictionary<string, Color> carColors = new Dictionary<string, Color>();
         readonly List<Vector3> markerPositions = new List<Vector3>();
         readonly List<Color> markerColors = new List<Color>();
-        float noticeTimer, slowTimer, goTimer;
-        bool paused, wasCountdown;
+        float noticeTimer, bigTimer, slowTimer;
+        bool paused;
+        int lastCount = -1;
 
-        sealed class TowerRow
+        sealed class BoardRow
         {
             public VisualElement Root, Swatch;
             public Label Pos, Name, Gap;
@@ -58,17 +61,26 @@ namespace Gridline.UI
             lapTime = root.Q<Label>("lap-time");
             bestLap = root.Q<Label>("best-lap");
             penalty = root.Q<Label>("penalty");
+            penaltyRow = root.Q("penalty-row");
             position = root.Q<Label>("position");
             speed = root.Q<Label>("speed");
             gear = root.Q<Label>("gear");
             fps = root.Q<Label>("fps");
             notice = root.Q<Label>("notice");
-            lightsRoot = root.Q("lights");
-            lights = new VisualElement[5];
-            for (int i = 0; i < 5; i++) lights[i] = root.Q("light-" + i);
+            bigText = root.Q<Label>("big-text");
+            bigSub = root.Q<Label>("big-sub");
+            rpmFill = root.Q("rpm-fill");
+            progressFill = root.Q("progress-fill");
 
-            rpm = new RpmGauge();
-            root.Q("gauge").Insert(0, rpm);
+            var rpm = root.Q("rpm");
+            for (int i = 0; i < RpmSegments; i++)
+            {
+                var seg = new VisualElement();
+                seg.AddToClassList("rpm-seg");
+                seg.pickingMode = PickingMode.Ignore;
+                rpm.Add(seg);
+                rpmSegments.Add(seg);
+            }
             map = new TrackMap(director.track.points);
             root.Q("hud-map").Add(map);
 
@@ -84,8 +96,8 @@ namespace Gridline.UI
             Click("continue", () => director.QuitToMenu());
             Click("race-again", () => director.Restart());
 
-            BuildTower();
-            director.Notice += ShowNotice;
+            BuildBoard();
+            director.Notice += OnNotice;
             director.ResultsReady += ShowResults;
         }
 
@@ -95,7 +107,7 @@ namespace Gridline.UI
             if (b != null) b.clicked += action;
         }
 
-        void BuildTower()
+        void BuildBoard()
         {
             var rows = root.Q("tower-rows");
             var teams = GameServices.Save.teams;
@@ -105,21 +117,21 @@ namespace Gridline.UI
                 if (!car.isPlayer && car.profile != null)
                     foreach (var t in teams)
                         if (t.id == car.profile.teamId && ColorUtility.TryParseHtmlString(t.primaryColorHex, out Color parsed)) c = parsed;
-                carColors[car.racerId] = car.isPlayer ? new Color(1f, 0.72f, 0f) : c;
+                carColors[car.racerId] = car.isPlayer ? new Color(0.94f, 0.78f, 0.31f) : c;
 
-                var row = new TowerRow { Root = new VisualElement(), Pos = new Label(), Swatch = new VisualElement(), Name = new Label(), Gap = new Label() };
-                row.Root.AddToClassList("tower__row");
-                row.Pos.AddToClassList("tower__pos");
-                row.Swatch.AddToClassList("tower__swatch");
-                row.Name.AddToClassList("tower__name");
-                row.Gap.AddToClassList("tower__gap");
+                var row = new BoardRow { Root = new VisualElement(), Pos = new Label(), Swatch = new VisualElement(), Name = new Label(), Gap = new Label() };
+                row.Root.AddToClassList("board__row");
+                row.Pos.AddToClassList("board__pos");
+                row.Swatch.AddToClassList("board__swatch");
+                row.Name.AddToClassList("board__name");
+                row.Gap.AddToClassList("board__gap");
                 row.Root.Add(row.Pos);
                 row.Root.Add(row.Swatch);
                 row.Root.Add(row.Name);
                 row.Root.Add(row.Gap);
                 row.Root.pickingMode = PickingMode.Ignore;
                 rows.Add(row.Root);
-                tower.Add(row);
+                board.Add(row);
             }
         }
 
@@ -127,15 +139,45 @@ namespace Gridline.UI
         {
             if (r.isPlayer) return "YOU";
             string[] parts = r.displayName.Split(' ');
-            string last = parts[parts.Length - 1].ToUpperInvariant();
-            return last.Length > 3 ? last.Substring(0, 3) : last;
+            return parts[parts.Length - 1].ToUpperInvariant();
         }
 
-        void ShowNotice(string message)
+        void OnNotice(string message)
         {
-            notice.text = message;
-            notice.AddToClassList("notice__pill--show");
-            noticeTimer = 2.4f;
+            // Race-defining moments get the big centre treatment; everything else goes to the help box.
+            if (message == "GO!") Big("GO", "", "big-message__text--go", 1.0f);
+            else if (message == "FINAL LAP") Big("FINAL LAP", "", null, 2.0f);
+            else if (message.StartsWith("FINISH")) Big(OrdinalPosition(director.Player.Position), "FINISHED", "big-message__text--gold", 3.0f);
+            else
+            {
+                notice.text = message;
+                notice.AddToClassList("help--show");
+                noticeTimer = 3f;
+            }
+        }
+
+        void Big(string text, string sub, string extraClass, float seconds)
+        {
+            bigText.text = text;
+            bigSub.text = sub;
+            bigText.RemoveFromClassList("big-message__text--go");
+            bigText.RemoveFromClassList("big-message__text--gold");
+            if (extraClass != null) bigText.AddToClassList(extraClass);
+            bigText.AddToClassList("big-message__text--show");
+            bigTimer = seconds;
+        }
+
+        static string OrdinalPosition(int p)
+        {
+            string suffix = p % 100 >= 11 && p % 100 <= 13 ? "TH" : (p % 10 == 1 ? "ST" : p % 10 == 2 ? "ND" : p % 10 == 3 ? "RD" : "TH");
+            return p + suffix;
+        }
+
+        static string Clock(double seconds)
+        {
+            if (seconds <= 0) return "--:--.--";
+            int cs = (int)(seconds * 100);
+            return (cs / 6000).ToString("00") + ":" + (cs / 100 % 60).ToString("00") + "." + (cs % 100).ToString("00");
         }
 
         void SetPause(bool on)
@@ -143,6 +185,7 @@ namespace Gridline.UI
             if (director.Phase == RacePhase.Results) return;
             paused = on;
             ScreenNavigator.SetVisible(root.Q("pause"), on);
+            root.Q<Label>("pause-info").text = director.track.displayName.ToUpperInvariant();
             director.SetPaused(on);
         }
 
@@ -158,50 +201,75 @@ namespace Gridline.UI
             if (UnityEngine.Input.GetKeyDown(KeyCode.Escape) && director.Phase != RacePhase.Results) SetPause(!paused); // Android back button
 
             var p = director.Player;
-            lap.text = "LAP " + p.Laps.CurrentLap + "/" + director.TotalLaps;
-            position.text = "POSITION " + Mathf.Max(1, p.Position) + "/" + director.Cars.Count;
-            lapTime.text = director.ClockRunning && !p.Laps.Finished
-                ? RaceClassification.FormatTime((int)(p.Laps.CurrentLapElapsed(director.RaceTime) * 1000))
-                : RaceClassification.FormatTime(p.Laps.LastLapMs);
-            bestLap.text = "BEST " + RaceClassification.FormatTime(p.Laps.BestLapMs);
-            penalty.text = p.PenaltySeconds > 0f ? "+" + p.PenaltySeconds.ToString("0") + "s PEN" : "";
+            position.text = Mathf.Max(1, p.Position) + "/" + director.Cars.Count;
+            lap.text = p.Laps.CurrentLap + "/" + director.TotalLaps;
+            lapTime.text = director.ClockRunning && !p.Laps.Finished ? Clock(p.Laps.CurrentLapElapsed(director.RaceTime)) : Clock(p.Laps.LastLapMs / 1000.0);
+            bestLap.text = Clock(p.Laps.BestLapMs / 1000.0);
+            ScreenNavigator.SetVisible(penaltyRow, p.PenaltySeconds > 0f);
+            penalty.text = "+" + p.PenaltySeconds.ToString("0") + "S";
             speed.text = Mathf.RoundToInt(p.SpeedKmh).ToString();
             gear.text = VehicleSetup.GearLabel(p.Vehicle);
-            rpm.SetValue(VehicleSetup.RpmFraction(p.Vehicle));
-            UpdateLights();
 
+            float rpm = VehicleSetup.RpmFraction(p.Vehicle);
+            int lit = Mathf.RoundToInt(rpm * RpmSegments);
+            for (int i = 0; i < rpmSegments.Count; i++)
+            {
+                bool red = i >= RpmSegments * RedlineFraction;
+                rpmSegments[i].EnableInClassList("rpm-seg--on", i < lit && !red);
+                rpmSegments[i].EnableInClassList("rpm-seg--red", i < lit && red);
+            }
+            rpmFill.style.width = Length.Percent(rpm * 100f);
+            rpmFill.EnableInClassList("radar__fill--rpm-high", rpm > RedlineFraction);
+            float lapFraction = Mathf.Repeat(p.Laps.Progress, director.track.Length) / director.track.Length;
+            progressFill.style.width = Length.Percent(p.Laps.Progress < 0f ? 0f : lapFraction * 100f);
+
+            UpdateCountdown();
+            if (bigTimer > 0f)
+            {
+                bigTimer -= Time.unscaledDeltaTime;
+                if (bigTimer <= 0f) bigText.RemoveFromClassList("big-message__text--show");
+            }
             if (noticeTimer > 0f)
             {
                 noticeTimer -= Time.unscaledDeltaTime;
-                if (noticeTimer <= 0f) notice.RemoveFromClassList("notice__pill--show");
+                if (noticeTimer <= 0f) notice.RemoveFromClassList("help--show");
             }
 
             slowTimer -= Time.unscaledDeltaTime;
             if (slowTimer > 0f) return;
             slowTimer = 0.2f;
-            UpdateTower();
+            UpdateBoard();
             UpdateMap();
             var perf = director.perfLogger;
             fps.text = settings.showFps && perf != null ? perf.CurrentFps.ToString("0") + " FPS" : "";
         }
 
-        void UpdateTower()
+        void UpdateCountdown()
+        {
+            if (director.Phase != RacePhase.Countdown) return;
+            int count = Mathf.CeilToInt(director.CountdownRemaining);
+            if (count == lastCount || count <= 0) return;
+            lastCount = count;
+            Big(count.ToString(), "", null, 0.9f);
+        }
+
+        void UpdateBoard()
         {
             var rows = director.Standings;
             if (rows == null || rows.Count == 0) return;
             var leader = rows[0];
             float pace = director.RaceTime > 5.0 ? Mathf.Max(10f, leader.progress / (float)director.RaceTime) : 0f;
-            for (int i = 0; i < tower.Count && i < rows.Count; i++)
+            for (int i = 0; i < board.Count && i < rows.Count; i++)
             {
                 var r = rows[i];
-                var row = tower[i];
+                var row = board[i];
                 row.Pos.text = (i + 1).ToString();
                 row.Name.text = Code(r);
                 row.Swatch.style.backgroundColor = carColors.TryGetValue(r.id, out Color c) ? c : Color.white;
-                row.Root.EnableInClassList("tower__row--player", r.isPlayer);
-                if (r.finished) row.Gap.text = "FIN";
+                row.Root.EnableInClassList("board__row--player", r.isPlayer);
+                if (r.finished) row.Gap.text = "FINISHED";
                 else if (i == 0 || pace <= 0f) row.Gap.text = i == 0 ? "LEADER" : "";
-                else row.Gap.text = "+" + ((leader.progress - r.progress) / pace).ToString("0.0");
+                else row.Gap.text = "+" + ((leader.progress - r.progress) / pace).ToString("0.0") + "s";
             }
         }
 
@@ -221,30 +289,14 @@ namespace Gridline.UI
             map.SetMarkers(markerPositions, markerColors);
         }
 
-        void UpdateLights()
-        {
-            bool countdown = director.Phase == RacePhase.Countdown || director.Phase == RacePhase.Setup;
-            if (wasCountdown && !countdown) goTimer = 0.8f;
-            wasCountdown = countdown;
-            if (goTimer > 0f) goTimer -= Time.deltaTime;
-            bool show = countdown || goTimer > 0f;
-            ScreenNavigator.SetVisible(lightsRoot, show);
-            if (!show) return;
-            float elapsed = director.countdownSeconds - director.CountdownRemaining;
-            for (int i = 0; i < lights.Length; i++)
-            {
-                bool on = director.Phase == RacePhase.Countdown && elapsed >= (i + 1) * director.countdownSeconds / (lights.Length + 1);
-                lights[i].EnableInClassList("light--on", on && goTimer <= 0f);
-                lights[i].EnableInClassList("light--go", goTimer > 0f);
-            }
-        }
-
         void ShowResults()
         {
             ScreenNavigator.SetVisible(root.Q("pause"), false);
             Touch.SetVisible(false);
-            root.Q<Label>("results-title").text = RaceSession.EventName.ToUpperInvariant();
-            root.Q<Label>("results-sub").text = "RESULTS  ·  " + director.track.displayName.ToUpperInvariant() + "  ·  " + director.TotalLaps + " LAPS";
+            bigText.RemoveFromClassList("big-message__text--show");
+            int pos = director.Player.Position;
+            root.Q<Label>("results-title").text = pos == 1 ? "WINNER" : OrdinalPosition(pos) + " PLACE";
+            root.Q<Label>("results-sub").text = RaceSession.EventName.ToUpperInvariant() + "  ·  " + director.track.displayName.ToUpperInvariant() + "  ·  " + director.TotalLaps + " LAPS";
 
             var table = root.Q("results-rows");
             table.Clear();
@@ -257,38 +309,29 @@ namespace Gridline.UI
                 var row = new VisualElement();
                 row.AddToClassList("res-row");
                 if (r.isPlayer) row.AddToClassList("res-row--player");
-                var pos = new Label((i + 1).ToString());
-                pos.AddToClassList("res-pos");
-                if (i == 0) pos.AddToClassList("res-pos--p1");
+                var posLabel = new Label((i + 1).ToString());
+                posLabel.AddToClassList("res-cell");
+                posLabel.AddToClassList("res-pos");
                 var nameBox = new VisualElement();
-                nameBox.AddToClassList("grow");
-                var name = new Label(r.displayName.ToUpperInvariant());
-                name.AddToClassList("res-name");
+                nameBox.AddToClassList("res-name");
+                var name = new Label(r.displayName);
+                name.AddToClassList("res-cell");
                 var team = new Label(TeamName(r, teams));
                 team.AddToClassList("res-team");
                 nameBox.Add(name);
                 nameBox.Add(team);
                 string time = r.finished
-                    ? (i == 0 ? RaceClassification.FormatTime((int)(r.ClassifiedTime * 1000)) : "+" + (r.ClassifiedTime - winner).ToString("0.000"))
-                    : "DNF  " + r.lapsCompleted + " L";
-                if (r.penaltySeconds > 0f) time += "  (+" + r.penaltySeconds.ToString("0") + "s)";
+                    ? (i == 0 ? Clock(r.ClassifiedTime) : "+" + (r.ClassifiedTime - winner).ToString("0.000"))
+                    : "DNF  " + r.lapsCompleted + "L";
+                if (r.penaltySeconds > 0f) time += " (+" + r.penaltySeconds.ToString("0") + "s)";
                 var timeLabel = new Label(time);
+                timeLabel.AddToClassList("res-cell");
                 timeLabel.AddToClassList("res-time");
-                var best = new VisualElement();
+                var best = new Label(RaceClassification.FormatTime(r.bestLapMs));
+                best.AddToClassList("res-cell");
                 best.AddToClassList("res-best");
-                if (r.id == director.FastestLapId)
-                {
-                    best.AddToClassList("res-best--fastest");
-                    var star = new VisualElement();
-                    star.AddToClassList("icon");
-                    star.AddToClassList("icon--sm");
-                    star.AddToClassList("ic-timer");
-                    star.style.unityBackgroundImageTintColor = new Color(0.67f, 0.35f, 1f);
-                    star.style.marginRight = 8;
-                    best.Add(star);
-                }
-                best.Add(new Label(RaceClassification.FormatTime(r.bestLapMs)));
-                row.Add(pos);
+                if (r.id == director.FastestLapId) best.AddToClassList("res-best--fastest");
+                row.Add(posLabel);
                 row.Add(nameBox);
                 row.Add(timeLabel);
                 row.Add(best);
@@ -298,16 +341,16 @@ namespace Gridline.UI
             var lines = root.Q("reward-lines");
             lines.Clear();
             var reward = director.Reward;
-            if (reward == null) lines.Add(Line("Result not counted (test session)", "", false));
+            if (reward == null) lines.Add(Line("Result not counted (test session)", "", "t-muted"));
             else
             {
-                lines.Add(Line("Prize money · P" + reward.position, "+$" + reward.prizeMoney.ToString("N0"), true));
-                if (reward.fastestLapBonus > 0) lines.Add(Line("Fastest lap bonus", "+$" + reward.fastestLapBonus.ToString("N0"), true));
-                if (director.Entry != null && director.Entry.feeCharged > 0) lines.Add(Line("Entry fee", "−$" + director.Entry.feeCharged.ToString("N0"), false));
-                if (director.Entry != null && director.Entry.sponsorCovered) lines.Add(Line("Entry fee", "Sponsored", true));
-                lines.Add(Line("Reputation", "+" + reward.reputationGained, true));
-                lines.Add(Line("Championship points", "+" + reward.championshipPoints, true));
-                if (reward.newTrackRecord) lines.Add(Line("Personal best lap", RaceClassification.FormatTime(director.Player.Laps.BestLapMs), true));
+                lines.Add(Line("Prize · " + OrdinalPosition(reward.position), "+$" + reward.prizeMoney.ToString("N0"), "t-money"));
+                if (reward.fastestLapBonus > 0) lines.Add(Line("Fastest lap", "+$" + reward.fastestLapBonus.ToString("N0"), "t-money"));
+                if (director.Entry != null && director.Entry.feeCharged > 0) lines.Add(Line("Entry fee", "-$" + director.Entry.feeCharged.ToString("N0"), "t-red"));
+                if (director.Entry != null && director.Entry.sponsorCovered) lines.Add(Line("Entry fee", "SPONSORED", "t-gold"));
+                lines.Add(Line("Reputation", "+" + reward.reputationGained + " REP", "t-blue"));
+                lines.Add(Line("Championship", "+" + reward.championshipPoints + " PTS", "t-gold"));
+                if (reward.newTrackRecord) lines.Add(Line("Personal best", RaceClassification.FormatTime(director.Player.Laps.BestLapMs), "t-purple"));
             }
             root.Q<Label>("reward-balance").text = "$" + GameServices.Save.career.money.ToString("N0");
             ScreenNavigator.SetVisible(root.Q("results"), true);
@@ -315,23 +358,23 @@ namespace Gridline.UI
 
         static string TeamName(RacerSnapshot r, List<TeamProfile> teams)
         {
-            if (r.isPlayer) return "PRIVATEER";
+            if (r.isPlayer) return "Privateer";
             foreach (var d in GameServices.Save.aiDrivers)
                 if (d.id == r.id)
                     foreach (var t in teams)
-                        if (t.id == d.teamId) return t.displayName.ToUpperInvariant();
+                        if (t.id == d.teamId) return t.displayName;
             return "";
         }
 
-        static VisualElement Line(string label, string amount, bool positive)
+        static VisualElement Line(string label, string amount, string colourClass)
         {
             var row = new VisualElement();
-            row.AddToClassList("reward__line");
+            row.AddToClassList("reward-line");
             var l = new Label(label);
-            l.AddToClassList("t-muted");
+            l.AddToClassList("reward-line__label");
             var a = new Label(amount);
-            a.AddToClassList("reward__amount");
-            a.AddToClassList(positive ? "t-green" : "t-red");
+            a.AddToClassList("reward-line__amount");
+            a.AddToClassList(colourClass);
             row.Add(l);
             row.Add(a);
             return row;

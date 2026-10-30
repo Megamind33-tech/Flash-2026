@@ -23,6 +23,9 @@ def uss_to_css(uss):
         uri = "data:image/png;base64," + data
         return m.group(1) + '-webkit-mask-image: url("%s"); mask-image: url("%s");' % (uri, uri)
     css = re.sub(r'(\.ic-[\w-]+\s*\{\s*)background-image:\s*url\("\.\./Icons/([^"]+)"\);', icon, css)
+    # Alpha-ramp textures tinted black approximate as CSS gradients.
+    css = re.sub(r'background-image: url\("\.\./Textures/ramp_right\.png"\);\s*-unity-background-image-tint-color: ([^;]+);', r'background-image: linear-gradient(90deg, transparent, \1 60%);', css)
+    css = re.sub(r'background-image: url\("\.\./Textures/ramp_down\.png"\);\s*-unity-background-image-tint-color: ([^;]+);', r'background-image: linear-gradient(180deg, transparent, \1);', css)
     css = css.replace("-unity-background-image-tint-color", "background-color")
     css = re.sub(r'-unity-background-scale-mode:[^;]+;', '-webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center;', css)
     css = re.sub(r'-unity-text-align:\s*middle-center;', 'text-align: center; justify-content: center;', css)
@@ -46,13 +49,22 @@ body { background: #0b0d12; }
 .uxml-root { position: absolute; inset: 0; }
 """
 
+def inline_urls(style):
+    import base64
+    def rep(m):
+        path = os.path.normpath(os.path.join(UI, "Uxml", m.group(1)))
+        if not os.path.exists(path): return "url('')"
+        mime = "image/jpeg" if path.endswith(".jpg") else "image/png"
+        return "url('data:%s;base64,%s'); background-size: cover; background-position: center" % (mime, base64.b64encode(open(path, "rb").read()).decode())
+    return re.sub(r"url\('([^']+)'\)", rep, style)
+
 def convert(node):
     tag = node.tag.split('}')[-1]
     if tag == "Style": return ""
     attrs = node.attrib
     cls = attrs.get("class", "")
     name = attrs.get("name", "")
-    style = attrs.get("style", "")
+    style = inline_urls(attrs.get("style", ""))
     kids = "".join(convert(c) for c in node)
     text = attrs.get("text", "")
     if tag == "Label":
@@ -105,69 +117,87 @@ def rpm_svg(value):
     return ('<svg width="%d" height="%d" style="position:absolute;left:0;top:0">%s%s%s</svg>' %
             (w, h, arc(0, 1, "rgba(255,255,255,0.12)"), arc(0.86, 1, "rgba(225,16,30,0.35)"), arc(0, value, "#f3f5f8")))
 
+RENDERS = os.environ.get("GL_RENDERS", os.path.join(ROOT, "docs/renders"))
+def bg(name, fallback):
+    path = os.path.join(RENDERS, name + ".png")
+    if os.path.exists(path):
+        import base64
+        return "background: #000 url('data:image/png;base64,%s') center/cover no-repeat;" % base64.b64encode(open(path, "rb").read()).decode()
+    return fallback
+
 MENU_JS = """
 document.getElementById('event-map').innerHTML = `%s`;
-document.getElementById('driver-name').textContent = 'ROOKIE';
-document.getElementById('driver-rank').textContent = 'AMATEUR  ·  REPUTATION 20  ·  3 RACES';
-document.getElementById('stat-money').textContent = '$9,550';
-document.getElementById('stat-points').textContent = '55';
-document.getElementById('stat-wins').textContent = '1';
-document.getElementById('stat-podiums').textContent = '2';
-document.getElementById('event-best').textContent = 'PERSONAL BEST 1:14.982';
-document.getElementById('version').textContent = 'v0.1.3  ·  Unity 6000.3.27f1';
-for (const id of ['steer-touch','gear-auto','quality-1','fps-off']) document.getElementById(id).classList.add('segment--on');
-""" % circuit_svg(230, 170)
+const set = (id, t) => { const e = document.getElementById(id); if (e) e.textContent = t; };
+set('status-money', '$9,550'); set('status-name', 'ROOKIE'); set('rep-rank', '1');
+document.getElementById('rep-fill').style.width = '80%%';
+set('race-fee', '$250'); set('nui-subtitle', 'THE RACING LEAGUE'); set('nui-counter', '3 ITEMS');
+set('nui-desc-text', 'Ashford Club Sprint\\nAshford Airfield Circuit · 2.36 km · 3 laps · 5 cars\\nWin $3,000 · Personal best 1:14.982');
+document.getElementById('nui-desc-text').style.whiteSpace = 'pre-line';
+set('version', 'v0.1.4  ·  Unity 6000.3.27f1');
+""" % circuit_svg(180, 130)
+
+SETTINGS_JS = MENU_JS + """
+document.getElementById('page-main').classList.add('hidden');
+document.getElementById('page-settings').classList.remove('hidden');
+document.getElementById('event-map').classList.add('hidden');
+document.getElementById('opt-steering').classList.add('nui__item--selected');
+set('nui-subtitle', 'SETTINGS'); set('nui-counter', '7 ITEMS');
+set('nui-desc-text', "Tap an option to change it. Tilt steering uses the phone's motion sensor; a Bluetooth controller also works.");
+"""
 
 HUD_JS = """
-const rows = [['1','REY','#1F4E8C','LEADER',false],['2','LIN','#B3261E','+0.8',false],['3','YOU','#FFB800','+1.9',true],['4','OKA','#E0A100','+3.4',false],['5','BRA','#2E7D32','+6.1',false]];
+const set = (id, t) => { const e = document.getElementById(id); if (e) e.textContent = t; };
+const rows = [['1','REYES','#1F4E8C','LEADER',false],['2','LINDQVIST','#B3261E','+0.8s',false],['3','YOU','#F0C850','+1.9s',true],['4','OKAFOR','#E0A100','+3.4s',false],['5','BRANDT','#2E7D32','+6.1s',false]];
 const host = document.getElementById('tower-rows');
 for (const r of rows) {
-  const row = document.createElement('div'); row.className = 'tower__row' + (r[4] ? ' tower__row--player' : '');
-  row.innerHTML = `<div class="label tower__pos">${r[0]}</div><div class="tower__swatch" style="background-color:${r[2]}"></div><div class="label tower__name">${r[1]}</div><div class="label tower__gap">${r[3]}</div>`;
+  const row = document.createElement('div'); row.className = 'board__row' + (r[4] ? ' board__row--player' : '');
+  row.innerHTML = `<div class="label board__pos">${r[0]}</div><div class="board__swatch" style="background-color:${r[2]}"></div><div class="label board__name">${r[1]}</div><div class="label board__gap">${r[3]}</div>`;
   host.appendChild(row);
 }
-document.getElementById('lap').textContent = 'LAP 2/3';
-document.getElementById('position').textContent = 'POSITION 3/5';
-document.getElementById('lap-time').textContent = '0:41.276';
-document.getElementById('best-lap').textContent = 'BEST 1:15.204';
-document.getElementById('speed').textContent = '187';
-document.getElementById('gear').textContent = '5';
+set('position', '3/5'); set('lap', '2/3'); set('lap-time', '00:41.27'); set('best-lap', '01:15.20');
+set('speed', '187'); set('gear', '5');
+document.getElementById('rpm-fill').style.width = '78%%';
+document.getElementById('progress-fill').style.width = '35%%';
+const rpm = document.getElementById('rpm');
+for (let i = 0; i < 22; i++) { const s = document.createElement('div'); s.className = 'rpm-seg' + (i < 17 ? (i >= 19 ? ' rpm-seg--red' : ' rpm-seg--on') : ''); rpm.appendChild(s); }
 document.getElementById('hud-map').innerHTML = `%s`;
-document.getElementById('gauge').insertAdjacentHTML('afterbegin', `%s`);
-document.getElementById('lights').classList.add('hidden');
-document.getElementById('notice').textContent = 'FINAL LAP';
-document.getElementById('notice').classList.add('notice__pill--show');
-""" % (circuit_svg(270 - 56, 200 - 48, [(0.62, '#1F4E8C'), (0.6, '#B3261E'), (0.54, '#E0A100'), (0.5, '#2E7D32'), (0.57, '#FFB800')]), rpm_svg(0.78))
+set('big-text', 'FINAL LAP'); document.getElementById('big-text').classList.add('big-message__text--show');
+""" % circuit_svg(324, 224, [(0.62, '#1F4E8C'), (0.6, '#B3261E'), (0.54, '#E0A100'), (0.5, '#2E7D32'), (0.57, '#F0C850')])
 
-LIGHTS_JS = HUD_JS.replace("document.getElementById('lights').classList.add('hidden');", "for (const i of [0,1,2]) document.getElementById('light-'+i).classList.add('light--on');").replace("document.getElementById('notice').classList.add('notice__pill--show');", "")
+LIGHTS_JS = HUD_JS.replace("set('big-text', 'FINAL LAP');", "set('big-text', '2');").replace("set('lap', '2/3')", "set('lap', '1/3')").replace("set('speed', '187')", "set('speed', '0')").replace("set('gear', '5')", "set('gear', '1')")
 
 RESULTS_JS = HUD_JS + """
+document.getElementById('big-text').classList.remove('big-message__text--show');
 document.getElementById('controls').classList.add('hidden');
 document.getElementById('results').classList.remove('hidden');
-document.getElementById('results-title').textContent = 'ASHFORD CLUB SPRINT';
-document.getElementById('results-sub').textContent = 'RESULTS  ·  ASHFORD AIRFIELD CIRCUIT  ·  3 LAPS';
-const res = [['1','MATEO REYES','HALDEN MOTORSPORT','3:47.912','1:14.770',false,false],['2','ROOKIE','PRIVATEER','+1.204','1:14.512',true,true],['3','ELIN LINDQVIST','CORSAIR RACING','+2.880','1:15.031',false,false],['4','DANIEL OKAFOR','VANTOR ENGINEERING','+6.415','1:15.840',false,false],['5','JONAS BRANDT','NORTHLINE GP','+9.002','1:16.207',false,false]];
+set('results-title', '2ND PLACE');
+set('results-sub', 'ASHFORD CLUB SPRINT  ·  ASHFORD AIRFIELD CIRCUIT  ·  3 LAPS');
+const res = [['1','Mateo Reyes','Halden Motorsport','03:47.91','1:14.770',false,false],['2','Rookie','Privateer','+1.204','1:14.512',true,true],['3','Elin Lindqvist','Corsair Racing','+2.880','1:15.031',false,false],['4','Daniel Okafor','Vantor Engineering','+6.415','1:15.840',false,false],['5','Jonas Brandt','Northline GP','+9.002','1:16.207',false,false]];
 const t = document.getElementById('results-rows');
 for (const r of res) {
   const row = document.createElement('div'); row.className = 'res-row' + (r[5] ? ' res-row--player' : '');
-  row.innerHTML = `<div class="label res-pos ${r[0]==='1'?'res-pos--p1':''}">${r[0]}</div><div class="grow"><div class="label res-name">${r[1]}</div><div class="label res-team">${r[2]}</div></div><div class="label res-time">${r[3]}</div><div class="res-best ${r[6]?'res-best--fastest':''}">${r[6]?'<div class="icon icon--sm ic-timer" style="background-color:#ab5aff;margin-right:8px"></div>':''}<div class="label">${r[4]}</div></div>`;
+  row.innerHTML = `<div class="label res-cell res-pos">${r[0]}</div><div class="res-name"><div class="label res-cell">${r[1]}</div><div class="label res-team">${r[2]}</div></div><div class="label res-cell res-time">${r[3]}</div><div class="label res-cell res-best ${r[6]?'res-best--fastest':''}">${r[4]}</div>`;
   t.appendChild(row);
 }
-const lines = [['Prize money · P2','+$1,800',true],['Fastest lap bonus','+$250',true],['Entry fee','−$250',false],['Reputation','+10',true],['Championship points','+18',true]];
+const lines = [['Prize · 2ND','+$1,800','t-money'],['Fastest lap','+$250','t-money'],['Entry fee','-$250','t-red'],['Reputation','+10 REP','t-blue'],['Championship','+18 PTS','t-gold']];
 const l = document.getElementById('reward-lines');
-for (const x of lines) { const d = document.createElement('div'); d.className='reward__line'; d.innerHTML = `<div class="label t-muted">${x[0]}</div><div class="label reward__amount ${x[2]?'t-green':'t-red'}">${x[1]}</div>`; l.appendChild(d); }
-document.getElementById('reward-balance').textContent = '$11,350';
-document.getElementById('notice').classList.remove('notice__pill--show');
+for (const x of lines) { const d = document.createElement('div'); d.className='reward-line'; d.innerHTML = `<div class="label reward-line__label">${x[0]}</div><div class="label reward-line__amount ${x[2]}">${x[1]}</div>`; l.appendChild(d); }
+set('reward-balance', '$11,350');
 """
 
-SETTINGS_JS = MENU_JS + "document.getElementById('settings-sheet').classList.remove('hidden');"
+PAUSE_JS = HUD_JS + """
+document.getElementById('big-text').classList.remove('big-message__text--show');
+document.getElementById('pause').classList.remove('hidden');
+set('pause-info', 'ASHFORD AIRFIELD CIRCUIT');
+"""
 
-MENU_BG = "background: radial-gradient(ellipse at 72% 60%, #3a4250 0%, #1a1e26 45%, #0b0d12 100%);"
-HUD_BG = "background: linear-gradient(180deg, #8fa3b8 0%, #b9c6d2 38%, #4b5148 39%, #2b2e30 70%, #1d1f21 100%);"
+MENU_BG = bg("showroom", "background: radial-gradient(ellipse at 72% 60%, #3a4250 0%, #1a1e26 45%, #0b0d12 100%);")
+HUD_BG = bg("chase", "background: linear-gradient(180deg, #8fa3b8 0%, #b9c6d2 38%, #4b5148 39%, #2b2e30 70%, #1d1f21 100%);")
+GRID_BG = bg("grid-start", HUD_BG)
 
 shots = [("menu", "MainMenu.uxml", MENU_JS, MENU_BG), ("settings", "MainMenu.uxml", SETTINGS_JS, MENU_BG),
-         ("hud", "RaceHud.uxml", HUD_JS, HUD_BG), ("start-lights", "RaceHud.uxml", LIGHTS_JS, HUD_BG),
-         ("results", "RaceHud.uxml", RESULTS_JS, HUD_BG)]
+         ("hud", "RaceHud.uxml", HUD_JS, HUD_BG), ("countdown", "RaceHud.uxml", LIGHTS_JS, GRID_BG),
+         ("pause", "RaceHud.uxml", PAUSE_JS, HUD_BG), ("results", "RaceHud.uxml", RESULTS_JS, HUD_BG)]
 for name, uxml, js, bg in shots:
     open(os.path.join(OUT, "_%s.html" % name), "w").write(page(uxml, js, bg))
 # Screenshots via the preinstalled Node Playwright + Chromium (see shoot.js).

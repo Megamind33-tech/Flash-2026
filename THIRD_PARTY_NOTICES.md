@@ -8,7 +8,7 @@
 | ambientCG surface textures | `Assets/Gridline/Art/Textures/Surfaces` | CC0 1.0 | Asphalt031, Grass004, Concrete034, Gravel022 (`CREDITS.md`) |
 | Livery textures | `Assets/Gridline/Art/Textures/Liveries` | Derived from RVP public-domain texture | Recoloured paint regions |
 | UI screen architecture | `Assets/Gridline/UI`, `Runtime/UI/ScreenNavigator.cs` | MIT (Unity Technologies, "Unity Royale" UI Toolkit demo) | `Assets/Gridline/UI/FORK_NOTICE.md` |
-| Titillium Web font | `Assets/Gridline/UI/Fonts` | SIL Open Font License 1.1 | `OFL.txt` alongside |
+| Bebas Neue, Barlow, Barlow Condensed fonts | `Assets/Gridline/UI/Fonts` | SIL Open Font License 1.1 | `OFL-*.txt` alongside |
 | Material Icons (Google) | `Assets/Gridline/UI/Icons` | Apache License 2.0 | Recoloured white; licence alongside |
 | Unity packages (URP, Test Framework) | `Packages/manifest.json` | Unity Companion License | Resolved by Unity Package Manager |
 

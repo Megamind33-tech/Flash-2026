@@ -105,7 +105,7 @@ namespace Gridline.Tests
             Assert.IsNotNull(menu, "MainMenuController missing");
             var root = menu.GetComponent<UIDocument>().rootVisualElement;
             Assert.IsNotNull(root.Q("race-button"), "Menu UI was not built");
-            var name = root.Q<Label>("driver-name");
+            var name = root.Q<Label>("status-name");
             Assert.IsNotNull(name);
             Assert.IsFalse(string.IsNullOrEmpty(name.text), "Career card was not populated");
         }
