@@ -23,10 +23,8 @@ Evaluated, not adopted yet: **dot-ui** (MIT, needs dot-core, "partially tested";
 - **Circuit decision:** no realistic, legally clean *complete* circuit is downloadable here (Sketchfab connector still
   unauthenticated; most "free" complete circuits there are game rips or trademarked real tracks; the CC0 complete
   circuit found — eracoon Racing Assets v1 — is kart-scale and cartoon). So Ashford (already full race
-  infrastructure + tuned AI/race logic) was **dressed with complete CC0 kits** instead of being replaced:
-  - Kenney Racing Kit (CC0): pit garage row + stacked pit office, hospitality tents, catch fencing above the pit
-    wall, sponsor boards on the outside of corners, flags + start light at the line — re-skinned with PBR materials,
-    alpha-tested (no alpha blending), cheap box colliders.
+  infrastructure + tuned AI/race logic) was dressed with realistic CC0 assets instead of being replaced:
+  - Kenney Racing Kit (CC0) was integrated and then **removed at the owner's request** (too cartoonish).
   - Poly Haven (CC0): partly-cloudy HDRI sky for lighting/reflections; 1,300 trees as cross-quad impostors rendered
     from Poly Haven tree models, in 42 distance-culled MultiMesh chunks (4 tris per tree vs 300k–400k in source).
   - AgX tonemapping + light grading; chase camera now avoids clipping through walls; tyre-squeal and impact
@@ -56,7 +54,7 @@ Evaluated, not adopted yet: **dot-ui** (MIT, needs dot-core, "partially tested";
 1. **Device test** (blocking): install on one budget + one mid-range phone, record FPS per quality tier.
 2. Brake/grip tuning (target ~9 m/s²) and steering feel on touch.
 3. Release AAB: needs your upload keystore (not generated here so you own the signing identity).
-4. Sketchfab access (to evaluate the CC-BY "Race Track Assets Pack"), Talo leaderboards (access key).
+4. Realistic pit buildings / sponsor boards: BlendSwap MCP configured but the API key returns HTTP 401; Sketchfab connector unauthenticated (CC-BY "Race Track Assets Pack" pending). Talo leaderboards need an access key.
 5. Device profiling: FPS, frame time, memory, draw calls, load time per quality tier — not measurable here.
 
 ## Commands
