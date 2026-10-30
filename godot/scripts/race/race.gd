@@ -50,6 +50,7 @@ func _ready() -> void:
 	track = TrackPath.ashford()
 	_build_environment()
 	TrackBuilder.build(self)
+	WorldDressing.build(self, track, Game.quality() >= 1 or not autotest)
 	if Game.session["affects_career"] and not Game.session["entry_paid"]:
 		receipt = Game.enter_race(event)
 		Game.session["entry_paid"] = true
@@ -70,20 +71,19 @@ func _ready() -> void:
 
 func _build_environment() -> void:
 	var env := Environment.new()
-	var sky_mat := ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color(0.32, 0.48, 0.7)
-	sky_mat.sky_horizon_color = Color(0.72, 0.76, 0.8)
-	sky_mat.ground_horizon_color = Color(0.6, 0.62, 0.6)
-	sky_mat.ground_bottom_color = Color(0.25, 0.27, 0.25)
-	sky_mat.sun_angle_max = 20.0
 	var sky := Sky.new()
-	sky.sky_material = sky_mat
+	sky.sky_material = make_sky_material()
+	sky.radiance_size = Sky.RADIANCE_SIZE_64 if Game.quality() == 0 else Sky.RADIANCE_SIZE_128
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	env.ambient_light_energy = 0.9
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.tonemap_mode = Environment.TONE_MAPPER_AGX
+	env.tonemap_exposure = 1.05
+	env.adjustment_enabled = true
+	env.adjustment_contrast = 1.06
+	env.adjustment_saturation = 1.08
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.7, 0.75, 0.8)
 	env.fog_density = 0.0012
@@ -102,6 +102,20 @@ func _build_environment() -> void:
 	sun.directional_shadow_max_distance = 60.0 if Game.quality() == 1 else 90.0
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
 	add_child(sun)
+
+
+## Poly Haven CC0 HDRI sky (assets/world/LICENSES.md); procedural fallback if the file is missing.
+static func make_sky_material() -> Material:
+	var hdr := "res://assets/world/sky_kloofendal_48d_partly_cloudy_1k.hdr"
+	if ResourceLoader.exists(hdr):
+		var pano := PanoramaSkyMaterial.new()
+		pano.panorama = load(hdr)
+		pano.energy_multiplier = 1.1
+		return pano
+	var sky_mat := ProceduralSkyMaterial.new()
+	sky_mat.sky_top_color = Color(0.32, 0.48, 0.7)
+	sky_mat.sky_horizon_color = Color(0.72, 0.76, 0.8)
+	return sky_mat
 
 
 func _spawn_grid() -> void:

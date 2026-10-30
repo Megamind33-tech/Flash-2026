@@ -30,6 +30,8 @@ var offroad := false
 var _previous_speed := 0.0
 var _wheels: Array[VehicleWheel3D] = []
 var _engine: AudioStreamPlayer3D
+var _skid: AudioStreamPlayer3D
+var _impact: AudioStreamPlayer3D
 
 const GEARS := 6
 
@@ -39,6 +41,8 @@ func _ready() -> void:
 		if c is VehicleWheel3D:
 			_wheels.append(c)
 	_engine = get_node_or_null("Engine") as AudioStreamPlayer3D
+	_skid = get_node_or_null("Skid") as AudioStreamPlayer3D
+	_impact = get_node_or_null("Impact") as AudioStreamPlayer3D
 
 
 func _physics_process(delta: float) -> void:
@@ -89,8 +93,17 @@ func _physics_process(delta: float) -> void:
 
 	_update_gearbox(fwd_speed, thr)
 
+	if _skid:
+		var slip := 1.0
+		for w in _wheels:
+			slip = minf(slip, w.get_skidinfo())
+		var squeal := clampf((0.7 - slip) * 2.5, 0.0, 1.0) if speed > 5.0 and not offroad else 0.0
+		_skid.volume_db = lerpf(-40.0, -6.0, squeal)
 	if absf(speed - _previous_speed) > 3.0:
 		impact.emit(absf(speed - _previous_speed))
+		if _impact and not _impact.playing:
+			_impact.play()
+		Input.vibrate_handheld(80)
 	_previous_speed = speed
 
 

@@ -34,6 +34,13 @@ func _physics_process(delta: float) -> void:
 		look_at(global_position + target.global_basis.z * 10.0, Vector3.UP)
 	else:
 		var desired := target.global_position + rot * Vector3(0, MODES[mode][1], -MODES[mode][0])
+		# Collision avoidance: pull the camera in front of walls/buildings between it and the car.
+		var pivot := target.global_position + Vector3.UP * 1.2
+		var q := PhysicsRayQueryParameters3D.create(pivot, desired)
+		q.exclude = [target.get_rid()]
+		var hit := get_world_3d().direct_space_state.intersect_ray(q)
+		if not hit.is_empty() and not (hit["collider"] is RaceCarBody):
+			desired = hit["position"] + (pivot - desired).normalized() * 0.4
 		global_position = desired if _snap else global_position.lerp(desired, clampf(delta * 9.0, 0.0, 1.0))
 		look_at(target.global_position + Vector3.UP * 1.0 + rot * Vector3(0, 0, 3.0), Vector3.UP)
 	fov = lerpf(fov, 62.0 + 10.0 * clampf(speed / 55.0, 0.0, 1.0), clampf(delta * 3.0, 0.0, 1.0))

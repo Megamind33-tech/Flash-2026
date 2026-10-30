@@ -30,14 +30,11 @@ func _build_showroom() -> void:
 	add_child(world)
 	var env := Environment.new()
 	var sky := Sky.new()
-	var sm := ProceduralSkyMaterial.new()
-	sm.sky_top_color = Color(0.32, 0.45, 0.62)
-	sm.sky_horizon_color = Color(0.74, 0.7, 0.62)
-	sky.sky_material = sm
+	sky.sky_material = preload("res://scripts/race/race.gd").make_sky_material()
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.tonemap_mode = Environment.TONE_MAPPER_AGX
 	var we := WorldEnvironment.new()
 	we.environment = env
 	world.add_child(we)
@@ -47,10 +44,11 @@ func _build_showroom() -> void:
 	sun.shadow_enabled = true
 	world.add_child(sun)
 	TrackBuilder.build(world)
+	WorldDressing.build(world, TrackPath.ashford(), Game.quality() >= 1)
 	viewport_car = CarBuilder.build("player_white", false)
-	viewport_car.freeze = true
+	# Not frozen: let the car settle on its real suspension (input disabled = parking brake on).
 	world.add_child(viewport_car)
-	viewport_car.position = Vector3(30, 0.05, 1.5)
+	viewport_car.position = Vector3(30, 0.4, 1.5)
 	viewport_car.rotation.y = PI * 0.5
 	cam = Camera3D.new()
 	cam.fov = 40.0

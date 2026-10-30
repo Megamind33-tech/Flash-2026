@@ -1,6 +1,6 @@
 # GRIDLINE on Godot — status
 
-_Branch `godot-migration` · Godot 4.7.2 (Mobile renderer) · updated 2026-10-30 · deadline Fri 6 Nov 2026_
+_Branches `godot-migration` (port) → `racing-world` (circuit dressing) · Godot 4.7.2 Mobile · updated 2026-10-30 · deadline Fri 6 Nov 2026_
 
 ## Inventory (Phase 1) — what existed and what was carried over
 | Existing (Unity era, preserved untouched) | Licence | Godot port |
@@ -19,17 +19,31 @@ multi-touch pads use Godot's built-in `TouchScreenButton` (slide-between-buttons
 Evaluated, not adopted yet: **dot-ui** (MIT, needs dot-core, "partially tested"; our UI already covers the screens);
 **Talo** (MIT plugin; needs an access key from the Talo dashboard — ready to add for online lap leaderboards).
 
+## Racing world (branch `racing-world`, assets isolated in `godot/assets/world/`, licences in `assets/world/LICENSES.md`)
+- **Circuit decision:** no realistic, legally clean *complete* circuit is downloadable here (Sketchfab connector still
+  unauthenticated; most "free" complete circuits there are game rips or trademarked real tracks; the CC0 complete
+  circuit found — eracoon Racing Assets v1 — is kart-scale and cartoon). So Ashford (already full race
+  infrastructure + tuned AI/race logic) was **dressed with complete CC0 kits** instead of being replaced:
+  - Kenney Racing Kit (CC0): pit garage row + stacked pit office, hospitality tents, catch fencing above the pit
+    wall, sponsor boards on the outside of corners, flags + start light at the line — re-skinned with PBR materials,
+    alpha-tested (no alpha blending), cheap box colliders.
+  - Poly Haven (CC0): partly-cloudy HDRI sky for lighting/reflections; 1,300 trees as cross-quad impostors rendered
+    from Poly Haven tree models, in 42 distance-culled MultiMesh chunks (4 tris per tree vs 300k–400k in source).
+  - AgX tonemapping + light grading; chase camera now avoids clipping through walls; tyre-squeal and impact
+    audio (RVP CC0/CC-BY sounds) + haptic bump on impacts; showroom car settles on real suspension.
+- Circuits B (street) and C (scenic) not started, as instructed, until A is stable on a device.
+
 ## What works — verified in this container
 | Check | Result | How |
 |---|---|---|
 | Godot 4.7.2 headless import of all assets | ✅ | `--headless --import` |
 | Core tests | ✅ 11/11 | `tests/core_tests.gd` |
-| Full AI race, 5 cars, grid → countdown → laps → finish → classification | ✅ all finish, 0 recoveries | `race.tscn -- --autotest 2` |
+| Full AI race, 5 cars, grid → countdown → laps → finish → classification | ✅ all finish, 0 recoveries (3 laps, on the dressed circuit) | `race.tscn -- --autotest 3` |
 | Lap times | 1:15.5 – 1:17.8 (design target 71–77 s) | autotest log |
 | Car: 0–100 km/h | 4.18 s | `tests/drive_test.tscn` |
 | Car: braking 111→0 km/h | 70.5 m (grip-limited, ~6.7 m/s² — tune) | drive test |
 | Real rendered frames (Mobile renderer, software Vulkan) | ✅ menu, grid, racing, results | `docs/godot/*.png` |
-| Android APK, arm64-v8a, signed (debug key) | ✅ 45 MB, minSdk 24, targetSdk 36, `com.gridline.racingleague` | `--export-debug "Android"`, `apksigner verify`, `aapt dump badging` |
+| Android APK 0.3.0, arm64-v8a, signed (debug key, v2+v3) | ✅ 51 MB, minSdk 24, targetSdk 36, `com.gridline.racingleague` | `--export-debug "Android"`, `apksigner verify`, `aapt dump badging` |
 
 ## What is NOT verified
 - **No Android device test yet.** Installability, touch feel, tilt mapping, frame rate, thermals are unverified until
@@ -41,8 +55,9 @@ Evaluated, not adopted yet: **dot-ui** (MIT, needs dot-core, "partially tested";
 ## Known issues / next tasks (in order)
 1. **Device test** (blocking): install on one budget + one mid-range phone, record FPS per quality tier.
 2. Brake/grip tuning (target ~9 m/s²) and steering feel on touch.
-3. Trackside dressing (CC0/CC-BY trees and rocks identified in `docs/STUNT_RALLY_3_AUDIT.md`).
-4. Release signing key + AAB for Play (needs your keystore), Talo leaderboards (needs your access key).
+3. Release AAB: needs your upload keystore (not generated here so you own the signing identity).
+4. Sketchfab access (to evaluate the CC-BY "Race Track Assets Pack"), Talo leaderboards (access key).
+5. Device profiling: FPS, frame time, memory, draw calls, load time per quality tier — not measurable here.
 
 ## Commands
 `godot/tools_build.sh` (set `GODOT=`) runs import → core tests → AI race → [`--shots`] → APK export.

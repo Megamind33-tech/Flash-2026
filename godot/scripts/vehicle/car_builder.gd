@@ -141,6 +141,19 @@ static func build(livery: String, with_audio: bool) -> RaceCarBody:
 		eng.autoplay = true
 		eng.unit_size = 8.0
 		car.add_child(eng)
+		var skid := AudioStreamPlayer3D.new()
+		skid.name = "Skid"
+		var ss: AudioStreamWAV = load("res://assets/audio/tirescreech.wav").duplicate()
+		ss.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		ss.loop_end = int(ss.get_length() * ss.mix_rate)
+		skid.stream = ss
+		skid.volume_db = -40.0
+		skid.autoplay = true
+		car.add_child(skid)
+		var hit := AudioStreamPlayer3D.new()
+		hit.name = "Impact"
+		hit.stream = load("res://assets/audio/carhit2.wav")
+		car.add_child(hit)
 	return car
 
 
