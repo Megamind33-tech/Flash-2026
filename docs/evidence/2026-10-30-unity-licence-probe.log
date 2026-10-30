@@ -1,0 +1,7 @@
+# Unity 6000.3.27f1 batchmode probe, 2026-10-30T15:44:29Z, host: Ubuntu 24.04 x86_64, 4 vCPU, 15 GiB RAM
+# Command: Unity -batchmode -nographics -quit -createProject EmptyProj -logFile unity.log  -> exit code 198
+Unity Editor version:    6000.3.27f1 (672d562a42a7)
+[Licensing::Module] Error: Access token is unavailable; failed to update
+[Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
+[Licensing::Module] Error: 'com.unity.editor.headless' was not found.
+No valid Unity Editor license found. Please activate your license.
