@@ -37,3 +37,8 @@ artifacts/
 /Assets/Gridline/Generated.meta
 /Assets/Gridline/Scenes/
 /Assets/Gridline/Scenes.meta
+# Godot port
+/godot/.godot/
+/godot/export_credentials.cfg
+/builds/
+*.idsig
