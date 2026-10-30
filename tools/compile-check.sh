@@ -20,11 +20,9 @@ csc() { local out=$1; shift; "$E/NetCoreRuntime/dotnet" "$E/DotNetSdkRoslyn/csc.
   -langversion:9 -nowarn:0618,0649,0414,0169 -warnaserror- -define:"$DEFS" -out:"$OUT/$out" "${BASE[@]}" "$@"; echo "ok  $out"; }
 files() { find "$@" -name '*.cs' -print0 | xargs -0 printf '%s\n'; }
 
-mapfile -t UGUI < <(files "$PKG/com.unity.ugui/Runtime/UGUI" "$PKG/com.unity.ugui/Runtime/InternalBridge")
-csc UnityEngine.UI.dll -unsafe "${UGUI[@]}"
 mapfile -t F < <(files "$ROOT/Assets/Gridline/Core");                   csc Gridline.Core.dll "${F[@]}"
 mapfile -t F < <(files "$ROOT/Assets/ThirdParty/RVP/Scripts");          csc RVP.Runtime.dll "${ED[@]}" -define:"$DEFS;UNITY_EDITOR" "${F[@]}"
-R=(-r:"$OUT/Gridline.Core.dll" -r:"$OUT/RVP.Runtime.dll" -r:"$OUT/UnityEngine.UI.dll")
+R=(-r:"$OUT/Gridline.Core.dll" -r:"$OUT/RVP.Runtime.dll")
 mapfile -t F < <(files "$ROOT/Assets/Gridline/Runtime");                csc Gridline.Runtime.dll "${R[@]}" "${F[@]}"
 R+=(-r:"$OUT/Gridline.Runtime.dll")
 mapfile -t F < <(files "$ROOT/Assets/Gridline/Editor");                 csc Gridline.Editor.dll "${ED[@]}" "${R[@]}" "${F[@]}"

@@ -59,6 +59,14 @@ namespace Gridline.Vehicle
             return forward.ToString();
         }
 
+        /// <summary>Engine speed as 0..1 of the motor's pitch range (RVP drives engine audio pitch from RPM).</summary>
+        public static float RpmFraction(VehicleParent vp)
+        {
+            var motor = vp != null ? vp.engine : null;
+            if (motor == null || motor.maxPitch <= motor.minPitch) return 0f;
+            return Mathf.Clamp01((motor.targetPitch - motor.minPitch) / (motor.maxPitch - motor.minPitch));
+        }
+
         /// <summary>
         /// Builds a render-only copy of a vehicle prefab (meshes and materials, no physics or scripts), e.g. for the menu showroom.
         /// </summary>

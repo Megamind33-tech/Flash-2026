@@ -3,8 +3,7 @@
     "rootNamespace": "Gridline",
     "references": [
         "Gridline.Core",
-        "RVP.Runtime",
-        "UnityEngine.UI"
+        "RVP.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

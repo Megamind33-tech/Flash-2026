@@ -27,6 +27,7 @@ namespace Gridline.Race
         public Material[] liveries;
         public RaceCamera raceCamera;
         public PerformanceLogger perfLogger;
+        public RaceHudController hud;
 
         [Header("Grid")]
         public float gridFirstSlotBehindLine = 12f;
@@ -53,7 +54,6 @@ namespace Gridline.Race
         public event System.Action<string> Notice;
         public event System.Action ResultsReady;
 
-        RaceHud hud;
         TouchControls touch;
         float finishWindowTimer;
         float standingsTimer;
@@ -158,13 +158,16 @@ namespace Gridline.Race
                 raceCamera.mode = settings.camera;
                 raceCamera.SetTarget(Player.transform, Player.Body);
             }
-            touch = new GameObject("TouchInput").AddComponent<TouchControls>();
-            touch.Build(settings.steeringMode == SteeringMode.TouchButtons, settings.transmission == TransmissionMode.Manual);
+            if (hud == null)
+            {
+                Debug.LogError("[GRIDLINE] RaceDirector has no HUD assigned");
+                return;
+            }
+            hud.Bind(this, settings);
+            touch = hud.Touch;
             touch.SetVisible(!RaceSession.AutopilotPlayer);
             var input = Player.GetComponent<PlayerCarInput>();
             if (input != null) input.touch = touch;
-            hud = new GameObject("RaceHud").AddComponent<RaceHud>();
-            hud.Build(this, settings);
         }
 
         void SetDriving(RaceCar car, bool driving)
@@ -204,7 +207,7 @@ namespace Gridline.Race
                     ai.enabled = true;
                     ai.Driving = true;
                 }
-                touch.SetVisible(false);
+                if (touch != null) touch.SetVisible(false);
                 RaiseNotice("FINISH — P" + Player.Position);
             }
 

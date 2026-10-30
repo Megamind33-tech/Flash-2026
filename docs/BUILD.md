@@ -9,6 +9,9 @@ from code (`BuildScript.PrepareProject`), so a clean checkout builds without man
 dotnet test tools/coretests                                   # engine-independent simulation tests
 UNITY_DATA=/path/to/Unity/Editor/Data tools/compile-check.sh  # compiles every assembly against the real Unity API
 ```
+```bash
+NODE_PATH=$(npm root -g) python3 tools/ui-preview/render_preview.py . docs/ui   # UXML/USS -> PNG previews (Chromium)
+```
 `compile-check.sh` only needs an *extracted* Linux editor (`Unity-6000.3.27f1.tar.xz` from Unity's download server); it
 never activates Unity.
 

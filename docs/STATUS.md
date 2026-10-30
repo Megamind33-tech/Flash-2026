@@ -11,10 +11,11 @@ Legend: **Code** = implemented · **Compiles** = verified against Unity 6000.3.2
 | Properly constructed circuit (2.36 km, kerbs, gravel, armco, pit wall, grandstand, gantry) | ✅ | ✅ | ❌ | `Editor/TrackBuilder.cs`, `Runtime/Track` |
 | Realistic-looking playable vehicle (RVP Muscle Car, 5 liveries) | ✅ | ✅ | ❌ | `Runtime/Vehicle`, `Art/Textures/Liveries` |
 | Four AI opponents with persistent attributes | ✅ | ✅ | ❌ | `Runtime/AI/RacingAIDriver.cs`, `Core/DriverProfile.cs` |
-| Touch controls (+ tilt, keyboard/gamepad, manual shifting) | ✅ | ✅ | ❌ | `Runtime/Input` |
+| Mobile-only controls: multi-touch pads, optional tilt, optional Bluetooth gamepad, manual shifting, Android back button (no keyboard) | ✅ | ✅ | ❌ | `Runtime/Input` |
+| UI Toolkit UI forked from Unity Royale (MIT): menu, settings, career, HUD, start lights, pause, results | ✅ | ✅ | ⚠️ browser preview only | `UI/`, `Runtime/UI`, previews in `docs/ui/` |
 | Starting grid + countdown | ✅ | ✅ | ❌ | `Runtime/Race/RaceDirector.cs` |
 | Three-lap race, lap/sector timing, positions | ✅ | ✅ | ✅ logic only (19 tests) | `Core/LapTracker.cs`, `Core/RaceClassification.cs` |
-| Finish results screen | ✅ | ✅ | ❌ | `Runtime/UI/RaceHud.cs` |
+| Finish results screen | ✅ | ✅ | ❌ | `Runtime/UI/RaceHudController.cs` |
 | Prize money / entry fee / reputation (configurable) | ✅ | ✅ | ✅ logic only | `Core/CareerService.cs`, `Resources/gridline_economy.json` |
 | Save and load (atomic write + backup) | ✅ | ✅ | ❌ (EditMode tests written) | `Runtime/Platform/SaveSystem.cs` |
 | Restart / return to menu | ✅ | ✅ | ❌ | `RaceDirector.Restart/QuitToMenu` |
@@ -29,6 +30,7 @@ Legend: **Code** = implemented · **Compiles** = verified against Unity 6000.3.2
 | Unity 6000.3.27f1 Linux editor runs headless in this container | Launches; licensing client works; exits 198 "No valid Unity Editor license found" | `docs/evidence/2026-10-30-unity-licence-probe.log` |
 | All 7 assemblies (uGUI, Core, RVP, Runtime, Editor, EditMode tests, PlayMode tests) compile with Unity's Roslyn against 6000.3.27f1 | Pass | `docs/evidence/2026-10-30-compile-check.log` |
 | Gridline.Core tests (`dotnet test tools/coretests`) | 19/19 pass | `docs/evidence/2026-10-30-core-tests.log` |
+| UI screens rendered from the real UXML/USS in headless Chromium (approximation of UI Toolkit) | Menu, settings, HUD, start lights, results — no overlaps after fixes | `docs/ui/*.png` (`tools/ui-preview`) |
 | Real `TrackPath` code executed on .NET against Unity CoreModule | 2355.5 m lap, AI profile 59–223 km/h, exact projection round trip, barriers ≥57 m from other sections | `docs/evidence/2026-10-30-track-geometry-probe.log` |
 
 Source commit: see `git log`. Unity version: 6000.3.27f1 (LTS). No APK exists yet, so there is no APK location, no device
@@ -59,7 +61,9 @@ test, no screenshot and no performance measurement. Real-device performance is *
 - AI tuning constants (grip 1.05 g, pace factors) are untested against RVP's real grip; the PlayMode smoke test
   logs per-car progress, recoveries and lap times to tune from.
 - Tilt-steering axis mapping follows Unity's portrait-frame `Input.acceleration` and must be confirmed on device.
-- No post-processing, engine-audio mixing or trackside detail (trees, signage) yet.
+- No post-processing, engine-audio mixing or trackside detail (trees, signage) yet. CC0/CC-BY trees and rocks
+  identified in the Stunt Rally 3 audit (`docs/STUNT_RALLY_3_AUDIT.md`) are the next trackside source.
+- UI Toolkit text metrics differ slightly from the browser preview; check the first device screenshots against `docs/ui/`.
 
 ## Milestone 2 groundwork already in place
 

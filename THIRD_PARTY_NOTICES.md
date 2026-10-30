@@ -7,6 +7,9 @@
 | RVP sounds | `Assets/ThirdParty/RVP/Audio` | freesound.org: CC0 / CC-BY 3.0 / CC Sampling Plus 1.0 | Attribution links in `Assets/ThirdParty/RVP/README_RVP.md`; credit in the in-game credits before release |
 | ambientCG surface textures | `Assets/Gridline/Art/Textures/Surfaces` | CC0 1.0 | Asphalt031, Grass004, Concrete034, Gravel022 (`CREDITS.md`) |
 | Livery textures | `Assets/Gridline/Art/Textures/Liveries` | Derived from RVP public-domain texture | Recoloured paint regions |
-| Unity packages (URP, uGUI, Test Framework) | `Packages/manifest.json` | Unity Companion License | Resolved by Unity Package Manager |
+| UI screen architecture | `Assets/Gridline/UI`, `Runtime/UI/ScreenNavigator.cs` | MIT (Unity Technologies, "Unity Royale" UI Toolkit demo) | `Assets/Gridline/UI/FORK_NOTICE.md` |
+| Titillium Web font | `Assets/Gridline/UI/Fonts` | SIL Open Font License 1.1 | `OFL.txt` alongside |
+| Material Icons (Google) | `Assets/Gridline/UI/Icons` | Apache License 2.0 | Recoloured white; licence alongside |
+| Unity packages (URP, Test Framework) | `Packages/manifest.json` | Unity Companion License | Resolved by Unity Package Manager |
 
 All team and driver names are fictional. No trademarked vehicle designs or sponsor logos are used.

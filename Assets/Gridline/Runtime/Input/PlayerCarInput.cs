@@ -4,7 +4,10 @@ using UnityEngine;
 
 namespace Gridline.Input
 {
-    /// <summary>Merges touch, tilt, keyboard and gamepad into RVP vehicle input, applying the player's sensitivity setting.</summary>
+    /// <summary>
+    /// Mobile-first driver input: on-screen touch controls or device tilt, plus an optional Bluetooth gamepad.
+    /// There are deliberately no keyboard bindings; the gamepad uses GRIDLINE's joystick-only GLPad* axes.
+    /// </summary>
     [RequireComponent(typeof(VehicleParent))]
     public class PlayerCarInput : MonoBehaviour
     {
@@ -20,47 +23,44 @@ namespace Gridline.Input
 
         VehicleParent vp;
         float steer, throttle, brake;
+        bool padUpHeld, padDownHeld;
 
         void Awake() { vp = GetComponent<VehicleParent>(); }
 
         void Update()
         {
             float sensitivity = settings != null ? settings.steeringSensitivity : 1f;
-            float target = 0f;
-            bool analogue = false;
-
-            float axis = SafeAxis("Horizontal");
-            if (Mathf.Abs(axis) > 0.05f)
+            float pad = Axis("GLPadSteer");
+            float target;
+            bool analogue = true;
+            if (Mathf.Abs(pad) > 0.05f) target = pad;
+            else if (settings != null && settings.steeringMode == SteeringMode.Tilt) target = TiltSteer() * sensitivity;
+            else
             {
-                target = axis;
-                analogue = true;
-            }
-            else if (settings != null && settings.steeringMode == SteeringMode.Tilt)
-            {
-                target = TiltSteer() * sensitivity;
-                analogue = true;
-            }
-            else if (touch != null)
-            {
-                target = touch.Steer;
+                target = touch != null ? touch.Steer : 0f;
+                analogue = false;
             }
 
             target = Mathf.Clamp(target, -1f, 1f);
             if (analogue) steer = target;
             else
             {
+                // Digital touch buttons ramp in and snap back so steering feels progressive on glass.
                 float rate = (Mathf.Abs(target) < 0.01f || Mathf.Sign(target) != Mathf.Sign(steer) ? returnRate : steerRate) * sensitivity;
                 steer = Mathf.MoveTowards(steer, target, rate * Time.deltaTime);
             }
 
-            throttle = Mathf.Clamp01(Mathf.Max(touch != null ? touch.Throttle : 0f, SafeAxis("Accel")));
-            brake = Mathf.Clamp01(Mathf.Max(touch != null ? touch.Brake : 0f, SafeAxis("Brake")));
+            throttle = Mathf.Clamp01(Mathf.Max(touch != null ? touch.Throttle : 0f, Axis("GLPadThrottle")));
+            brake = Mathf.Clamp01(Mathf.Max(touch != null ? touch.Brake : 0f, Axis("GLPadBrake")));
 
+            bool padUp = Axis("GLPadUpshift") > 0.5f, padDown = Axis("GLPadDownshift") > 0.5f;
             if (Driving && settings != null && settings.transmission == TransmissionMode.Manual)
             {
-                if ((touch != null && touch.UpshiftPressed) || SafeButtonDown("Upshift")) vp.PressUpshift();
-                if ((touch != null && touch.DownshiftPressed) || SafeButtonDown("Downshift")) vp.PressDownshift();
+                if ((touch != null && touch.UpshiftPressed) || (padUp && !padUpHeld)) vp.PressUpshift();
+                if ((touch != null && touch.DownshiftPressed) || (padDown && !padDownHeld)) vp.PressDownshift();
             }
+            padUpHeld = padUp;
+            padDownHeld = padDown;
         }
 
         float TiltSteer()
@@ -88,16 +88,10 @@ namespace Gridline.Input
             vp.SetEbrake(0f);
         }
 
-        static float SafeAxis(string name)
+        static float Axis(string name)
         {
-            try { return UnityEngine.Input.GetAxis(name); }
+            try { return UnityEngine.Input.GetAxisRaw(name); }
             catch (System.ArgumentException) { return 0f; }
-        }
-
-        static bool SafeButtonDown(string name)
-        {
-            try { return UnityEngine.Input.GetButtonDown(name); }
-            catch (System.ArgumentException) { return false; }
         }
     }
 }

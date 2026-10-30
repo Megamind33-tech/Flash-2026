@@ -38,3 +38,16 @@ Every licence below was checked against the source itself (LICENSE file or upstr
 | Sketchfab — "Le Mans Prototype" by mudkipz321 (CC-BY, author explicitly permits commercial use, original livery, 41.9k tris) | **Shortlisted, blocked**: the session's Sketchfab connection does not authenticate (`/v3/me` → "Authentication credentials were not provided"), so the file could not be downloaded |
 | Sketchfab real-brand cars (Ferrari, BMW, Red Bull, Pirelli decals, …) | Rejected: CC-BY covers the mesh, not the trademarks |
 | BlendSwap | Connection is logged out; not usable |
+
+## UI foundation (added 2026-10-30)
+
+| Candidate | Licence (verified) | Verdict |
+|---|---|---|
+| **Unity Royale UI Toolkit runtime demo** — [github.com/Unity-Technologies/UIToolkitUnityRoyaleRuntimeDemo](https://github.com/Unity-Technologies/UIToolkitUnityRoyaleRuntimeDemo) | **MIT** (LICENSE.md, Unity Technologies 2020; repo updated 2025-10-23) | **Forked**: UIDocument/PanelSettings structure, UXML screens + USS, screen switching. Its fantasy card art and cartoon fonts were *not* taken. |
+| Unity "Dragon Crashers" UI Toolkit sample | Standard Asset Store EULA (free) | Best-looking official mobile sample (safe area, Unity 6), but needs a Unity account to download, can't be redistributed in a public repo, and its art is fantasy. Optional upgrade if the owner downloads it. |
+| Racing UI kits on the Asset Store (e.g. "Car Racing & Parking Ultra UI Kit", $19.99) | Asset Store EULA, paid | Not purchased (needs approval). |
+| UIEffect (mob-sakai) | MIT, Unity 6 support | Not needed yet; candidate for shine/gradient effects later. |
+
+Visual identity on top of the fork: Titillium Web (OFL) typography, Google Material Icons (Apache-2.0), motorsport
+broadcast layout (timing tower, F1-style start lights, vector tachometer and live track map drawn from real circuit data).
+Stunt Rally 3 was audited separately: `docs/STUNT_RALLY_3_AUDIT.md`.

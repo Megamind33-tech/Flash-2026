@@ -21,12 +21,20 @@ namespace Gridline.EditorTools
                 importer.mipmapEnabled = true;
                 importer.anisoLevel = 4;
             }
+            bool uiIcon = assetPath.Contains("/UI/Icons/");
+            if (uiIcon)
+            {
+                // Crisp, small UI glyphs: no mips, 4x4 blocks so alpha edges stay clean.
+                importer.mipmapEnabled = false;
+                importer.alphaIsTransparency = true;
+                importer.anisoLevel = 0;
+            }
             const int max = 1024;
             importer.maxTextureSize = Mathf.Min(importer.maxTextureSize, 2048);
             var android = importer.GetPlatformTextureSettings("Android");
             android.overridden = true;
             android.maxTextureSize = max;
-            android.format = normal ? TextureImporterFormat.ASTC_4x4 : TextureImporterFormat.ASTC_6x6;
+            android.format = normal || uiIcon ? TextureImporterFormat.ASTC_4x4 : TextureImporterFormat.ASTC_6x6;
             android.compressionQuality = 50;
             importer.SetPlatformTextureSettings(android);
         }

@@ -4,8 +4,7 @@
     "references": [
         "Gridline.Core",
         "Gridline.Runtime",
-        "RVP.Runtime",
-        "UnityEngine.UI"
+        "RVP.Runtime"
     ],
     "includePlatforms": [
         "Editor"

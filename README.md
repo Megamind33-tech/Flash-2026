@@ -12,7 +12,7 @@ exists**: Unity needs a licence (see `docs/STATUS.md` for evidence, blockers and
 | `Assets/ThirdParty/RVP` | A — Racing foundation | Vendored Randomation Vehicle Physics (MIT): suspension, tyres, drivetrain, damage, surfaces |
 | `Assets/Gridline/Core` | B/C — League & economy | Engine-free C#: lap tracker, classification, points, career ledger, AI driver roster, save model |
 | `Assets/Gridline/Runtime/Race`, `Track`, `AI` | A | Race director, circuit path, racing AI |
-| `Assets/Gridline/Runtime/Input`, `UI`, `Camera` | E — UI & Android | Touch/tilt controls, HUD, menus, race camera |
+| `Assets/Gridline/UI`, `Runtime/UI`, `Runtime/Input`, `Camera` | E — UI & Android | UI Toolkit screens (forked from Unity Royale, MIT), touch/tilt/gamepad input (no keyboard), race camera |
 | `Assets/Gridline/Runtime/Platform` | E/F | Save system, settings, performance logger |
 | `Assets/Gridline/Editor` | D/F | URP + Android configuration, material conversion, procedural circuit builder, `BuildScript` |
 | `Assets/Gridline/Tests`, `tools/coretests` | F — QA | NUnit (dotnet + Unity EditMode), PlayMode AI-race smoke test |
@@ -26,5 +26,6 @@ only feeds it lap progress and reads results; RVP is driven exclusively through 
 ```bash
 dotnet test tools/coretests        # runs anywhere, no Unity needed
 ```
+UI previews: `docs/ui/` (menu, settings, HUD, start lights, results). Stunt Rally 3 reuse audit: `docs/STUNT_RALLY_3_AUDIT.md`.
 Unity tests and Android builds: `docs/BUILD.md`. Foundation choice: `docs/FOUNDATION_SELECTION.md`.
 Credits and licences: `THIRD_PARTY_NOTICES.md`.

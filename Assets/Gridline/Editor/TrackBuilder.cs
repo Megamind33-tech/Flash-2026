@@ -68,7 +68,14 @@ namespace Gridline.EditorTools
             foreach (Transform child in geometry) GameObjectUtility.SetStaticEditorFlags(child.gameObject, StaticEditorFlags.BatchingStatic);
 
             var sun = BuildLighting(mats, new Vector3(140f, 12f, -215f));
-            InstantiatePrefab(GridlinePaths.GlobalControlPrefab);
+            var globalControl = InstantiatePrefab(GridlinePaths.GlobalControlPrefab);
+            // RVP's quick-restart listens for a keyboard key; GRIDLINE is touch-only and restarts from the pause menu.
+            if (globalControl != null)
+            {
+                var gc = globalControl.GetComponent<GlobalControl>();
+                gc.quickRestart = false;
+                PrefabUtility.RecordPrefabInstancePropertyModifications(gc);
+            }
 
             var camGo = new GameObject("RaceCamera", typeof(Camera), typeof(AudioListener));
             camGo.tag = "MainCamera";
@@ -86,6 +93,10 @@ namespace Gridline.EditorTools
             director.liveries = MaterialLibrary.Liveries();
             director.raceCamera = raceCam;
             director.perfLogger = directorGo.AddComponent<PerformanceLogger>();
+            var hudGo = new GameObject("RaceHud");
+            UiAssets.AddDocument(hudGo, UiAssets.HudUxml);
+            hudGo.AddComponent<Gridline.Input.TouchControls>();
+            director.hud = hudGo.AddComponent<RaceHudController>();
             if (director.carPrefab == null) Debug.LogError("[GRIDLINE] Car prefab missing at " + GridlinePaths.CarPrefab);
 
             RenderSettings.sun = sun;
@@ -345,7 +356,9 @@ namespace Gridline.EditorTools
             cam.farClipPlane = 300f;
             camGo.transform.position = new Vector3(0f, 1.8f, -6f);
 
-            var menu = new GameObject("MainMenu").AddComponent<MainMenu>();
+            var menuGo = new GameObject("MainMenu");
+            UiAssets.AddDocument(menuGo, UiAssets.MenuUxml);
+            var menu = menuGo.AddComponent<MainMenuController>();
             menu.carPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(GridlinePaths.CarPrefab);
             var liveries = MaterialLibrary.Liveries();
             menu.playerLivery = liveries.Length > 0 ? liveries[0] : null;

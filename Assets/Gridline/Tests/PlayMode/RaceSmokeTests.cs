@@ -7,6 +7,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using UnityEngine.UIElements;
 
 namespace Gridline.Tests
 {
@@ -100,8 +101,13 @@ namespace Gridline.Tests
             yield return Load(MenuScenePath);
             yield return null;
             yield return null;
-            Assert.IsNotNull(Object.FindAnyObjectByType<Gridline.UI.MainMenu>());
-            Assert.IsNotNull(GameObject.Find("MenuCanvas"), "Menu UI was not built");
+            var menu = Object.FindAnyObjectByType<Gridline.UI.MainMenuController>();
+            Assert.IsNotNull(menu, "MainMenuController missing");
+            var root = menu.GetComponent<UIDocument>().rootVisualElement;
+            Assert.IsNotNull(root.Q("race-button"), "Menu UI was not built");
+            var name = root.Q<Label>("driver-name");
+            Assert.IsNotNull(name);
+            Assert.IsFalse(string.IsNullOrEmpty(name.text), "Career card was not populated");
         }
 
         [UnityTest, Timeout(300000)]

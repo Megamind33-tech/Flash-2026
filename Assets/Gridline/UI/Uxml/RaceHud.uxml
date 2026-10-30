@@ -1,0 +1,99 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="../Styles/Gridline.uss" />
+    <ui:VisualElement name="hud" class="gl-root hud-root" picking-mode="Ignore">
+        <ui:VisualElement class="hud-top" picking-mode="Ignore">
+            <ui:VisualElement name="tower" class="tower" picking-mode="Ignore">
+                <ui:VisualElement class="tower__head" picking-mode="Ignore">
+                    <ui:VisualElement class="icon icon--sm ic-flag" style="margin-right: 12px;" />
+                    <ui:Label name="lap" text="LAP 1/3" class="tower__lap" />
+                </ui:VisualElement>
+                <ui:VisualElement name="tower-rows" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement class="panel timing" picking-mode="Ignore">
+                <ui:Label name="position" text="POSITION 5/5" class="timing__pos" />
+                <ui:Label name="lap-time" text="0:00.000" class="timing__current t-shadow" />
+                <ui:VisualElement class="timing__row" picking-mode="Ignore">
+                    <ui:Label name="best-lap" text="BEST --:--.---" class="timing__best" />
+                    <ui:Label name="penalty" text="" class="timing__penalty" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="hud-map" class="panel hud-map" picking-mode="Ignore" />
+            <ui:VisualElement class="hud-buttons" picking-mode="Ignore">
+                <ui:Button name="camera-button" class="gl-btn gl-btn--icon"><ui:VisualElement class="icon icon--lg ic-camera" /></ui:Button>
+                <ui:Button name="pause-button" class="gl-btn gl-btn--icon"><ui:VisualElement class="icon icon--lg ic-pause" /></ui:Button>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:Label name="fps" text="" class="fps" />
+
+        <ui:VisualElement class="notice" picking-mode="Ignore">
+            <ui:Label name="notice" text="" class="notice__pill" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="lights" class="lights" picking-mode="Ignore">
+            <ui:VisualElement class="lights__frame" picking-mode="Ignore">
+                <ui:VisualElement name="light-0" class="light" />
+                <ui:VisualElement name="light-1" class="light" />
+                <ui:VisualElement name="light-2" class="light" />
+                <ui:VisualElement name="light-3" class="light" />
+                <ui:VisualElement name="light-4" class="light" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement class="dash" picking-mode="Ignore">
+            <ui:VisualElement name="gauge" class="gauge" picking-mode="Ignore">
+                <ui:Label name="gear" text="N" class="gauge__gear" />
+                <ui:Label name="speed" text="0" class="gauge__speed t-shadow" />
+                <ui:Label text="KM/H" class="gauge__unit" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- Touch controls: hit-tested from raw multi-touch by TouchControls, not by UI events -->
+        <ui:VisualElement name="controls" picking-mode="Ignore" style="position: absolute; left: 0; right: 0; top: 0; bottom: 0;">
+            <ui:VisualElement name="pad-left" class="pad pad--steer-left" picking-mode="Ignore"><ui:VisualElement class="icon ic-left" /></ui:VisualElement>
+            <ui:VisualElement name="pad-right" class="pad pad--steer-right" picking-mode="Ignore"><ui:VisualElement class="icon ic-right" /></ui:VisualElement>
+            <ui:VisualElement name="pad-brake" class="pad pad--brake" picking-mode="Ignore"><ui:Label text="BRAKE" class="pad__label" /></ui:VisualElement>
+            <ui:VisualElement name="pad-throttle" class="pad pad--throttle" picking-mode="Ignore"><ui:VisualElement class="icon ic-speed" /><ui:Label text="GAS" class="pad__label" /></ui:VisualElement>
+            <ui:VisualElement name="pad-up" class="pad pad--shift-up hidden" picking-mode="Ignore"><ui:Label text="+" class="pad__label" /></ui:VisualElement>
+            <ui:VisualElement name="pad-down" class="pad pad--shift-down hidden" picking-mode="Ignore"><ui:Label text="−" class="pad__label" /></ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- Pause -->
+        <ui:VisualElement name="pause" class="overlay hidden">
+            <ui:VisualElement class="panel pause-card">
+                <ui:Label text="PAUSED" class="modal__title" />
+                <ui:Button name="resume" class="gl-btn gl-btn--primary"><ui:VisualElement class="icon ic-play" /><ui:Label text="RESUME" /></ui:Button>
+                <ui:Button name="restart" class="gl-btn"><ui:VisualElement class="icon ic-replay" /><ui:Label text="RESTART RACE" /></ui:Button>
+                <ui:Button name="pause-camera" class="gl-btn"><ui:VisualElement class="icon ic-camera" /><ui:Label text="CHANGE CAMERA" /></ui:Button>
+                <ui:Button name="retire" class="gl-btn gl-btn--danger"><ui:VisualElement class="icon ic-home" /><ui:Label text="RETIRE TO MENU" /></ui:Button>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- Results -->
+        <ui:VisualElement name="results" class="overlay hidden">
+            <ui:VisualElement class="results">
+                <ui:VisualElement class="panel results__table">
+                    <ui:Label name="results-title" text="RESULTS" class="results__title" />
+                    <ui:Label name="results-sub" text="" class="results__sub" />
+                    <ui:VisualElement class="res-row res-row--head">
+                        <ui:Label text="POS" class="t-label res-pos" style="height: 50px; font-size: 22px;" />
+                        <ui:Label text="DRIVER" class="t-label res-name" />
+                        <ui:Label text="TIME" class="t-label res-time" />
+                        <ui:Label text="BEST LAP" class="t-label res-best" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="results-rows" />
+                </ui:VisualElement>
+                <ui:VisualElement class="panel reward">
+                    <ui:Label text="RACE EARNINGS" class="t-label" />
+                    <ui:VisualElement name="reward-lines" />
+                    <ui:VisualElement class="reward__line" style="border-bottom-width: 0;">
+                        <ui:Label text="BALANCE" class="t-label" />
+                        <ui:Label name="reward-balance" text="$0" class="reward__total" />
+                    </ui:VisualElement>
+                    <ui:Button name="continue" class="gl-btn gl-btn--primary"><ui:Label text="CONTINUE" /><ui:VisualElement class="icon ic-right" style="margin: 0 0 0 12px;" /></ui:Button>
+                    <ui:Button name="race-again" class="gl-btn"><ui:VisualElement class="icon ic-replay" /><ui:Label text="RACE AGAIN" /></ui:Button>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
