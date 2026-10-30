@@ -9,11 +9,12 @@ G="${GODOT:?set GODOT to the Godot 4.7.2 editor binary}"
 mkdir -p ../builds/android ../docs/godot
 echo "== import";      timeout 600 "$G" --headless --path . --import > /dev/null 2>&1
 echo "== core tests";  "$G" --headless --path . --script res://tests/core_tests.gd 2>&1 | grep -E "core tests|FAIL"
-echo "== AI race";     timeout 900 "$G" --headless --path . --fixed-fps 60 res://scenes/race.tscn -- --autotest 2 2>&1 | grep -E "race complete|  P[0-9]"
+echo "== stability";   timeout 600 "$G" --headless --path . --fixed-fps 60 res://tests/stability_test.tscn 2>&1 | grep -E "STABILITY"
+echo "== AI race";     timeout 900 "$G" --headless --path . --fixed-fps 60 res://scenes/race.tscn -- --autotest 2 2>&1 | grep -E "race complete|  P[0-9]|car="
 if [[ "${1:-}" == "--shots" ]]; then
-  for s in "menu main_menu 3" "grid race 2.5" "racing race 14"; do set -- $s
+  for s in "menu main_menu 3" "garage main_menu 3 --page garage" "grid race 2.5" "racing race 14"; do set -- $s
     xvfb-run -a -s "-screen 0 1920x1080x24" timeout 900 "$G" --path . --rendering-method mobile --resolution 1920x1080 --fixed-fps 30 \
-      res://scenes/$2.tscn -- --autotest 3 --show-controls --shot "$(pwd)/../docs/godot/$1.png" "$3" 2>&1 | grep screenshot
+      res://scenes/$2.tscn -- --autotest 3 --show-controls --shot "$(pwd)/../docs/godot/$1.png" "$3" ${4:-} ${5:-} 2>&1 | grep screenshot
   done
 fi
 echo "== export APK";  timeout 1500 "$G" --headless --path . --export-debug "Android" ../builds/android/gridline.apk > /dev/null 2>&1

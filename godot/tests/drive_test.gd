@@ -14,7 +14,10 @@ var top := 0.0
 func _ready() -> void:
 	track = TrackPath.ashford()
 	TrackBuilder.build(self)
-	car = CarBuilder.build("player_white", false)
+	var args := OS.get_cmdline_user_args()
+	var id := args[args.find("--car") + 1] if args.has("--car") else CarBuilder.DEFAULT_CAR
+	car = CarBuilder.build("player_white", false, id)
+	print("car=%s mass=%.0f" % [id, car.mass])
 	add_child(car)
 	var d := track.wrapd(-60.0)
 	car.global_transform = Transform3D(Basis.looking_at(-track.tangent_at(d), Vector3.UP), track.position_at(d) + Vector3.UP * 0.35)

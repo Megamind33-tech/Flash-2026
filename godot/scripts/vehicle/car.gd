@@ -17,6 +17,11 @@ signal impact(strength: float)
 @export var grip := 1.35
 @export var offroad_grip := 0.75
 
+var car_id := ""
+var tail_lights: StandardMaterial3D
+var wheels_on_ground := 4
+var legacy_physics := false   # tests only: the pre-0.4 behaviour (body-axis downforce, no stabiliser)
+
 # Controller inputs (0..1, steer -1 left .. +1 right)
 var throttle := 0.0
 var brake_input := 0.0
@@ -34,12 +39,36 @@ var _skid: AudioStreamPlayer3D
 var _impact: AudioStreamPlayer3D
 
 const GEARS := 6
+## Per-kilogram baselines tuned on the 1100 kg prototype (0-100 km/h ~4.2 s, ~200 km/h top speed); scaling
+## every force with mass keeps acceleration and top speed while giving the car real weight in contacts.
+const ACCEL_PER_KG := 4800.0 / 1100.0
+const BRAKE_PER_KG := 28.0 / 1100.0
+const DRAG_PER_KG := 1.55 / 1100.0
+const DOWNFORCE_PER_KG := 0.95 / 1100.0
+const GRAVITY_SCALE := 1.35       # planted arcade feel: cars land fast instead of floating
+
+
+## Apply a roster entry (CarBuilder.ROSTER): mass and performance multipliers.
+func configure(spec: Dictionary) -> void:
+	mass = float(spec["mass"])
+	engine_force_max = ACCEL_PER_KG * mass * float(spec["power"])
+	brake_force = BRAKE_PER_KG * mass
+	drag_coefficient = DRAG_PER_KG * mass
+	downforce = DOWNFORCE_PER_KG * mass * float(spec["aero"])
+	grip = 1.35 * float(spec["grip"])
+	gravity_scale = GRAVITY_SCALE
+	angular_damp = 0.6
 
 
 func _ready() -> void:
+	var driven := 0
 	for c in get_children():
 		if c is VehicleWheel3D:
 			_wheels.append(c)
+			driven += 1 if (c as VehicleWheel3D).use_as_traction else 0
+	# Godot applies engine_force at every driven wheel; the baseline was tuned with two (RWD).
+	if driven > 2:
+		engine_force_max *= 2.0 / driven
 	_engine = get_node_or_null("Engine") as AudioStreamPlayer3D
 	_skid = get_node_or_null("Skid") as AudioStreamPlayer3D
 	_impact = get_node_or_null("Impact") as AudioStreamPlayer3D
@@ -79,9 +108,20 @@ func _physics_process(delta: float) -> void:
 			f = 0.0
 		engine_force = f
 
-	# Aero: drag limits top speed, downforce adds grip at speed.
+	# Aero: drag limits top speed, downforce adds grip at speed. Downforce only exists while the floor
+	# faces the road: applying it along the car's -Y when tipped or upside down used to *lift* the car.
 	apply_central_force(-v * speed * drag_coefficient)
-	apply_central_force(-global_basis.y * downforce * speed * speed)
+	wheels_on_ground = 0
+	for w in _wheels:
+		if w.is_in_contact():
+			wheels_on_ground += 1
+	var upright := global_basis.y.dot(Vector3.UP)
+	if legacy_physics:
+		apply_central_force(-global_basis.y * downforce * speed * speed)
+	elif wheels_on_ground > 0 and upright > 0.5:
+		apply_central_force(-global_basis.y * downforce * speed * speed * (wheels_on_ground / 4.0))
+	if not legacy_physics:
+		_stabilise(upright, delta)
 
 	# Surface grip: wheels on grass or gravel lose friction.
 	offroad = false
@@ -92,6 +132,8 @@ func _physics_process(delta: float) -> void:
 		w.wheel_friction_slip = offroad_grip if off else grip
 
 	_update_gearbox(fwd_speed, thr)
+	if tail_lights:
+		tail_lights.emission_energy_multiplier = 4.0 if (brk > 0.05 and fwd_speed > 1.0) or not input_enabled else 0.8
 
 	if _skid:
 		var slip := 1.0
@@ -105,6 +147,26 @@ func _physics_process(delta: float) -> void:
 			_impact.play()
 		Input.vibrate_handheld(80)
 	_previous_speed = speed
+
+
+## Keep the car on the road: no kerb or car-to-car contact may launch it, and an airborne car levels
+## itself and comes straight back down (the "flying in the wind" bug).
+func _stabilise(upright: float, delta: float) -> void:
+	var tilt_rate := Vector3(angular_velocity.x, 0.0, angular_velocity.z)
+	if wheels_on_ground < 2:
+		# Pull the nose/roll back to level and damp tumbling.
+		var axis := global_basis.y.cross(Vector3.UP)
+		apply_torque(axis * mass * 9.0 - tilt_rate * mass * 1.6)
+		apply_central_force(Vector3.DOWN * mass * 4.0)
+	elif upright < 0.9:
+		apply_torque(global_basis.y.cross(Vector3.UP) * mass * 4.0)
+	# Cap vertical launch speed from kerb strikes and collisions.
+	if linear_velocity.y > 3.0:
+		linear_velocity.y = move_toward(linear_velocity.y, 3.0, 30.0 * delta)
+	# Cap roll/pitch spin so a hit can't flip the car.
+	if tilt_rate.length() > 2.5:
+		var keep := tilt_rate.limit_length(2.5)
+		angular_velocity = Vector3(keep.x, angular_velocity.y, keep.z)
 
 
 func _update_gearbox(fwd_speed: float, thr: float) -> void:

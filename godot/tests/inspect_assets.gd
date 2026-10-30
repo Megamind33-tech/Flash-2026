@@ -1,6 +1,6 @@
 extends SceneTree
 func _init() -> void:
-	for path in ["res://assets/models/muscle_car.glb", "res://assets/models/ashford_circuit.glb"]:
+	for path in ["res://assets/models/cars/arden_v8.glb", "res://assets/models/cars/arden_gt3.glb", "res://assets/models/cars/ravenna_hybrid.glb", "res://assets/models/cars/solano_concept.glb", "res://assets/models/cars/elektra_egt.glb", "res://assets/models/ashford_circuit.glb"]:
 		var root: Node = (load(path) as PackedScene).instantiate()
 		print("== ", path)
 		for mi in root.find_children("*", "MeshInstance3D", true, false):

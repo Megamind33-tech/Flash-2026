@@ -140,6 +140,11 @@ func reset_career() -> void:
 
 # ------------------------------------------------------------------ settings
 
+func player_car() -> String:
+	var id := str(save["career"].get("car", CarBuilder.DEFAULT_CAR))
+	return id if CarBuilder.ROSTER.has(id) else CarBuilder.DEFAULT_CAR
+
+
 func settings() -> Dictionary:
 	return save["settings"]
 

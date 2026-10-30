@@ -1,0 +1,75 @@
+{
+ "id": "arden_gt3",
+ "wheels": {
+  "Wheel_RR": {
+   "centre": [
+    -0.7798,
+    1.3109,
+    0.3493
+   ],
+   "radius": 0.3493,
+   "width": 0.3838,
+   "tris": 4997
+  },
+  "Wheel_RL": {
+   "centre": [
+    0.7798,
+    1.3109,
+    0.3493
+   ],
+   "radius": 0.3493,
+   "width": 0.3838,
+   "tris": 4997
+  },
+  "Wheel_FL": {
+   "centre": [
+    0.7847,
+    -1.335,
+    0.3252
+   ],
+   "radius": 0.3252,
+   "width": 0.3574,
+   "tris": 4997
+  },
+  "Wheel_FR": {
+   "centre": [
+    -0.7847,
+    -1.335,
+    0.3252
+   ],
+   "radius": 0.3252,
+   "width": 0.3574,
+   "tris": 4996
+  }
+ },
+ "length": 4.58,
+ "width": 1.99,
+ "height": 1.14,
+ "body_min": [
+  -0.995,
+  -2.372,
+  0.049
+ ],
+ "body_max": [
+  0.995,
+  2.208,
+  1.189
+ ],
+ "body_tris": 42588,
+ "materials": [
+  "GL_amber",
+  "GL_brake",
+  "GL_chrome",
+  "GL_glass",
+  "GL_paint",
+  "GL_paint",
+  "GL_paint",
+  "GL_tail"
+ ],
+ "scale": 0.7175663862130999,
+ "dropped": [
+  "Text",
+  "Turn table"
+ ],
+ "badges_erased": 8
+}

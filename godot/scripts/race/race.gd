@@ -34,6 +34,7 @@ var _standings_timer := 0.0
 var _frames := 0
 var _frame_time := 0.0
 var _worst_frame := 0.0
+var _stability := {}   # autotest: per car [airborne seconds, longest airborne spell, min upright dot, max upward m/s]
 
 
 func _ready() -> void:
@@ -129,7 +130,8 @@ func _spawn_grid() -> void:
 		var lat := -2.6 if slot % 2 == 0 else 2.6
 		var pos := track.position_at(d) + track.right_at(d) * lat + Vector3.UP * 0.35
 		var livery := LIVERIES[0] if is_player else str(Game.team(driver["team"]).get("livery", LIVERIES[(slot + 1) % 5]))
-		var car := CarBuilder.build(livery, is_player and not autotest)
+		var car_id := Game.player_car() if is_player else str(CarBuilder.TEAM_CARS.get(driver["team"], CarBuilder.DEFAULT_CAR))
+		var car := CarBuilder.build(livery, is_player and not autotest, car_id)
 		car.name = "Car_player" if is_player else "Car_" + driver["id"]
 		add_child(car)
 		car.global_transform = Transform3D(Basis.looking_at(-track.tangent_at(d), Vector3.UP), pos)
@@ -172,6 +174,15 @@ func _physics_process(delta: float) -> void:
 			print(line)
 	for r in racers:
 		r.physics_update(delta, running, race_time)
+		if autotest and running:
+			var st: Array = _stability.get(r.id, [0.0, 0.0, 1.0, 0.0, 0.0])
+			var air: bool = r.car.wheels_on_ground == 0
+			st[4] = st[4] + delta if air else 0.0
+			st[0] += delta if air else 0.0
+			st[1] = maxf(st[1], st[4])
+			st[2] = minf(st[2], r.car.global_basis.y.dot(Vector3.UP))
+			st[3] = maxf(st[3], r.car.linear_velocity.y)
+			_stability[r.id] = st
 	if running:
 		for ai in ais:
 			ai.drive(delta)
@@ -260,6 +271,8 @@ func _complete() -> void:
 	for s in standings:
 		var r: Racer = racers.filter(func(x): return x.id == s["id"])[0]
 		print("[GRIDLINE]   P%d %-16s finished=%s laps=%d progress=%.0f best=%s recoveries=%d rejected=%d" % [r.position, r.display_name, str(s["finished"]), s["laps"], s["progress"], Racer.format_ms(s["best"]), r.recoveries, r.laps.rejected_steps])
+		var st: Array = _stability.get(r.id, [0.0, 0.0, 1.0, 0.0, 0.0])
+		print("[GRIDLINE]      car=%s mass=%.0fkg airborne=%.2fs longest_air=%.2fs min_upright=%.3f max_up_vel=%.2fm/s" % [r.car.car_id, r.car.mass, st[0], st[1], st[2], st[3]])
 	results_ready.emit()
 	if autotest and not ("--shot" in OS.get_cmdline_user_args()):
 		var ok := racers.filter(func(r): return r.laps.finished).size() >= 3 and player.laps.finished

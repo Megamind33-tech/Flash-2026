@@ -14,6 +14,17 @@ var stack: Array[String] = []
 var viewport_car: Node3D
 var cam: Camera3D
 var orbit := 0.0
+var showroom: Node3D
+
+
+func _place_showroom_car() -> void:
+	if viewport_car:
+		viewport_car.queue_free()
+	viewport_car = CarBuilder.build("player_white", false, Game.player_car())
+	# Not frozen: let the car settle on its real suspension (input disabled = parking brake on).
+	showroom.add_child(viewport_car)
+	viewport_car.position = Vector3(30, 0.3, 1.5)
+	viewport_car.rotation.y = PI * 0.5
 
 
 func _ready() -> void:
@@ -23,6 +34,9 @@ func _ready() -> void:
 	_build_showroom()
 	_build_ui()
 	_show("main")
+	var args := OS.get_cmdline_user_args()   # screenshots/tests: open a page directly (e.g. --page garage)
+	if args.has("--page"):
+		_go(args[args.find("--page") + 1])
 
 
 func _build_showroom() -> void:
@@ -45,11 +59,8 @@ func _build_showroom() -> void:
 	world.add_child(sun)
 	TrackBuilder.build(world)
 	WorldDressing.build(world, TrackPath.ashford(), Game.quality() >= 1)
-	viewport_car = CarBuilder.build("player_white", false)
-	# Not frozen: let the car settle on its real suspension (input disabled = parking brake on).
-	world.add_child(viewport_car)
-	viewport_car.position = Vector3(30, 0.4, 1.5)
-	viewport_car.rotation.y = PI * 0.5
+	showroom = world
+	_place_showroom_car()
 	cam = Camera3D.new()
 	cam.fov = 40.0
 	world.add_child(cam)
@@ -181,6 +192,7 @@ func _back() -> void:
 func _show(p: String) -> void:
 	page = p
 	for c in list.get_children():
+		list.remove_child(c)   # detach now so the item counter only sees the new page
 		c.queue_free()
 	_refresh_status()
 	var career: Dictionary = Game.save["career"]
@@ -190,6 +202,7 @@ func _show(p: String) -> void:
 			subtitle.text = "   THE RACING LEAGUE"
 			_item("Quick Race", "", func(): _go("events"), true)
 			_item("Championship", "ROUND %d/%d" % [int(champ["round"]) + 1, Game.CHAMPIONSHIP.size()] if champ["active"] else "NEW SEASON", func(): _go("championship"))
+			_item("Garage", CarBuilder.info(Game.player_car())["name"].to_upper(), func(): _go("garage"))
 			_item("Career", "", func(): _go("career"))
 			_item("Settings", "", func(): _go("settings"))
 			desc.text = "%s · 2.36 km · 5 cars\nPersonal best %s · Rank %d" % [TrackPath.ASHFORD_NAME, Racer.format_ms(Game.best_lap()), Game.rank()]
@@ -213,6 +226,15 @@ func _show(p: String) -> void:
 				_info_row("Titles won", str(champ.get("titles", 0)))
 			_item("Back", "", _back)
 			desc.text = "Three rounds at Ashford: Sprint, Dash, Feature. 25-18-15-12-10 points. Title bonus $10,000."
+		"garage":
+			subtitle.text = "   GARAGE"
+			for id in CarBuilder.car_ids():
+				var info := CarBuilder.info(id)
+				var car_id: String = id
+				_item(info["name"], "%s · %d KG" % [info["class"], int(info["mass"])], func(): _pick_car(car_id), car_id == Game.player_car())
+			_item("Back", "", _back)
+			var cur := CarBuilder.info(Game.player_car())
+			desc.text = "%s · %s · %s drive · %d kg. Tap a car to take it to the grid." % [cur["name"], cur["class"], "All-wheel" if cur["awd"] else "Rear-wheel", int(cur["mass"])]
 		"career":
 			subtitle.text = "   CAREER"
 			_info_row("Races", str(career["racesEntered"]))
@@ -232,15 +254,33 @@ func _show(p: String) -> void:
 			_item("Steering Sensitivity", "%.1f" % float(s["sensitivity"]), func(): s["sensitivity"] = 0.6 if float(s["sensitivity"]) >= 1.6 else snappedf(float(s["sensitivity"]) + 0.2, 0.1); _save_settings())
 			_item("Graphics", ["Low · 30 FPS", "Medium", "High"][int(s["quality"])], func(): s["quality"] = (int(s["quality"]) + 1) % 3; _save_settings())
 			_item("Frame Rate Counter", "On" if s["showFps"] else "Off", func(): s["showFps"] = not s["showFps"]; _save_settings())
+			_item("Credits", "", func(): _go("credits"))
 			_item("Reset Career", "", func(): _go("confirm"), false, true)
 			_item("Back", "", _back)
 			desc.text = "Tap an option to change it. Tilt uses the phone's motion sensor; a Bluetooth controller also works."
+		"credits":
+			subtitle.text = "   CREDITS"
+			for id in CarBuilder.car_ids():
+				var info := CarBuilder.info(id)
+				_info_row("%s model" % info["name"], "%s · %s" % [info["author"], info["licence"]])
+			_info_row("Sky", "Poly Haven · CC0")
+			_info_row("Trees and surfaces", "Poly Haven, ambientCG · CC0")
+			_info_row("Driving model base", "Godot Truck Town demo · MIT")
+			_item("Back", "", _back)
+			desc.text = "Car models from BlendSwap, converted for GRIDLINE (badges removed, renamed, optimised). CC BY-SA models remain CC BY-SA 3.0."
 		"confirm":
 			subtitle.text = "   RESET CAREER?"
 			_item("Yes, reset my career", "", func(): Game.reset_career(); stack.clear(); _show("main"), false, true)
 			_item("Cancel", "", _back, true)
 			desc.text = "Money, reputation, records and history will be erased. Settings are kept."
 	counter.text = "%d ITEMS   " % list.get_child_count()
+
+
+func _pick_car(car_id: String) -> void:
+	Game.save["career"]["car"] = car_id
+	Game.persist()
+	_place_showroom_car()
+	_show("garage")
 
 
 func _save_settings() -> void:

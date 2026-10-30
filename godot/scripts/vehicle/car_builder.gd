@@ -1,133 +1,195 @@
-## Assembles a drivable car from the RVP Muscle Car glTF (exported unchanged from RVP's public-domain source).
-## Geometry, scale (Unity import scale 0.5) and wheel positions match the Unity prefab exactly.
+## Assembles a drivable car from one of the GRIDLINE roster models (godot/assets/models/cars/*.glb).
+## The models are BlendSwap community cars converted by tools/cars/export_car.py: badges and maker lettering
+## removed, materials mapped onto the canonical GL_* set, wheels split out, scaled to real dimensions.
+## Licences and authors: assets/models/cars/LICENSES.md. Geometry comes from CarSpecs (generated).
 class_name CarBuilder
 extends RefCounted
 
-const CAR_GLB := "res://assets/models/muscle_car.glb"
-const TEX := "res://assets/textures/car/"
-# Wheel centres from the prefab suspension transforms (metres, car frame, +Z forward, +X left).
-const WHEELS := [[0.634, 1.186, true], [-0.634, 1.186, true], [0.634, -1.113, false], [-0.634, -1.113, false]]
-const WHEEL_RADIUS := 0.295
-const REST := 0.15
+const DEFAULT_CAR := "arden_v8"
+## Fictional names only — the source models resemble real cars; no manufacturer names or badges are used.
+## mass kg · power/grip/aero multipliers (1.0 = baseline) · rear-wheel or all-wheel drive.
+const ROSTER := {
+	"arden_v8": {"name": "Arden V8 Coupé", "class": "GT", "mass": 1570.0, "power": 1.00, "grip": 1.00, "aero": 1.0, "awd": true,
+		"author": "Neubi (BlendSwap #17183)", "licence": "CC0"},
+	"arden_gt3": {"name": "Arden GT3 R", "class": "GT3", "mass": 1310.0, "power": 0.97, "grip": 1.04, "aero": 1.6, "awd": false,
+		"author": "BlendSwap #91200 author", "licence": "CC0"},
+	"ravenna_hybrid": {"name": "Ravenna Hybrid", "class": "Hypercar", "mass": 1480.0, "power": 1.05, "grip": 1.00, "aero": 1.2, "awd": false,
+		"author": "zenox3d (BlendSwap #74782)", "licence": "CC BY-SA 3.0"},
+	"solano_concept": {"name": "Solano Concept", "class": "GT", "mass": 1530.0, "power": 1.02, "grip": 0.99, "aero": 1.0, "awd": false,
+		"author": "zenox3d (BlendSwap #74332)", "licence": "CC BY-SA 3.0"},
+	"elektra_egt": {"name": "Elektra E-GT", "class": "EV", "mass": 2050.0, "power": 1.03, "grip": 0.98, "aero": 0.9, "awd": true,
+		"author": "Lee Rosario (BlendSwap #86736)", "licence": "CC BY 3.0"},
+}
+## Team cars (each AI team races one model; the player picks theirs in the Garage).
+const TEAM_CARS := {"halden": "ravenna_hybrid", "corsair": "arden_gt3", "vantor": "solano_concept", "northline": "elektra_egt"}
+## Paint colour per livery (team colours from Game.default teams).
+const PAINT := {"player_white": Color("#E9EBEE"), "halden_blue": Color("#1F4E8C"), "corsair_red": Color("#B3261E"),
+	"vantor_gold": Color("#E0A100"), "northline_green": Color("#2E7D32")}
+const REST := 0.12
 
-static var _scene: PackedScene
+static var _scenes := {}
 static var _materials := {}
 
 
-## Material by part (node) name, mirroring the Unity prefab's renderer -> material assignments.
-static func material_for_part(part: String, livery: String) -> Material:
-	var p := part.to_lower()
-	if p.contains("window"):
-		return material("Glass", livery)
-	for k in [["headlights", "RVP_Headlights"], ["brakelight", "RVP_Brakelight"], ["reverselight", "RVP_Reverselight"],
-			["blinker_front", "RVP_Blinker Front"], ["blinker_rear", "RVP_Blinker Rear"], ["wheel_tyre", "RVP_Tire"], ["wheel_rim", "RVP_Rim"]]:
-		if p.begins_with(k[0]):
-			return material(k[1], livery)
-	return material("Body", livery)
+static func car_ids() -> Array:
+	return ROSTER.keys()
 
 
-static func material(name: String, livery: String) -> Material:
-	var key := name + "|" + livery
+static func info(car_id: String) -> Dictionary:
+	return ROSTER.get(car_id, ROSTER[DEFAULT_CAR])
+
+
+## Shared material per canonical slot (paint is per livery; tail lights are per car so brake lights can glow).
+static func material(slot: String, livery: String) -> Material:
+	var key := slot + "|" + (livery if slot == "paint" else "")
 	if _materials.has(key):
 		return _materials[key]
 	var m := StandardMaterial3D.new()
-	if name.begins_with("Body"):
-		m.albedo_texture = load("res://assets/textures/liveries/body_%s.png" % livery)
-		m.metallic = 0.45
-		m.roughness = 0.28
-		m.ao_enabled = true
-		m.ao_texture = load(TEX + "Body_Ambient.png")
-		m.clearcoat_enabled = Game.quality() >= 2
-	elif name.contains("Tire"):
-		m.albedo_texture = load(TEX + "Tire_Diffuse.png")
-		m.normal_enabled = true
-		m.normal_texture = load(TEX + "Tire_Bump.png")
-		m.roughness = 0.9
-	elif name.contains("Rim"):
-		m.albedo_color = Color(0.82, 0.83, 0.85)
-		m.metallic = 1.0
-		m.roughness = 0.12
-		m.ao_enabled = true
-		m.ao_texture = load(TEX + "Rim_Ambient.png")
-	elif name.begins_with("Glass"):
-		m.albedo_color = Color(0.02, 0.025, 0.03, 0.85)
-		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		m.metallic = 0.2
-		m.roughness = 0.05
-	else:
-		var tex := {"RVP_Headlights": "Headlight.png", "RVP_Brakelight": "Brakelight.png", "RVP_Reverselight": "Reverselight.png",
-			"RVP_Blinker Front": "Blinker_Front.png", "RVP_Blinker Rear": "Blinker_Rear.png"}
-		if tex.has(name):
-			m.albedo_texture = load(TEX + tex[name])
-		m.roughness = 0.2
+	match slot:
+		"paint":
+			m.albedo_color = PAINT.get(livery, PAINT["player_white"])
+			m.metallic = 0.55
+			m.roughness = 0.22
+			m.metallic_specular = 0.6
+			m.clearcoat_enabled = Game.quality() >= 2
+			m.clearcoat_roughness = 0.05
+		"glass":
+			m.albedo_color = Color(0.03, 0.035, 0.045, 0.72)
+			m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			m.metallic = 0.3
+			m.roughness = 0.04
+		"chrome":
+			m.albedo_color = Color(0.86, 0.87, 0.89)
+			m.metallic = 1.0
+			m.roughness = 0.1
+		"rim":
+			m.albedo_color = Color(0.6, 0.61, 0.63)
+			m.metallic = 1.0
+			m.roughness = 0.24
+		"carbon":
+			m.albedo_color = Color(0.05, 0.05, 0.055)
+			m.metallic = 0.35
+			m.roughness = 0.3
+		"interior":
+			m.albedo_color = Color(0.07, 0.065, 0.06)
+			m.roughness = 0.75
+		"tyre":
+			m.albedo_color = Color(0.03, 0.03, 0.03)
+			m.roughness = 0.92
+		"brake":
+			m.albedo_color = Color(0.32, 0.32, 0.33)
+			m.metallic = 0.9
+			m.roughness = 0.45
+		"head":
+			m.albedo_color = Color(0.95, 0.96, 1.0)
+			m.emission_enabled = true
+			m.emission = Color(0.9, 0.93, 1.0)
+			m.emission_energy_multiplier = 1.5
+			m.roughness = 0.05
+		"amber":
+			m.albedo_color = Color(1.0, 0.45, 0.02)
+			m.emission_enabled = true
+			m.emission = Color(1.0, 0.45, 0.02)
+			m.emission_energy_multiplier = 0.6
+		_:
+			m.albedo_color = Color(0.035, 0.035, 0.037)
+			m.roughness = 0.55
 	_materials[key] = m
 	return m
 
 
-static func build(livery: String, with_audio: bool) -> RaceCarBody:
-	if _scene == null:
-		_scene = load(CAR_GLB)
+static func tail_material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.6, 0.02, 0.02)
+	m.emission_enabled = true
+	m.emission = Color(1.0, 0.04, 0.03)
+	m.emission_energy_multiplier = 0.8
+	m.roughness = 0.1
+	return m
+
+
+static func _slot(surface_material: Material) -> String:
+	var n := surface_material.resource_name if surface_material else ""
+	return n.trim_prefix("GL_") if n.begins_with("GL_") else "black"
+
+
+static func build(livery: String, with_audio: bool, car_id := DEFAULT_CAR) -> RaceCarBody:
+	if not ROSTER.has(car_id):
+		car_id = DEFAULT_CAR
+	var spec: Dictionary = ROSTER[car_id]
+	var geo: Dictionary = CarSpecs.GEOMETRY[car_id]
+	if not _scenes.has(car_id):
+		_scenes[car_id] = load("res://assets/models/cars/%s.glb" % car_id)
 	var car := RaceCarBody.new()
-	car.mass = 1100.0
-	car.center_of_mass_mode = RigidBody3D.CENTER_OF_MASS_MODE_CUSTOM
-	car.center_of_mass = Vector3(0, 0.38, 0.05)
-	car.continuous_cd = false
+	car.car_id = car_id
+	car.configure(spec)
 	car.add_to_group("cars")
 
+	# Collision: the body between the axles' contact patches and the roof, slightly inset from the
+	# mirrors, lifted clear of kerbs (the wheels' ray-casts carry the car).
+	var bmin: Vector3 = geo["body_min"]
+	var bmax: Vector3 = geo["body_max"]
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
-	box.size = Vector3(1.6, 0.72, 3.7)
+	var bottom := 0.24
+	box.size = Vector3((bmax.x - bmin.x) * 0.9, (bmax.y - bottom) * 0.88, (bmax.z - bmin.z) * 0.96)
 	shape.shape = box
-	shape.position = Vector3(0, 0.7, 0.04)
+	shape.position = Vector3(0, bottom + box.size.y * 0.5, (bmin.z + bmax.z) * 0.5)
 	car.add_child(shape)
+	# Low centre of mass (engine, battery and driver sit low) keeps the car planted over kerbs.
+	car.center_of_mass_mode = RigidBody3D.CENTER_OF_MASS_MODE_CUSTOM
+	car.center_of_mass = Vector3(0, 0.36, (bmin.z + bmax.z) * 0.5 * 0.3)
 
-	var model := _scene.instantiate()
+	var tail := tail_material()
+	car.tail_lights = tail
+	var model: Node = (_scenes[car_id] as PackedScene).instantiate()
 	var visual := Node3D.new()
 	visual.name = "Visual"
-	visual.rotation.y = PI   # glTF model faces -Z; VehicleBody3D drives along +Z
 	car.add_child(visual)
-	var wheel_parts := []   # [mesh, transform-without-translation, part name]
+	var wheel_meshes := {}
 	for mi in model.find_children("*", "MeshInstance3D", true, false):
 		var inst := mi as MeshInstance3D
-		var xf := _accumulated(inst)
-		if inst.name.begins_with("Wheel_"):
-			xf.origin = Vector3.ZERO
-			wheel_parts.append([inst.mesh, xf, String(inst.name)])
-			continue
 		var copy := MeshInstance3D.new()
 		copy.mesh = inst.mesh
-		copy.transform = xf
+		copy.name = inst.name
 		for s in inst.mesh.get_surface_count():
-			copy.set_surface_override_material(s, material_for_part(inst.name, livery))
-		visual.add_child(copy)
+			var slot := _slot(inst.mesh.surface_get_material(s))
+			copy.set_surface_override_material(s, tail if slot == "tail" else material(slot, livery))
+		var parent_name := String(inst.get_parent().name) if inst.get_parent() else ""
+		var key := String(inst.name) if String(inst.name).begins_with("Wheel_") else parent_name
+		if key.begins_with("Wheel_"):
+			wheel_meshes[key.substr(0, 8)] = copy   # mesh is centred on the wheel hub
+		else:
+			copy.transform = _accumulated(inst)
+			visual.add_child(copy)
 	model.free()
 
-	for w in WHEELS:
+	# Axle-symmetric suspension points (the models are hand-built, so left/right can differ by a few mm).
+	for k in ["Wheel_FL", "Wheel_FR", "Wheel_RL", "Wheel_RR"]:
+		var w: Array = geo[k]
+		var other: Array = geo[k.substr(0, 7) + ("R" if k.ends_with("L") else "L")]
+		var centre: Vector3 = w[0]
+		var oc: Vector3 = other[0]
+		var front: bool = k.contains("_F")
+		var radius: float = w[1]
 		var wheel := VehicleWheel3D.new()
-		wheel.position = Vector3(w[0], WHEEL_RADIUS + REST, w[1])
-		wheel.use_as_steering = w[2]
-		wheel.use_as_traction = not w[2]
-		wheel.wheel_radius = WHEEL_RADIUS
+		wheel.name = k
+		wheel.position = Vector3(signf(centre.x) * (absf(centre.x) + absf(oc.x)) * 0.5, radius + REST, (centre.z + oc.z) * 0.5)
+		wheel.use_as_steering = front
+		wheel.use_as_traction = spec["awd"] or not front
+		wheel.wheel_radius = radius
 		wheel.wheel_rest_length = REST
-		wheel.suspension_travel = 0.2
-		wheel.suspension_stiffness = 38.0
-		wheel.suspension_max_force = 12000.0
-		wheel.damping_compression = 1.6
-		wheel.damping_relaxation = 2.0
-		wheel.wheel_roll_influence = 0.25
-		wheel.wheel_friction_slip = 1.35
-		var holder := Node3D.new()
-		# Mesh faces outward on the left (+X) after the model->body turn; mirror the right side.
-		holder.rotation.y = PI if w[0] < 0 else 0.0
-		for part in wheel_parts:
-			var m := MeshInstance3D.new()
-			m.mesh = part[0]
-			# The glTF wheel faces -Z-forward model space; turn it into the +Z-forward body space.
-			m.transform = Transform3D(Basis(Vector3.UP, PI), Vector3.ZERO) * part[1]
-			for s in m.mesh.get_surface_count():
-				m.set_surface_override_material(s, material_for_part(part[2], livery))
-			holder.add_child(m)
-		wheel.add_child(holder)
+		wheel.suspension_travel = 0.16
+		wheel.suspension_stiffness = 55.0
+		wheel.suspension_max_force = 40000.0
+		wheel.damping_compression = 2.2
+		wheel.damping_relaxation = 2.8
+		wheel.wheel_roll_influence = 0.08
+		wheel.wheel_friction_slip = car.grip
+		if wheel_meshes.has(k):
+			var m: MeshInstance3D = wheel_meshes[k]
+			m.position = Vector3(centre.x - wheel.position.x, 0, centre.z - wheel.position.z)
+			wheel.add_child(m)
 		car.add_child(wheel)
 
 	if with_audio:

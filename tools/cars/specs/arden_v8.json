@@ -1,0 +1,84 @@
+{
+ "id": "arden_v8",
+ "wheels": {
+  "Wheel_RR": {
+   "centre": [
+    -0.8052,
+    1.3218,
+    0.3214
+   ],
+   "radius": 0.3214,
+   "width": 0.2761,
+   "tris": 4996
+  },
+  "Wheel_FR": {
+   "centre": [
+    -0.7773,
+    -1.3047,
+    0.3214
+   ],
+   "radius": 0.3214,
+   "width": 0.2761,
+   "tris": 4995
+  },
+  "Wheel_RL": {
+   "centre": [
+    0.7946,
+    1.3217,
+    0.3214
+   ],
+   "radius": 0.3214,
+   "width": 0.2761,
+   "tris": 4994
+  },
+  "Wheel_FL": {
+   "centre": [
+    0.8052,
+    -1.3218,
+    0.3214
+   ],
+   "radius": 0.3214,
+   "width": 0.2761,
+   "tris": 5226
+  }
+ },
+ "length": 4.43,
+ "width": 1.969,
+ "height": 1.115,
+ "body_min": [
+  -0.99,
+  -2.322,
+  0.124
+ ],
+ "body_max": [
+  0.98,
+  2.108,
+  1.239
+ ],
+ "body_tris": 261865,
+ "materials": [
+  "GL_amber",
+  "GL_black",
+  "GL_brake",
+  "GL_carbon",
+  "GL_chrome",
+  "GL_glass",
+  "GL_head",
+  "GL_interior",
+  "GL_paint",
+  "GL_rim",
+  "GL_tail"
+ ],
+ "scale": 0.20215053531343616,
+ "dropped": [
+  "Earth",
+  "Audi_Emblem.001",
+  "R8_Font_Logo.001",
+  "Audi_Emblem",
+  "Light_Plane",
+  "R8_Font_Logo",
+  "Nr_Schild",
+  "Motor"
+ ],
+ "badges_erased": 0
+}
