@@ -43,7 +43,12 @@ test, no screenshot and no performance measurement. Real-device performance is *
    `tools/unity-docker.sh build` (Docker works here). Details: `docs/BUILD.md`.
 2. **Sketchfab connector does not authenticate.** Reconnect it, or add a read-only `SKETCHFAB_API_TOKEN` environment
    secret, to download the shortlisted CC-BY prototype race car.
-3. **Physical Android device** (one budget, one mid-range) for the 30/60 FPS targets, touch ergonomics and tilt mapping.
+3. **GitHub Actions did not start any job.** Run #1 (https://github.com/Megamind33-tech/Flash-2026/actions/runs/41088342014)
+   failed every job in ~3 s with `runner_id: 0` and no steps, including the licence-free `core-tests` job, so no runner
+   was ever assigned. That pattern usually points to an account-level restriction (billing/spending limit, Actions
+   minutes exhausted, or Actions disabled), not to the workflow. Check the run page banner and
+   Settings → Billing / Settings → Actions, then re-run.
+4. **Physical Android device** (one budget, one mid-range) for the 30/60 FPS targets, touch ergonomics and tilt mapping.
 
 ## Known risks to check on the first licensed run
 
