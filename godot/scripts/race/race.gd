@@ -794,6 +794,10 @@ func _complete() -> void:
 		var st: Array = _stability.get(r.id, [0.0, 0.0, 1.0, 0.0, 0.0])
 		print("[GRIDLINE]      car=%s mass=%.0fkg airborne=%.2fs longest_air=%.2fs min_upright=%.3f max_up_vel=%.2fm/s" % [r.car.car_id, r.car.mass, st[0], st[1], st[2], st[3]])
 	results_ready.emit()
+	if "--walkthrough" in OS.get_cmdline_user_args():   # recorded walkthrough: hold the results screen, then end
+		await get_tree().create_timer(5.0).timeout
+		get_tree().quit(0)
+		return
 	if autotest and not ("--shot" in OS.get_cmdline_user_args()):
 		var ok := racers.filter(func(r): return r.laps.finished).size() >= mini(3, racers.size() - _eliminations) and (player.laps.finished or player.eliminated)
 		get_tree().quit(0 if ok else 1)

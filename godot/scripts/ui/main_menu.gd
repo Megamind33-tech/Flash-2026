@@ -110,6 +110,8 @@ func _ready() -> void:
 		if Clubs.my_club().is_empty():
 			Clubs.request("copperbelt")
 			Clubs.record_result("club_local", 2, 8)
+	if args.has("--walkthrough"):
+		_walkthrough()
 	if args.has("--page"):
 		_go(args[args.find("--page") + 1])
 		if overlay is CareerModes and args.has("--tab"):
@@ -376,6 +378,31 @@ func _build_hub() -> void:
 	hint.position = Vector2(1180, 1080 - 56 - safe.w)
 	hint.size = Vector2(300, 30)
 	hub.add_child(hint)
+
+
+## Recorded walkthrough (--walkthrough, used with --write-movie): hub -> dealership (switch car, paint preview) ->
+## Team Owner HQ -> RACE NOW into a real race (AI drives, --autotest 1) -> results. Drives the real buttons' code paths.
+func _walkthrough() -> void:
+	var t := get_tree()
+	await t.create_timer(3.0).timeout
+	_go("garage")
+	await t.create_timer(2.0).timeout
+	var d := overlay as Dealership
+	if d:
+		d.tab = "showroom"
+		d.sel = "ravenna_hybrid"
+		d._refresh()
+		await t.create_timer(2.0).timeout
+		d._pick_paint("ocean")
+		await t.create_timer(2.0).timeout
+		d.queue_free()
+	await t.create_timer(1.0).timeout
+	_go("team_owner")
+	await t.create_timer(3.0).timeout
+	if overlay:
+		overlay.queue_free()
+	await t.create_timer(1.0).timeout
+	_race_next()
 
 
 func _click_play() -> void:
