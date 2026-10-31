@@ -1,0 +1,28 @@
+{
+  "startingMoney": 5000,
+  "amateurEntryFee": 250,
+  "prizeByPosition": [
+    3000,
+    1800,
+    1200,
+    800,
+    500,
+    300,
+    200,
+    100
+  ],
+  "reputationByPosition": [
+    12,
+    8,
+    6,
+    4,
+    3,
+    2,
+    1,
+    1
+  ],
+  "reputationForFastestLap": 2,
+  "fastestLapBonus": 250,
+  "sponsorCoversEntryWhenBroke": true,
+  "minimumReputation": 0
+}

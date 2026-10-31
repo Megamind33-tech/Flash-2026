@@ -1,0 +1,45 @@
+; GRIDLINE — Godot 4 port (Mobile renderer, Android). Unity project at the repo root is preserved.
+config_version=5
+
+[application]
+
+config/name="GRIDLINE"
+config/description="GRIDLINE — The Racing League"
+config/version="0.6.0"
+config/quit_on_go_back=false
+run/main_scene="res://scenes/main_menu.tscn"
+config/features=PackedStringArray("4.7", "Mobile")
+boot_splash/bg_color=Color(0, 0, 0, 1)
+config/icon="res://assets/ui/icon.png"
+
+[autoload]
+
+Game="*res://scripts/core/game.gd"
+
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=4
+
+[input_devices]
+
+pointing/emulate_mouse_from_touch=true
+
+[physics]
+
+common/physics_ticks_per_second=60
+common/max_physics_steps_per_frame=4
+
+[rendering]
+
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+textures/vram_compression/import_etc2_astc=true
+anti_aliasing/quality/msaa_3d=1
+lights_and_shadows/directional_shadow/size=2048
+lights_and_shadows/directional_shadow/size.mobile=1024
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality.mobile=1
+environment/defaults/default_clear_color=Color(0.55, 0.62, 0.7, 1)

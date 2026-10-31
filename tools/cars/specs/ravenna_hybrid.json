@@ -1,0 +1,72 @@
+{
+ "id": "ravenna_hybrid",
+ "wheels": {
+  "Wheel_FR": {
+   "centre": [
+    -0.8268,
+    -1.3031,
+    0.3618
+   ],
+   "radius": 0.3618,
+   "width": 0.3246,
+   "tris": 1580
+  },
+  "Wheel_RR": {
+   "centre": [
+    -0.8136,
+    1.3043,
+    0.3618
+   ],
+   "radius": 0.3618,
+   "width": 0.3246,
+   "tris": 1497
+  },
+  "Wheel_RL": {
+   "centre": [
+    0.8228,
+    1.3043,
+    0.3618
+   ],
+   "radius": 0.3618,
+   "width": 0.3246,
+   "tris": 1496
+  },
+  "Wheel_FL": {
+   "centre": [
+    0.8268,
+    -1.3043,
+    0.3618
+   ],
+   "radius": 0.3618,
+   "width": 0.3246,
+   "tris": 1581
+  }
+ },
+ "length": 4.7,
+ "width": 2.093,
+ "height": 1.17,
+ "body_min": [
+  -1.046,
+  -2.623,
+  0.059
+ ],
+ "body_max": [
+  1.047,
+  2.077,
+  1.229
+ ],
+ "body_tris": 68904,
+ "materials": [
+  "GL_black",
+  "GL_chrome",
+  "GL_glass",
+  "GL_head",
+  "GL_paint",
+  "GL_tail"
+ ],
+ "scale": 0.4218466658985793,
+ "dropped": [
+  "Circle.005"
+ ],
+ "badges_erased": 0
+}

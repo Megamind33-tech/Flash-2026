@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ads/ad_surface.gd" id="1"]
+[ext_resource type="PackedScene" path="res://assets/ads/hardware/sponsor_barrier.glb" id="2"]
+
+[node name="Sponsor_Barrier" type="Node3D"]
+script = ExtResource("1")
+kind = "barrier"
+size = Vector2(2.8,0.5)
+screen_height = 0.62
+led = false
+view_distance = 90
+
+[node name="Model" parent="." instance=ExtResource("2")]

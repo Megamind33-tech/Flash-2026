@@ -413,7 +413,53 @@ def render(name, cam):
     bpy.ops.render.render(write_still=True)
     print("RENDERED", sc.render.filepath, flush=True)
 
+def export_glb():
+    """Export the existing car and circuit (no remodelling) as glTF for the Godot project.
+    Material *names* carry through; Godot assigns mobile-friendly materials by name."""
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    track = bpy.data.collections.new("Track"); bpy.context.scene.collection.children.link(track)
+    build_track(track)
+    # Bake metre-based UVs into texture repeats so no material-side tiling is needed for repeating surfaces.
+    for o in track.objects:
+        if o.type != "MESH": continue
+        for mod in list(o.modifiers):
+            bpy.context.view_layer.objects.active = o
+            bpy.ops.object.modifier_apply(modifier=mod.name)
+    out_track = os.path.join(OUT, "ashford_circuit.glb")
+    bpy.ops.object.select_all(action="DESELECT")
+    for o in track.objects: o.select_set(True)
+    bpy.ops.export_scene.gltf(filepath=out_track, export_format="GLB", use_selection=True, export_apply=True,
+                              export_materials="PLACEHOLDER", export_yup=True)
+    print("EXPORTED", out_track, flush=True)
+    for o in list(track.objects): bpy.data.objects.remove(o, do_unlink=True)
+
+    cars = bpy.data.collections.new("Car"); bpy.context.scene.collection.children.link(cars)
+    root = make_car("MuscleCar", "player_white", (0, 0), (0, 1), cars)
+    root.location = (0, 0, 0)
+    bpy.context.view_layer.update()
+    # Body parts and one wheel set; wheels are positioned by VehicleWheel3D in Godot, so export a single
+    # tyre+rim pair at the origin (left-side orientation) alongside the body.
+    wheels = [o for o in cars.objects if o.type == "MESH" and (o.data.materials[0].name.startswith("RVP_Tire") or o.data.materials[0].name.startswith("RVP_Rim"))]
+    keep = {}
+    for o in wheels:
+        kind = "tyre" if o.data.materials[0].name.startswith("RVP_Tire") else "rim"
+        if kind in keep or o.matrix_world.translation.x > 0: 
+            bpy.data.objects.remove(o, do_unlink=True); continue
+        keep[kind] = o
+        mw = o.matrix_world.copy(); o.parent = None
+        o.matrix_world = Matrix.Translation(-mw.translation) @ mw
+        o.name = "Wheel_" + kind
+    bpy.ops.object.select_all(action="DESELECT")
+    for o in cars.objects: o.select_set(True)
+    out_car = os.path.join(OUT, "muscle_car.glb")
+    bpy.ops.export_scene.gltf(filepath=out_car, export_format="GLB", use_selection=True, export_apply=True,
+                              export_materials="PLACEHOLDER", export_yup=True)
+    print("EXPORTED", out_car, flush=True)
+
 def main():
+    if SHOTS and SHOTS[0] == "export":
+        export_glb()
+        return
     bpy.ops.wm.read_factory_settings(use_empty=True)
     setup_world()
     track = bpy.data.collections.new("Track"); bpy.context.scene.collection.children.link(track)

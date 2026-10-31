@@ -1,0 +1,82 @@
+{
+ "id": "solano_concept",
+ "wheels": {
+  "Wheel_RL": {
+   "centre": [
+    0.9161,
+    1.3226,
+    0.3404
+   ],
+   "radius": 0.3404,
+   "width": 0.3037,
+   "tris": 1491
+  },
+  "Wheel_RR": {
+   "centre": [
+    -0.9161,
+    1.3198,
+    0.3404
+   ],
+   "radius": 0.3404,
+   "width": 0.3037,
+   "tris": 1492
+  },
+  "Wheel_FR": {
+   "centre": [
+    -0.8807,
+    -1.3226,
+    0.3404
+   ],
+   "radius": 0.3404,
+   "width": 0.3037,
+   "tris": 1492
+  },
+  "Wheel_FL": {
+   "centre": [
+    0.8826,
+    -1.3168,
+    0.3404
+   ],
+   "radius": 0.3404,
+   "width": 0.3037,
+   "tris": 1491
+  }
+ },
+ "length": 4.5,
+ "width": 2.207,
+ "height": 1.092,
+ "body_min": [
+  -1.107,
+  -2.299,
+  0.115
+ ],
+ "body_max": [
+  1.1,
+  2.202,
+  1.208
+ ],
+ "body_tris": 62306,
+ "materials": [
+  "GL_amber",
+  "GL_black",
+  "GL_black",
+  "GL_chrome",
+  "GL_glass",
+  "GL_head",
+  "GL_head",
+  "GL_head",
+  "GL_paint",
+  "GL_paint",
+  "GL_rim",
+  "GL_tail"
+ ],
+ "scale": 0.46652506899240803,
+ "dropped": [
+  "Circle.015",
+  "Plane.002",
+  "Plane.001",
+  "Plane",
+  "Plane.005"
+ ],
+ "badges_erased": 0
+}

@@ -1,0 +1,6 @@
+{
+  "_comment": "Optional sponsor campaigns per placement id pattern (Godot String.match wildcards). Atlas indices refer to assets/ads/ads_atlas.png. Empty = house rotation of fictional sponsors.",
+  "campaigns": [
+    {"id": "launch_gridline", "placements": ["*_gantry_*"], "creatives": [5, 15]}
+  ]
+}
