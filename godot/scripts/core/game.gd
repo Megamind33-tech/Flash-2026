@@ -376,6 +376,10 @@ func _renderer_override(ultra: bool) -> void:
 
 
 func quality() -> int:
+	var args := OS.get_cmdline_user_args()   # measurements: --quality 0..3 overrides the saved tier
+	var qi := args.find("--quality")
+	if qi >= 0 and qi + 1 < args.size() and args[qi + 1].is_valid_int():
+		return clampi(int(args[qi + 1]), 0, 3)
 	return int(settings()["quality"])
 
 
