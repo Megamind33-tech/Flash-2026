@@ -76,6 +76,7 @@ func _ready() -> void:
 	var style := CityStyles.get_style(city_id)
 	Weather.configure(str(Game.session.get("weather", "clear")), str(Game.session.get("time", "day")),
 		float(style["surface_grip"]) if city_id != "ashford" else 1.0, hash(city_id + str(event["id"])))
+	Potholes.clear()
 	if city_id == "ashford":
 		track = TrackPath.ashford()
 		track_name = TrackPath.ASHFORD_NAME
@@ -108,6 +109,17 @@ func _ready() -> void:
 	add_child(camera)
 	camera.make_current()
 	Weather.attach_particles(camera)
+	var cph := args.find("--cam-pothole")   # evidence: a pothole seen from 10 m, driver height
+	if cph >= 0 and not Potholes.holes.is_empty():
+		var h: Array = Potholes.holes[0]
+		var hc: Vector3 = h[0]
+		var dh := float(track.project(hc, [-1])[0])
+		var pc := Camera3D.new()
+		add_child(pc)
+		pc.global_position = hc - track.tangent_at(dh) * 10.0 + Vector3.UP * 1.3
+		pc.look_at(hc, Vector3.UP)
+		pc.make_current()
+		camera.set_physics_process(false)
 	var ca := args.find("--cam-ad")   # screenshots: frame the first ad of a kind (led, gantry, urban, barrier)
 	if ca >= 0 and AdPlacementManager.instance:
 		for p in AdPlacementManager.instance.placements.values():
@@ -514,6 +526,7 @@ func _complete() -> void:
 		var ads := AdPlacementManager.instance.summary()
 		AdPlacementManager.instance.provider.report(ads)
 		print("[GRIDLINE] ads placements=%d impressions=%d (measured: %s)" % [ads["placements"], ads["impressions"], ads["criterion"]])
+	print("[GRIDLINE] potholes=%d player_hits=%d all_hits=%d" % [Potholes.holes.size(), player.car.pothole_hits, Potholes.events])
 	print("[GRIDLINE] format=%s city=%s weather=%s/%s grip=%.2f eliminated=%d medal=%d ghost=%s" % [format, city_id, Weather.kind, Weather.time_of_day, Weather.grip, _eliminations, medal, str(not ghost.is_empty())])
 	print("[GRIDLINE] race complete event=%s laps=%d player=P%d race_time=%.1fs avg_fps=%.1f worst_frame_ms=%.1f" % [event["id"], total_laps, player.position, race_time, avg_fps, _worst_frame * 1000.0])
 	for s in standings:

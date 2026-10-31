@@ -172,6 +172,9 @@ static func build(parent: Node3D, data: Dictionary, style: Dictionary, track: Tr
 		print("[GRIDLINE] street props %s" % JSON.stringify(street))
 	barrier_ads(root, track, track.half_width + BARRIER, 0.6)
 	race_furniture(root, track, track.half_width + BARRIER)
+	# Potholes on the worn roads (none on smooth European asphalt below wear 0.5).
+	var wear := float(style.get("wear", style.get("stains", 0.6)))
+	Potholes.place(root, track, int(maxf(0.0, wear - 0.4) * 24.0), hash(str(data["id"]) + "holes"))
 	AdPlacementManager.instance = null
 	# Advertising system: validated on Lusaka first (see docs); --no-ads gives the before/after baseline.
 	if str(data["id"]) in ["lusaka"] and not "--no-ads" in OS.get_cmdline_user_args():

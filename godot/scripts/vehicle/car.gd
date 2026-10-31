@@ -20,6 +20,8 @@ signal impact(strength: float)
 var car_id := ""
 var tail_lights: StandardMaterial3D
 var wheels_on_ground := 4
+var pothole_hits := 0
+var _in_hole := [false, false, false, false]
 var legacy_physics := false   # tests only: the pre-0.4 behaviour (body-axis downforce, no stabiliser)
 
 # Controller inputs (0..1, steer -1 left .. +1 right)
@@ -126,11 +128,19 @@ func _physics_process(delta: float) -> void:
 
 	# Surface grip: wheels on grass or gravel lose friction.
 	offroad = false
-	for w in _wheels:
+	for wi in _wheels.size():
+		var w := _wheels[wi]
 		var body := w.get_contact_body()
 		var off: bool = body != null and body.is_in_group("offroad")
 		offroad = offroad or off
-		w.wheel_friction_slip = (offroad_grip if off else grip) * Weather.grip_at(speed)
+		# Potholes (gate G5): grip loss while inside, a downward jolt at the wheel on entry.
+		var hole := w.is_in_contact() and not Potholes.holes.is_empty() and Potholes.at(w.global_position) > 0.0
+		if hole and not _in_hole[wi] and speed > 3.0:
+			apply_impulse(Vector3.DOWN * mass * Potholes.JOLT * 0.25 * clampf(speed / 30.0, 0.3, 1.0), w.global_position - global_position)
+			Potholes.events += 1
+			pothole_hits += 1
+		_in_hole[wi] = hole
+		w.wheel_friction_slip = (offroad_grip if off else grip) * Weather.grip_at(speed) * (Potholes.GRIP if hole else 1.0)
 
 	_update_gearbox(fwd_speed, thr)
 	if tail_lights:
