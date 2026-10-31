@@ -20,6 +20,9 @@ var _sorts: HBoxContainer
 var _action: Button
 var _money: Label
 var _note: Label
+var _cams: HBoxContainer
+var _paints: HBoxContainer
+var preview_paint := ""
 
 
 static func open(p_menu, start_tab := "showroom") -> Dealership:
@@ -77,6 +80,17 @@ func _ready() -> void:
 	_panel.add_theme_constant_override("separation", 6)
 	side.add_child(_panel)
 
+	_cams = HBoxContainer.new()   # camera presets for the 3D garage (drag also orbits)
+	_cams.position = Vector2(48, 168)
+	_cams.add_theme_constant_override("separation", 6)
+	add_child(_cams)
+	_paints = HBoxContainer.new()
+	_paints.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_paints.offset_left = 48
+	_paints.offset_top = -400
+	_paints.offset_bottom = -344
+	_paints.add_theme_constant_override("separation", 8)
+	add_child(_paints)
 	_sorts = HBoxContainer.new()
 	_sorts.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	_sorts.offset_left = 48
@@ -129,6 +143,37 @@ func _refresh() -> void:
 	for t in [["showroom", "SHOWROOM"], ["garage", "MY GARAGE"], ["sell", "SELL"]]:
 		var tt: String = t[0]
 		_tabs.add_child(_chip(t[1], tab == tt, func(): tab = tt; _refresh()))
+	for c in _cams.get_children():
+		c.queue_free()
+	_cams.add_child(UiStyle.label("CAMERA  ", UiStyle.cond_bold(), 22, UiStyle.MUTED))
+	var cur_preset: String = menu.studio.preset if menu and menu.get("studio") else ""
+	for cp in [["", "AUTO"], ["front", "FRONT"], ["side", "SIDE"], ["rear", "REAR"], ["low", "LOW"], ["top", "TOP"]]:
+		var key: String = cp[0]
+		_cams.add_child(_chip(cp[1], cur_preset == key, func():
+			if menu and menu.get("studio"):
+				menu.studio.set_preset(key)
+			_refresh()))
+	for c in _paints.get_children():
+		c.queue_free()
+	_paints.add_child(UiStyle.label("PAINT  ", UiStyle.cond_bold(), 22, UiStyle.MUTED))
+	var showing := preview_paint if preview_paint != "" else Game.paint_for(sel)
+	for pp in CarBuilder.PAINT_SHOP:
+		var pk: String = pp[0]
+		var sw := Button.new()
+		sw.focus_mode = Control.FOCUS_NONE
+		sw.custom_minimum_size = Vector2(52, 52)
+		sw.tooltip_text = "%s  $%s" % [pp[1], RaceHud._thousands(int(pp[2]))]
+		var on := pk == showing
+		sw.add_theme_stylebox_override("normal", UiStyle.box(CarBuilder.PAINT[pk], 3 if on else 1, Color.WHITE if on else Color(1, 1, 1, 0.25), 26))
+		sw.add_theme_stylebox_override("hover", UiStyle.box(CarBuilder.PAINT[pk], 3, UiStyle.ACCENT, 26))
+		sw.add_theme_stylebox_override("pressed", UiStyle.box(CarBuilder.PAINT[pk], 3, UiStyle.ACCENT, 26))
+		sw.pressed.connect(func(): _pick_paint(pk))
+		_paints.add_child(sw)
+	var pname := ""
+	for pp in CarBuilder.PAINT_SHOP:
+		if pp[0] == showing:
+			pname = "  %s%s" % [pp[1], "" if Game.owns_paint(pp[0]) else "  ·  $" + RaceHud._thousands(int(pp[2]))]
+	_paints.add_child(UiStyle.label(pname.to_upper(), UiStyle.cond_bold(), 22, Color.WHITE))
 	for c in _sorts.get_children():
 		c.queue_free()
 	_sorts.add_child(UiStyle.label("SORT  ", UiStyle.cond_bold(), 22, UiStyle.MUTED))
@@ -144,7 +189,7 @@ func _refresh() -> void:
 		_cards.add_child(_card(id))
 	_sheet()
 	if menu and menu.has_method("show_car"):
-		menu.show_car(sel)
+		menu.show_car(sel, preview_paint)
 
 
 func _card(id: String) -> Control:
@@ -156,7 +201,7 @@ func _card(id: String) -> Control:
 	b.add_theme_stylebox_override("normal", UiStyle.box(Color(0.06, 0.06, 0.07, 0.9), 3 if on else 1, Color.WHITE if on else Color(1, 1, 1, 0.15), 6))
 	b.add_theme_stylebox_override("hover", UiStyle.box(Color(0.1, 0.1, 0.12, 0.92), 3 if on else 1, Color.WHITE, 6))
 	b.add_theme_stylebox_override("pressed", UiStyle.box(Color(0.12, 0.12, 0.14, 0.95), 3, Color.WHITE, 6))
-	b.pressed.connect(func(): sel = id; _refresh())
+	b.pressed.connect(func(): sel = id; preview_paint = ""; _refresh())
 	var img := TextureRect.new()
 	var tex_path := "res://assets/ui/cars/%s.png" % id
 	if ResourceLoader.exists(tex_path):
@@ -225,8 +270,12 @@ func _sheet() -> void:
 		_panel.add_child(UiStyle.label("3D model: " + str(sp["licence"]), UiStyle.cond(), 18, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false))
 	else:
 		var st: Dictionary = sp["stats"]
+		var mine: Dictionary = CarCatalogue.stats(Game.player_car())
+		var compare := sel != Game.player_car()
 		for k in [["speed", "TOP SPEED"], ["acceleration", "ACCELERATION"], ["handling", "HANDLING"], ["braking", "BRAKING"], ["launch", "LAUNCH"]]:
-			_panel.add_child(_stat_bar(k[1], float(st[k[0]])))
+			_panel.add_child(_stat_bar(k[1], float(st[k[0]]), float(mine[k[0]]) if compare else -1.0))
+		if compare:
+			_panel.add_child(UiStyle.label("▲▼ compared with your %s (orange tick)" % CarBuilder.info(Game.player_car())["name"], UiStyle.cond(), 17, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false))
 		var grid := GridContainer.new()
 		grid.columns = 2
 		grid.add_theme_constant_override("h_separation", 18)
@@ -273,7 +322,26 @@ func _do_action() -> void:
 	_refresh()
 
 
-func _stat_bar(title: String, v: float) -> Control:
+## Paint: preview on any car; on an owned car it is applied (and bought once, unlocking it for every car).
+func _pick_paint(key: String) -> void:
+	if Game.owns_car(sel):
+		if Game.set_paint(sel, key):
+			preview_paint = ""
+			_note.text = "Paint applied. It shows in the garage and in every race."
+		else:
+			preview_paint = key
+			_note.text = "Not enough money for this finish."
+	else:
+		preview_paint = key
+		_note.text = "Preview. Buy the car to keep this paint."
+	_refresh()
+	if _note.text != "":
+		var n := _note.text
+		_refresh()
+		_note.text = n
+
+
+func _stat_bar(title: String, v: float, ref := -1.0) -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	var t := UiStyle.label(title, UiStyle.cond_bold(), 20, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false)
@@ -298,7 +366,15 @@ func _stat_bar(title: String, v: float) -> Control:
 		tick.position = Vector2(k * 30 - 1, 11)
 		tick.size = Vector2(2, 8)
 		bar.add_child(tick)
+	if ref >= 0.0:
+		var mark := ColorRect.new()
+		mark.color = UiStyle.ACCENT
+		mark.position = Vector2(300 * ref / 10.0 - 2, 6)
+		mark.size = Vector2(4, 18)
+		bar.add_child(mark)
 	row.add_child(UiStyle.label("%.1f" % v, UiStyle.font("BarlowCondensed-ExtraBold"), 24, Color.WHITE, HORIZONTAL_ALIGNMENT_RIGHT, false))
+	if ref >= 0.0 and absf(v - ref) >= 0.05:
+		row.add_child(UiStyle.label(("▲%.1f" if v > ref else "▼%.1f") % absf(v - ref), UiStyle.cond_bold(), 20, UiStyle.MONEY if v > ref else UiStyle.RED, HORIZONTAL_ALIGNMENT_LEFT, false))
 	return row
 
 

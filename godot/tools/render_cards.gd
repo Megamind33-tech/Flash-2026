@@ -53,7 +53,7 @@ func _ready() -> void:
 	cam.fov = 30.0
 	var only_portraits := OS.get_cmdline_user_args().has("--portraits-only")
 	for id in ([] if only_portraits else CarBuilder.car_ids()):
-		var car := CarBuilder.build("player_white", false, id)
+		var car := CarBuilder.build(str(CarCatalogue.CARS[id]["hero_paint"]), false, id)
 		car.freeze = true
 		world.add_child(car)
 		car.global_transform = Transform3D(Basis(Vector3.UP, deg_to_rad(-35.0)), Vector3.ZERO)

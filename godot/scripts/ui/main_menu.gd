@@ -44,7 +44,7 @@ func _place_showroom_car() -> void:
 		return
 	var args := OS.get_cmdline_user_args()   # screenshots: --show-car <id> [--livery <livery>]
 	var car_id: String = args[args.find("--show-car") + 1] if args.has("--show-car") else (display_car if display_car != "" else Game.player_car())
-	var livery: String = args[args.find("--livery") + 1] if args.has("--livery") else "player_white"
+	var livery: String = args[args.find("--livery") + 1] if args.has("--livery") else (display_paint if display_paint != "" else Game.paint_for(car_id))
 	viewport_car = CarBuilder.build(livery, false, car_id)
 	# Not frozen: let the car settle on its real suspension (input disabled = parking brake on).
 	showroom.add_child(viewport_car)
@@ -146,7 +146,8 @@ func _process(delta: float) -> void:
 		return
 	var focus := viewport_car.global_position + Vector3.UP * 0.7
 	if studio:
-		studio.frame_offset = -12.0 if overlay is Dealership else (3.0 if page == "main" else 0.0)
+		studio.frame_offset = -9.0 if overlay is Dealership else (3.0 if page == "main" else 0.0)
+		studio.frame_pitch = -4.5 if overlay is Dealership else 0.0
 		studio.drive_camera(cam, delta, viewport_car.global_position + Vector3.UP * 0.55)
 		return
 	var rot := Basis(Vector3.UP, deg_to_rad(orbit + 200.0))
@@ -492,6 +493,7 @@ func _go(p: String) -> void:
 
 
 var studio: GarageStudio
+var display_paint := ""   # dealership paint preview
 var display_car := ""
 var overlay: Control
 var status_box: Control
@@ -508,6 +510,7 @@ func _overlay_opened(o: Control) -> void:
 		if is_instance_valid(status_box):
 			status_box.visible = true
 		display_car = ""
+		display_paint = ""
 		_place_showroom_car()
 		_show(page))
 
@@ -532,10 +535,11 @@ func _open_dealership(start_tab: String) -> void:
 	_overlay_opened(Dealership.open(self, start_tab))
 
 
-func show_car(id: String) -> void:
-	if id == display_car:
+func show_car(id: String, paint := "") -> void:
+	if id == display_car and paint == display_paint:
 		return
 	display_car = id
+	display_paint = paint
 	_place_showroom_car()
 
 

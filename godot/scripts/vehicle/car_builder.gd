@@ -24,7 +24,14 @@ const ROSTER := {
 const TEAM_CARS := {"halden": "ravenna_hybrid", "corsair": "arden_gt3", "vantor": "solano_concept", "northline": "elektra_egt"}
 ## Paint colour per livery (team colours from Game.default teams).
 const PAINT := {"player_white": Color("#E9EBEE"), "halden_blue": Color("#1F4E8C"), "corsair_red": Color("#B3261E"),
-	"vantor_gold": Color("#E0A100"), "northline_green": Color("#2E7D32")}
+	"vantor_gold": Color("#E0A100"), "northline_green": Color("#2E7D32"),
+	# player paint shop (dealership): metallic finishes
+	"graphite": Color("#3A3D42"), "midnight": Color("#14161B"), "rosso": Color("#9E1B1B"), "ocean": Color("#1C5E9C"),
+	"amber": Color("#D9771F"), "racing_green": Color("#1F4A33"), "silver": Color("#A9ADB3"), "copper": Color("#8C4A2F")}
+## Paint shop: [key, display name, price]. Your colour shows in the garage and in every race.
+const PAINT_SHOP := [["player_white", "Arctic White", 0], ["silver", "Liquid Silver", 1500], ["graphite", "Graphite Metallic", 1500],
+	["midnight", "Midnight Black", 1500], ["rosso", "Rosso Corsa", 2500], ["amber", "Amber Pearl", 2500], ["ocean", "Ocean Blue", 2500],
+	["racing_green", "Racing Green", 2500], ["copper", "Copper Flake", 3500]]
 const REST := 0.12
 const STIFFNESS := 75.0
 ## Static spring compression under the car's own weight (measured: 0.105 m at stiffness 55, and it scales with

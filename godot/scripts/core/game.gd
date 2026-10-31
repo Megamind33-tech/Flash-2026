@@ -184,6 +184,40 @@ func sell_car(id: String) -> int:
 	return value
 
 
+## The player's paint for a car: chosen in the dealership paint shop, otherwise the car's showroom colour.
+func paint_for(car_id: String) -> String:
+	var p: Dictionary = save["career"].get("paint", {})
+	if p.has(car_id):
+		return str(p[car_id])
+	return str(CarCatalogue.CARS.get(car_id, {}).get("hero_paint", "player_white"))
+
+
+func owns_paint(key: String) -> bool:
+	return key == "player_white" or (save["career"].get("paints", []) as Array).has(key)
+
+
+## Apply a paint to an owned car, buying the finish the first time (one purchase unlocks it for every car).
+func set_paint(car_id: String, key: String) -> bool:
+	if not owns_car(car_id):
+		return false
+	if not owns_paint(key):
+		var price := 0
+		for p in CarBuilder.PAINT_SHOP:
+			if p[0] == key:
+				price = int(p[2])
+		if int(save["career"]["money"]) < price:
+			return false
+		_post(save["career"], -price, "Car", "Paint: " + key)
+		if not save["career"].has("paints"):
+			save["career"]["paints"] = []
+		(save["career"]["paints"] as Array).append(key)
+	if not save["career"].has("paint"):
+		save["career"]["paint"] = {}
+	save["career"]["paint"][car_id] = key
+	persist()
+	return true
+
+
 func owned_cars() -> Array:
 	return CarBuilder.car_ids().filter(func(c): return owns_car(c))
 

@@ -483,8 +483,8 @@ func _spawn_grid() -> void:
 		var d := track.wrapd(-(12.0 + slot * 8.0))
 		var lat := -2.6 if slot % 2 == 0 else 2.6
 		var pos := track.position_at(d) + track.right_at(d) * lat + Vector3.UP * 0.35
-		var livery := LIVERIES[0] if is_player else str(Game.team(driver["team"]).get("livery", LIVERIES[(slot + 1) % 5]))
 		var car_id := Game.player_car() if is_player else str(CarBuilder.TEAM_CARS.get(driver["team"], CarBuilder.DEFAULT_CAR))
+		var livery := Game.paint_for(car_id) if is_player else str(Game.team(driver["team"]).get("livery", LIVERIES[(slot + 1) % 5]))
 		var car := CarBuilder.build(livery, is_player and not autotest, car_id)
 		car.name = "Car_player" if is_player else "Car_" + driver["id"]
 		People.seat_driver(car, slot)

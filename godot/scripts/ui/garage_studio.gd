@@ -29,6 +29,7 @@ var _drag_from := Vector2.ZERO
 var _dragging := false
 var preset := ""        # set by the dealership's camera buttons; "" = cinematic
 var frame_offset := 0.0 # degrees: shifts the car left (negative) / right in frame for side panels
+var frame_pitch := 0.0  # degrees: negative tilts the view down so the car sits higher in frame
 
 
 func _ready() -> void:
@@ -264,4 +265,5 @@ func drive_camera(cam: Camera3D, delta: float, focus: Vector3) -> void:
 	cam.global_position = focus + rot * Vector3(0, pitch_h, dist)
 	cam.look_at(focus + Vector3.UP * 0.1, Vector3.UP)
 	cam.rotate_object_local(Vector3.UP, deg_to_rad(frame_offset))
+	cam.rotate_object_local(Vector3.RIGHT, deg_to_rad(frame_pitch))
 	cam.fov = fov
