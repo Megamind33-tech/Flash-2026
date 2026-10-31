@@ -68,16 +68,25 @@ static func material(slot: String, livery: String) -> Material:
 			var solid := livery == "player_white"
 			m.albedo_color = col if solid else col.darkened(0.08)
 			m.metallic = 0.0 if solid else 0.82
-			m.roughness = 0.3 if solid else 0.36
+			m.roughness = 0.3 if solid else 0.3
 			m.metallic_specular = 0.6
+			if not solid:
+				# Metallic flake: a tileable micro-flake normal map (assets/models/cars/paint_flake_normal.png) under a
+				# mirror-smooth clear coat, mapped in object space so it needs no UVs. Highlights break into sparkle
+				# instead of a flat grey sheen; the clear coat keeps the sharp reflections of the softboxes and sky.
+				m.normal_enabled = true
+				m.normal_texture = load("res://assets/models/cars/paint_flake_normal.png")
+				m.normal_scale = 0.35
+				m.uv1_triplanar = true
+				m.uv1_scale = Vector3.ONE * 6.0
 			m.clearcoat_enabled = true
 			m.clearcoat = 1.0
-			m.clearcoat_roughness = 0.03
+			m.clearcoat_roughness = 0.02
 			m.rim_enabled = true          # soft Fresnel brightening along the body edges
 			m.rim = 0.25
 			m.rim_tint = 0.6
 		"glass":
-			m.albedo_color = Color(0.015, 0.018, 0.022, 0.66)   # dark and reflective, but the seated driver still shows through
+			m.albedo_color = Color(0.02, 0.028, 0.034, 0.62)   # slightly green-grey tint, reflective, the seated driver still shows through
 			m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 			m.metallic = 0.0
 			m.metallic_specular = 0.45   # full specular turned the glass pale grey under a bright sky
@@ -100,8 +109,9 @@ static func material(slot: String, livery: String) -> Material:
 			m.albedo_color = Color(0.06, 0.055, 0.05)
 			m.roughness = 0.8
 		"tyre":
-			m.albedo_color = Color(0.035, 0.035, 0.037)
-			m.roughness = 0.85
+			m.albedo_color = Color(0.05, 0.05, 0.052)   # rubber reads lighter and duller than black paint or trim
+			m.roughness = 0.92
+			m.metallic_specular = 0.3
 		"brake":
 			m.albedo_color = Color(0.36, 0.36, 0.37)
 			m.metallic = 0.85
@@ -197,6 +207,12 @@ static func build(livery: String, with_audio: bool, car_id := DEFAULT_CAR) -> Ra
 	shape.shape = box
 	shape.position = Vector3(0, bottom + box.size.y * 0.5, (bmin.z + bmax.z) * 0.5)
 	car.add_child(shape)
+	# Body-to-body contact: painted bodywork slides along another car instead of gripping it. With the default
+	# friction (1.0, no bounce) two cars that touched welded together and ran side by side at one speed.
+	var pm := PhysicsMaterial.new()
+	pm.friction = 0.08
+	pm.bounce = 0.22
+	car.physics_material_override = pm
 	# Low centre of mass (engine, battery and driver sit low) keeps the car planted over kerbs.
 	car.center_of_mass_mode = RigidBody3D.CENTER_OF_MASS_MODE_CUSTOM
 	car.center_of_mass = Vector3(0, 0.36, (bmin.z + bmax.z) * 0.5 * 0.3)

@@ -65,6 +65,10 @@ func _ready() -> void:
 		var i := args.find("--autotest")
 		if i + 1 < args.size() and args[i + 1].is_valid_int():
 			Game.session["laps_override"] = int(args[i + 1])
+	var tsi := args.find("--time-scale")   # evidence/tests only: run the race faster (physics still steps at 60 Hz)
+	if tsi >= 0 and tsi + 1 < args.size() and autotest:
+		Engine.time_scale = clampf(float(args[tsi + 1]), 1.0, 8.0)
+		Engine.max_physics_steps_per_frame = 16
 	for key in ["city", "weather", "time"]:   # tests/screenshots: --city cairo --weather dust --time dusk --format duel
 		var ki := args.find("--" + key)
 		if ki >= 0 and ki + 1 < args.size():

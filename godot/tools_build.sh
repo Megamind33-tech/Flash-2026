@@ -12,6 +12,7 @@ echo "== budgets";      python3 -I ../tools/assets/budget_check.py | tail -1 || 
 echo "== core tests";  "$G" --headless --path . res://tests/core_tests.tscn 2>&1 | grep -E "core tests|FAIL"
 echo "== stability";   timeout 600 "$G" --headless --path . --fixed-fps 60 res://tests/stability_test.tscn 2>&1 | grep -E "STABILITY"
 echo "== ride height"; timeout 300 "$G" --headless --path . --fixed-fps 60 res://tests/ride_height_test.tscn 2>&1 | grep -E "RIDE HEIGHT"
+echo "== contact";    timeout 200 "$G" --headless --path . --fixed-fps 60 res://tests/contact_test.tscn 2>&1 | grep -E "^CONTACT"
 echo "== props";       timeout 300 "$G" --headless --path . -s res://tests/props_test.gd 2>&1 | grep -E "^PROPS|FAIL"
 echo "== placement";   timeout 600 "$G" --headless --path . res://tests/street_props_test.tscn 2>&1 | grep -E "STREET PROPS|FAIL"
 echo "== modes";      timeout 300 "$G" --headless --path . res://tests/modes_test.tscn 2>&1 | grep -E "^MODES|FAIL"

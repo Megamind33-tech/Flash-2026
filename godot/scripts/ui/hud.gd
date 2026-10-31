@@ -629,7 +629,7 @@ func _show_results() -> void:
 func _results_subtitle() -> String:
 	var ev: Dictionary = race.event
 	var name := str(ev.get("name", ""))
-	if str(ev.get("city", race.city_id)) != race.city_id:
+	if str(ev.get("city", "ashford")) != race.city_id:   # legacy circuit events carry no city: they are Ashford events
 		name = str(Career.FORMATS.get(race.format, {}).get("name", race.format.capitalize()))
 	var laps := "%d LAP%s" % [race.total_laps, "" if race.total_laps == 1 else "S"]
 	var sub := "%s  ·  %s  ·  %s" % [name.to_upper(), race.track_name.to_upper(), laps]
