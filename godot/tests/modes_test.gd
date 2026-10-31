@@ -12,6 +12,7 @@ func check(cond: bool, what: String) -> void:
 
 
 func _ready() -> void:
+	var saved := Game.save.duplicate(true)   # restored at the end: the test must not leave data in the player's save
 	Game.save = Game.new_save()
 	Game.save["career"]["money"] = 0
 	Game.grant_test_funds(500000)
@@ -106,5 +107,7 @@ func _ready() -> void:
 		cm.tab = t
 		cm._render()
 	await get_tree().process_frame
+	Game.save = saved
+	Game.persist()
 	print("MODES %s failures=%d" % ["PASS" if failures == 0 else "FAIL", failures])
 	get_tree().quit()

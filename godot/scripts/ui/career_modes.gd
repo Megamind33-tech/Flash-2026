@@ -339,7 +339,7 @@ func _team() -> void:
 			var wages := 0
 			for d in s["drivers"]:
 				wages += int(d["salary"])
-			for t in [["WEEK", str(s["week"])], ["REPUTATION", str(s["reputation"])], ["DRIVERS", "%d / 4" % (s["drivers"] as Array).size()],
+			for t in [["WEEK", str(int(s["week"]))], ["REPUTATION", str(int(s["reputation"]))], ["DRIVERS", "%d / 4" % (s["drivers"] as Array).size()],
 					["CARS", str((s["fleet"] as Array).size())], ["PARTNERS", "%d / 3" % (s["sponsors"] as Array).size()], ["WAGES / WEEK", "$" + RaceHud._thousands(wages)]]:
 				var p := PanelContainer.new()
 				p.add_theme_stylebox_override("panel", UiStyle.box(Color(1, 1, 1, 0.05), 0, Color.TRANSPARENT, 6))
@@ -455,7 +455,7 @@ func _team() -> void:
 				_col(hb, str(sp["sponsor"]).to_upper(), sp["goal"], 420)
 				_col(hb, "$%s" % RaceHud._thousands(int(sp["per_event"])), "PER EVENT", 200)
 				_col(hb, "$%s" % RaceHud._thousands(int(sp["win_bonus"])), "WIN BONUS", 200)
-				_col(hb, str(sp["left"]), "EVENTS LEFT", 160)
+				_col(hb, str(int(sp["left"])), "EVENTS LEFT", 160)
 			_section("OFFERS THIS WEEK")
 			for o in TeamOwner.offers():
 				var oo: Dictionary = o
@@ -489,7 +489,7 @@ func _team() -> void:
 				_col(hb, str(c["name"]).to_upper(), "%s · %s · field %d" % [c["level"].to_upper(), Career.city_name(c["city"]), c["field"]], 520)
 				_col(hb, "$" + RaceHud._thousands(int(c["purse"])), "PURSE", 180, 30, UiStyle.MONEY)
 				_col(hb, "$" + RaceHud._thousands(int(c["fee"])), "ENTRY / DRIVER", 180)
-				_col(hb, str(c["rep"]), "MIN REPUTATION", 160)
+				_col(hb, str(int(c["rep"])), "MIN REPUTATION", 160)
 				hb.add_child(_small("ENTER %d" % chosen.size(), func():
 					var r := TeamOwner.run(comp, chosen)
 					if r.is_empty():
@@ -633,7 +633,7 @@ func _clubs() -> void:
 				_col(hb, "P%d" % (i + 1), "", 90, 34, UiStyle.GOLD if r["mine"] else Color.WHITE)
 				hb.add_child(_tag_tile(r["tag"], r["color"], 56))
 				_col(hb, str(r["name"]).to_upper(), "")
-				_col(hb, str(r["points"]), "POINTS", 160, 34)
+				_col(hb, str(int(r["points"])), "POINTS", 160, 34)
 		"challenges":
 			_section("WEEKLY CLUB CHALLENGES  ·  week %d" % int(s["week"]))
 			for ch in Clubs.challenges():

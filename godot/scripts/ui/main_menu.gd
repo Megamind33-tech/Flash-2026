@@ -195,6 +195,7 @@ func _build_ui() -> void:
 	nui.add_child(dbox)
 
 	var status := VBoxContainer.new()
+	status_box = status
 	status.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	status.offset_left = -560
 	status.offset_right = -48
@@ -384,6 +385,7 @@ func _go(p: String) -> void:
 
 var display_car := ""
 var overlay: Control
+var status_box: Control
 
 
 ## Full-screen sub-screens (dealership, driver cards, career modes) replace the list menu and the hub.
@@ -391,8 +393,11 @@ func _overlay_opened(o: Control) -> void:
 	overlay = o
 	hub.visible = false
 	nav.visible = false
+	status_box.visible = false
 	o.tree_exited.connect(func():
 		overlay = null
+		if is_instance_valid(status_box):
+			status_box.visible = true
 		display_car = ""
 		_place_showroom_car()
 		_show(page))
