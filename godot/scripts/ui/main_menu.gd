@@ -302,7 +302,7 @@ func _build_hub() -> void:
 	hub.add_child(hub_next)
 	# three big modes
 	var x := L
-	for t in [["modes", "CAREER", "Driver · seasons · campaigns"], ["team_owner", "TEAM OWNER", "Run your racing company"], ["garage", "DEALERSHIP", "Buy · sell · your garage"]]:
+	for t in [["modes", "CAREER", "Driver · seasons · campaigns"], ["team_owner", "TEAM OWNER", "Run your racing company"], ["dealership", "DEALERSHIP", "Buy · sell · your garage"]]:
 		var tb := UiStyle.tile_button(t[1], t[2], Vector2(330, 150))
 		tb.position = Vector2(x, 840 - safe.w)
 		var pg: String = t[0]
