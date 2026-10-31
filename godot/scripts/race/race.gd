@@ -47,6 +47,7 @@ var ghost: Dictionary = {}
 var _rec := {}                  # racer id -> frames of the lap in progress
 var _rec_t := 0.0
 var _eliminations := 0
+var _prev_best := 0
 var _stability := {}   # autotest: per car [airborne seconds, longest airborne spell, min upright dot, max upward m/s]
 
 
@@ -489,6 +490,9 @@ func _on_lap(r: Racer, lap: int, ms: int) -> void:
 		_eliminate_last()
 	if not r.is_player:
 		return
+	if _prev_best > 0:   # lap delta against the previous best
+		notice.emit(("%+.2fs" % ((ms - _prev_best) / 1000.0)).replace("+-", "-"))
+	_prev_best = ms if _prev_best == 0 else mini(_prev_best, ms)
 	if lap == total_laps - 1:
 		notice.emit("FINAL LAP")
 

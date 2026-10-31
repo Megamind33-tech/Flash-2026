@@ -324,6 +324,11 @@ func _build_controls() -> void:
 		_pad(left, "steer_right", Vector2(310, -280), Vector2(230, 230), true, "chevron_right", "", Color.WHITE)
 	_pad(right, "brake", Vector2(-520, -300), Vector2(200, 250), false, "", "BRAKE", UiStyle.RED)
 	_pad(right, "accelerate", Vector2(-280, -390), Vector2(220, 340), false, "speed", "GAS", UiStyle.MONEY)
+	# Player-configurable size and transparency (Settings), scaled toward each screen corner.
+	var sc := float(Game.settings().get("controlsSize", 1.0))
+	left.scale = Vector2(sc, sc)
+	right.scale = Vector2(sc, sc)
+	controls.modulate.a = float(Game.settings().get("controlsOpacity", 0.85))
 	controls.visible = not Game.session["autopilot"] or "--show-controls" in OS.get_cmdline_user_args()
 
 
