@@ -191,6 +191,23 @@ func apply_settings() -> void:
 	var tree := get_tree()
 	if tree and tree.root:
 		tree.root.mesh_lod_threshold = [12.0, 6.0, 2.0][clampi(int(s["quality"]), 0, 2)]
+	_renderer_override(int(s["quality"]) >= 3)
+
+
+const RENDERER_OVERRIDE := "user://override.cfg"
+
+
+## Ultra graphics (quality 3) runs on the Forward+ renderer: screen-space reflections, ambient occlusion and
+## volumetric fog (Weather._ultra). The renderer is fixed when the engine starts, so the choice is written to
+## user://override.cfg, which project.godot names as its settings override: it takes effect at the next launch.
+## Choosing any other tier deletes the file and the game returns to the Mobile renderer.
+func _renderer_override(ultra: bool) -> void:
+	if ultra:
+		var f := FileAccess.open(RENDERER_OVERRIDE, FileAccess.WRITE)
+		if f:
+			f.store_string("[rendering]\n\nrenderer/rendering_method=\"forward_plus\"\nrenderer/rendering_method.mobile=\"forward_plus\"\n")
+	elif FileAccess.file_exists(RENDERER_OVERRIDE):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(RENDERER_OVERRIDE))
 
 
 func quality() -> int:

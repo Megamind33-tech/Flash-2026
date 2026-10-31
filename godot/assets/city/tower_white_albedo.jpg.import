@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://beqi474f3ys36"
-path="res://.godot/imported/tower_white_albedo.jpg-08f51f11621e2f2f0967e8af6bf24f15.ctex"
+path.s3tc="res://.godot/imported/tower_white_albedo.jpg-08f51f11621e2f2f0967e8af6bf24f15.s3tc.ctex"
+path.etc2="res://.godot/imported/tower_white_albedo.jpg-08f51f11621e2f2f0967e8af6bf24f15.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/tower_white_albedo.jpg"
-dest_files=["res://.godot/imported/tower_white_albedo.jpg-08f51f11621e2f2f0967e8af6bf24f15.ctex"]
+dest_files=["res://.godot/imported/tower_white_albedo.jpg-08f51f11621e2f2f0967e8af6bf24f15.s3tc.ctex", "res://.godot/imported/tower_white_albedo.jpg-08f51f11621e2f2f0967e8af6bf24f15.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

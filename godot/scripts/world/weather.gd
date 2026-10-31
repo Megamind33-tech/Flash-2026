@@ -115,13 +115,17 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.5 if time_of_day == "night" else 0.9
+	# Sunny scenes get less sky fill so shadows keep their depth; overcast light is soft and comes from the sky.
+	var overcast: bool = kind in ["cloudy", "rain", "storm", "fog"]
+	var wet_day: bool = kind in ["rain", "storm"]
+	env.ambient_light_energy = {"day": (0.68 if wet_day else 0.85) if overcast else 0.55, "dusk": 0.6, "night": 0.45}[time_of_day]
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
-	env.tonemap_exposure = {"day": 1.0, "dusk": 1.1, "night": 1.2}[time_of_day]
+	env.tonemap_exposure = {"day": 1.0, "dusk": 1.3, "night": 1.3}[time_of_day]
 	env.adjustment_enabled = true
-	env.adjustment_contrast = 1.08
-	env.adjustment_saturation = 0.95 if kind in ["rain", "storm", "fog"] else 1.06
+	env.adjustment_contrast = 1.12
+	env.adjustment_saturation = 0.92 if overcast else (1.18 if time_of_day == "dusk" else 1.08)
+	env.adjustment_color_correction = _grade()   # cool shadows, warm highlights
 	env.fog_enabled = true
 	var haze := Color(str(style.get("haze", "#c0c4c8")))
 	if kind == "dust":
@@ -135,12 +139,21 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 	env.fog_light_color = haze
 	env.fog_density = float(p["fog"])
 	env.fog_sky_affect = 0.25 if kind in ["clear", "cloudy"] else 0.7
-	env.fog_aerial_perspective = 0.4
+	env.fog_aerial_perspective = 0.5
+	# The air glows toward a low sun, and a thin layer of haze hugs the ground (depth between street and skyline).
+	env.fog_sun_scatter = {"day": 0.18, "dusk": 0.55, "night": 0.0}[time_of_day]
+	# Height fog thickens below fog_height, and the camera sits inside that layer: it is only right for fog and
+	# dust (in clear weather and rain it fogged the whole frame and washed out the contrast).
+	env.fog_height = 3.0
+	env.fog_height_density = 0.08 if kind in ["fog", "dust"] else 0.0
 	if Game.quality() >= 1:
 		env.glow_enabled = true
-		env.glow_intensity = 0.55 if time_of_day == "night" else 0.25
-		env.glow_bloom = 0.05
-		env.glow_hdr_threshold = 1.2
+		env.glow_intensity = 0.65 if time_of_day == "night" else 0.4
+		env.glow_strength = 1.0
+		env.glow_bloom = 0.08
+		env.glow_hdr_threshold = 0.95
+	if RenderingServer.get_current_rendering_method() == "forward_plus":
+		_ultra(env)
 	var we := WorldEnvironment.new()
 	we.environment = env
 	parent.add_child(we)
@@ -157,14 +170,67 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 			sun.light_color = Color(0.62, 0.7, 0.95)
 			sun.light_energy = 0.08
 		_:
-			sun.rotation_degrees = Vector3(-48, -32, 0)
-			sun.light_color = Color(1.0, 0.95, 0.88) if kind != "dust" else Color(1.0, 0.82, 0.6)
-			sun.light_energy = float(p["sun"])
-	sun.shadow_enabled = Game.quality() >= 1 and time_of_day != "night"
-	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
-	sun.directional_shadow_max_distance = 60.0 if Game.quality() == 1 else 110.0
+			# Mid-morning sun (30 degrees up), not noon: longer shadows and light that models cars and facades.
+			sun.rotation_degrees = Vector3(-30, -35, 0)
+			sun.light_color = Color(1.0, 0.94, 0.85) if kind != "dust" else Color(1.0, 0.82, 0.6)
+			sun.light_energy = float(p["sun"]) * 1.1
+	var q := Game.quality()
+	sun.shadow_enabled = q >= 1 and time_of_day != "night"
+	# High and Ultra: two cascades (crisp around the car, coarser beyond). Medium, the phone default, keeps one
+	# cascade, sharpened by the 2048 px atlas: a second cascade costs ~180k extra shadow triangles per frame.
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS if q >= 2 else DirectionalLight3D.SHADOW_ORTHOGONAL
+	sun.directional_shadow_split_1 = 0.22
+	# A low dusk sun puts whole streets in building shadow: the shadow range must reach far enough that its end
+	# does not show as a sunlit band across the road.
+	var reach := 1.9 if time_of_day == "dusk" else 1.0
+	sun.directional_shadow_max_distance = (70.0 if q <= 1 else 120.0) * reach
+	sun.directional_shadow_blend_splits = q >= 2
+	sun.directional_shadow_fade_start = 0.6 if time_of_day == "dusk" else 0.8
+	sun.shadow_blur = 1.2
+	RenderingServer.directional_shadow_atlas_set_size(1024 if q == 0 else 2048, true)
 	parent.add_child(sun)
 	return {"env": env, "sun": sun}
+
+
+static var _grade_tex: Texture2D
+
+
+## Colour grade applied per channel after tonemapping: shadows lean slightly cool, highlights slightly warm
+## (the "filmic" look of the reference games), mid-tones untouched.
+static func _grade() -> Texture2D:
+	if _grade_tex == null:
+		var g := Gradient.new()
+		g.set_color(0, Color(0.0, 0.012, 0.03))
+		g.set_color(1, Color(1.0, 0.985, 0.95))
+		g.add_point(0.22, Color(0.2, 0.215, 0.235))
+		g.add_point(0.5, Color(0.5, 0.5, 0.5))
+		g.add_point(0.78, Color(0.795, 0.78, 0.755))
+		var t := GradientTexture1D.new()
+		t.gradient = g
+		t.width = 256
+		_grade_tex = t
+	return _grade_tex
+
+
+## Extra screen-space effects when the game runs on the Forward+ renderer ("Ultra" graphics on capable phones):
+## ambient occlusion grounds every corner and car, screen-space reflections put cars and buildings into wet roads
+## and glossy paint, and volumetric fog gives sun shafts at dusk and depth in fog, dust and rain.
+static func _ultra(env: Environment) -> void:
+	env.ssao_enabled = true
+	env.ssao_radius = 1.2
+	env.ssao_intensity = 1.8
+	env.ssao_power = 1.4
+	env.ssr_enabled = true
+	env.ssr_max_steps = 48
+	env.ssr_fade_in = 0.12
+	env.ssr_fade_out = 2.0
+	env.ssr_depth_tolerance = 0.3
+	if time_of_day == "dusk" or kind in ["fog", "dust", "rain", "storm"]:
+		env.volumetric_fog_enabled = true
+		env.volumetric_fog_density = 0.006 if kind in ["clear", "cloudy"] else 0.018
+		env.volumetric_fog_anisotropy = 0.65
+		env.volumetric_fog_length = 120.0
+		env.volumetric_fog_albedo = env.fog_light_color
 
 
 ## Rain streaks / dust drifting around the camera (world-space particles, so they stay put as you drive).

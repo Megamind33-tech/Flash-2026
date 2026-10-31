@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cd4ajx4u4wj3d"
-path="res://.godot/imported/concrete_patch_albedo.jpg-6a312f6caef4395a3f9f10677bd5018d.ctex"
+path.s3tc="res://.godot/imported/concrete_patch_albedo.jpg-6a312f6caef4395a3f9f10677bd5018d.s3tc.ctex"
+path.etc2="res://.godot/imported/concrete_patch_albedo.jpg-6a312f6caef4395a3f9f10677bd5018d.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/concrete_patch_albedo.jpg"
-dest_files=["res://.godot/imported/concrete_patch_albedo.jpg-6a312f6caef4395a3f9f10677bd5018d.ctex"]
+dest_files=["res://.godot/imported/concrete_patch_albedo.jpg-6a312f6caef4395a3f9f10677bd5018d.s3tc.ctex", "res://.godot/imported/concrete_patch_albedo.jpg-6a312f6caef4395a3f9f10677bd5018d.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

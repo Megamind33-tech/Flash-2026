@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cm6ph2344iod0"
-path="res://.godot/imported/road_aged_normal.jpg-1ff50ddd9844b6ffd86a8f1b8610e124.ctex"
+path.s3tc="res://.godot/imported/road_aged_normal.jpg-1ff50ddd9844b6ffd86a8f1b8610e124.s3tc.ctex"
+path.etc2="res://.godot/imported/road_aged_normal.jpg-1ff50ddd9844b6ffd86a8f1b8610e124.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/road_aged_normal.jpg"
-dest_files=["res://.godot/imported/road_aged_normal.jpg-1ff50ddd9844b6ffd86a8f1b8610e124.ctex"]
+dest_files=["res://.godot/imported/road_aged_normal.jpg-1ff50ddd9844b6ffd86a8f1b8610e124.s3tc.ctex", "res://.godot/imported/road_aged_normal.jpg-1ff50ddd9844b6ffd86a8f1b8610e124.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://btg6l1wq8j33p"
-path="res://.godot/imported/tower_glass_albedo.jpg-4d84c5ec162b1eaae8b322559af8a0ec.ctex"
+path.s3tc="res://.godot/imported/tower_glass_albedo.jpg-4d84c5ec162b1eaae8b322559af8a0ec.s3tc.ctex"
+path.etc2="res://.godot/imported/tower_glass_albedo.jpg-4d84c5ec162b1eaae8b322559af8a0ec.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/tower_glass_albedo.jpg"
-dest_files=["res://.godot/imported/tower_glass_albedo.jpg-4d84c5ec162b1eaae8b322559af8a0ec.ctex"]
+dest_files=["res://.godot/imported/tower_glass_albedo.jpg-4d84c5ec162b1eaae8b322559af8a0ec.s3tc.ctex", "res://.godot/imported/tower_glass_albedo.jpg-4d84c5ec162b1eaae8b322559af8a0ec.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

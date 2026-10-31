@@ -131,8 +131,18 @@ static func build(parent: Node3D, data: Dictionary, style: Dictionary, track: Tr
 	_circuit(root, style, track)
 	_areas(root, data)
 	_side_roads(root, data, style)
-	var ac := _buildings(root, data, style, rng)
+	# Real modelled facades on the street-facing walls (assets/buildings, CC0): planned first so the plain walls
+	# behind them get no floor ledges or AC units poking through the new windows.
+	var clad := BuildingKit.plan(data, track, Game.quality())
+	var ac := _buildings(root, data, style, rng, clad)
 	_props(root, data, style, track, rng, ac)
+	print("[GRIDLINE] facade kit %s bays=%d on %d buildings" % [BuildingKit.kit_for(str(data["id"])),
+		BuildingKit.build(root, data, style, clad, Game.quality()), clad.size()])
+	# Real street props and road scans (assets/props, CC BY): additive, own random seed.
+	# --no-street-props gives the before/after baseline (like --no-ads).
+	if not "--no-street-props" in OS.get_cmdline_user_args():
+		var street := StreetProps.place(root, data, style, track, Game.quality())
+		print("[GRIDLINE] street props %s" % JSON.stringify(street))
 	barrier_ads(root, track, track.half_width + BARRIER, 0.6)
 	race_furniture(root, track, track.half_width + BARRIER)
 	AdPlacementManager.instance = null
@@ -487,13 +497,17 @@ static func _side_roads(root: Node3D, data: Dictionary, style: Dictionary) -> vo
 
 ## Extruded footprints: facade-shader walls (two wall finishes), tower curtain walls, flat roofs.
 ## Returns AC-unit transforms for the low/mid-rise walls.
-static func _buildings(root: Node3D, data: Dictionary, style: Dictionary, rng: RandomNumberGenerator) -> Array:
+static func _buildings(root: Node3D, data: Dictionary, style: Dictionary, rng: RandomNumberGenerator, clad := {}) -> Array:
 	var chunks := {}
 	var ac: Array = []
+	var ac_rolls := 0
 	var ac_rate := float(style["ac"]) * (0.0 if Game.quality() == 0 else 1.0)
 	var floor_h := float(style["floor"])
 	var bay := float(style["bay"])
+	var bi := -1
 	for b in data.get("buildings", []):
+		bi += 1
+		var clad_edges: Dictionary = clad.get(bi, {})
 		var h := float(b[0])
 		var poly := _poly(b[1])
 		if poly.size() < 3:
@@ -526,18 +540,23 @@ static func _buildings(root: Node3D, data: Dictionary, style: Dictionary, rng: R
 			var c := Vector3(p1.x, 0, p1.y)
 			bk.quad(a, a + Vector3.UP * h, c + Vector3.UP * h, c, out,
 				Vector2(0, 0), Vector2(0, h), Vector2(wlen, h), Vector2(wlen, 0), cl)
-			if not tower and ac_rate > 0.0 and ac.size() < 2600 and wlen > bay * 1.5:
+			if not tower and ac_rate > 0.0 and ac_rolls < 2600 and wlen > bay * 1.5:
 				var floors := int((h - 1.5) / floor_h)
 				for f in range(1, floors):
 					for k in int(wlen / bay):
+						# The cap counts placements as before cladding existed, and every random draw still happens, so
+						# the rest of the city (trees, props) is laid out exactly as it was; clad walls just get no unit.
 						if rng.randf() < ac_rate:
 							var u := (k + 0.5) * bay + rng.randf_range(-0.6, 0.6)
 							if u < bay * 0.5 or u > wlen - bay * 0.5:
 								continue
+							ac_rolls += 1
+							if clad_edges.has(i):
+								continue
 							var pos := a + (c - a) * (u / wlen) + Vector3.UP * (f * floor_h + 0.35) + out * 0.2
 							ac.append(Transform3D(Basis.looking_at(-out, Vector3.UP), pos))
 		# Parapet on every roof; floor ledges / balcony slabs on a share of the low-rise blocks.
-		var ledges := not tower and rng.randf() < 0.45 and float(b[0]) < 40.0
+		var ledges := not tower and rng.randf() < 0.45 and float(b[0]) < 40.0 and clad_edges.is_empty()
 		for i in poly.size():
 			var p0 := poly[i]
 			var p1 := poly[(i + 1) % poly.size()]

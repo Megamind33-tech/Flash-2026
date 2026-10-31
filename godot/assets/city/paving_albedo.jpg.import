@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ejhcchfs74me"
-path="res://.godot/imported/paving_albedo.jpg-51dacbdbc40d2980a73f860ed58a8e79.ctex"
+path.s3tc="res://.godot/imported/paving_albedo.jpg-51dacbdbc40d2980a73f860ed58a8e79.s3tc.ctex"
+path.etc2="res://.godot/imported/paving_albedo.jpg-51dacbdbc40d2980a73f860ed58a8e79.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/paving_albedo.jpg"
-dest_files=["res://.godot/imported/paving_albedo.jpg-51dacbdbc40d2980a73f860ed58a8e79.ctex"]
+dest_files=["res://.godot/imported/paving_albedo.jpg-51dacbdbc40d2980a73f860ed58a8e79.s3tc.ctex", "res://.godot/imported/paving_albedo.jpg-51dacbdbc40d2980a73f860ed58a8e79.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

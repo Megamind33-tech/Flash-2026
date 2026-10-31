@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://h4mq1oj0la30"
-path="res://.godot/imported/forest_floor_albedo.jpg-657a6a8e2a2e7bb088fa630b198e566a.ctex"
+path.s3tc="res://.godot/imported/forest_floor_albedo.jpg-657a6a8e2a2e7bb088fa630b198e566a.s3tc.ctex"
+path.etc2="res://.godot/imported/forest_floor_albedo.jpg-657a6a8e2a2e7bb088fa630b198e566a.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/forest_floor_albedo.jpg"
-dest_files=["res://.godot/imported/forest_floor_albedo.jpg-657a6a8e2a2e7bb088fa630b198e566a.ctex"]
+dest_files=["res://.godot/imported/forest_floor_albedo.jpg-657a6a8e2a2e7bb088fa630b198e566a.s3tc.ctex", "res://.godot/imported/forest_floor_albedo.jpg-657a6a8e2a2e7bb088fa630b198e566a.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

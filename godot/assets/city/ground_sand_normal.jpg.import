@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dsgg0uq2hmcr1"
-path="res://.godot/imported/ground_sand_normal.jpg-251900e31bfaad54726282a6131874cf.ctex"
+path.s3tc="res://.godot/imported/ground_sand_normal.jpg-251900e31bfaad54726282a6131874cf.s3tc.ctex"
+path.etc2="res://.godot/imported/ground_sand_normal.jpg-251900e31bfaad54726282a6131874cf.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/ground_sand_normal.jpg"
-dest_files=["res://.godot/imported/ground_sand_normal.jpg-251900e31bfaad54726282a6131874cf.ctex"]
+dest_files=["res://.godot/imported/ground_sand_normal.jpg-251900e31bfaad54726282a6131874cf.s3tc.ctex", "res://.godot/imported/ground_sand_normal.jpg-251900e31bfaad54726282a6131874cf.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

@@ -122,12 +122,32 @@ func _ready() -> void:
 				cam.make_current()
 				camera.set_physics_process(false)
 				break
+	var cp := args.find("--cam-prop")   # screenshots: view the first placed street prop of a kind from the road
+	if cp >= 0 and cp + 1 < args.size():
+		for n in find_children("Prop_%s_*" % args[cp + 1], "MultiMeshInstance3D", true, false) \
+				+ find_children("Facade_%s_*" % args[cp + 1], "MultiMeshInstance3D", true, false):
+			var where: PackedVector3Array = n.get_meta("positions", PackedVector3Array())
+			if where.is_empty():
+				continue
+			var o := where[0]
+			var dp: float = track.project(o, [-1])[0]
+			var cam := Camera3D.new()
+			add_child(cam)
+			cam.far = 1500.0
+			cam.global_position = track.position_at(dp - 7.0) + Vector3.UP * 2.6   # chase-camera height, 7 m before it
+			cam.look_at(o + Vector3.UP * 0.5, Vector3.UP)
+			print("[GRIDLINE] cam-prop %s at %s d=%.1f lateral=%.1f camera=%s" % [args[cp + 1], o, dp,
+				(o - track.position_at(dp)).dot(track.right_at(dp)), cam.global_position])
+			cam.make_current()
+			camera.set_physics_process(false)
+			break
 	_dress_cars()
 	if not autotest or DisplayServer.get_name() != "headless":
 		hud = RaceHud.new()
 		add_child(hud)
 		hud.bind(self)
-	if DisplayServer.get_name() != "headless":
+	# The opener ends by making the chase camera current, so skip it when a screenshot fixes the camera.
+	if DisplayServer.get_name() != "headless" and not (args.has("--cam-ad") or args.has("--cam-prop")):
 		await _intro()
 	await get_tree().create_timer(0.75).timeout
 	phase = Phase.COUNTDOWN

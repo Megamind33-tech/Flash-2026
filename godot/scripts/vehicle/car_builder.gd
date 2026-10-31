@@ -45,41 +45,55 @@ static func material(slot: String, livery: String) -> Material:
 	if _materials.has(key):
 		return _materials[key]
 	var m := StandardMaterial3D.new()
+	# The source models were authored double-sided with inconsistent normals: with Godot's default back-face
+	# culling whole panels vanished (see-through bodies). Godot flips the normal on back faces when culling is off.
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	match slot:
 		"paint":
-			m.albedo_color = PAINT.get(livery, PAINT["player_white"])
-			m.metallic = 0.55
-			m.roughness = 0.22
+			# Automotive paint: base coat under a glossy clear coat on every quality tier. White is a solid
+			# (non-metallic) paint; team colours are metallic.
+			var col: Color = PAINT.get(livery, PAINT["player_white"])
+			var solid := livery == "player_white"
+			m.albedo_color = col if solid else col.darkened(0.08)
+			m.metallic = 0.0 if solid else 0.82
+			m.roughness = 0.3 if solid else 0.36
 			m.metallic_specular = 0.6
-			m.clearcoat_enabled = Game.quality() >= 2
-			m.clearcoat_roughness = 0.05
+			m.clearcoat_enabled = true
+			m.clearcoat = 1.0
+			m.clearcoat_roughness = 0.03
+			m.rim_enabled = true          # soft Fresnel brightening along the body edges
+			m.rim = 0.25
+			m.rim_tint = 0.6
 		"glass":
-			m.albedo_color = Color(0.03, 0.035, 0.045, 0.72)
+			m.albedo_color = Color(0.015, 0.018, 0.022, 0.84)   # dark, reflective: you see the sky in it, not the seats
 			m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			m.metallic = 0.3
-			m.roughness = 0.04
+			m.metallic = 0.0
+			m.metallic_specular = 0.45   # full specular turned the glass pale grey under a bright sky
+			m.roughness = 0.03
 		"chrome":
-			m.albedo_color = Color(0.86, 0.87, 0.89)
+			m.albedo_color = Color(0.9, 0.9, 0.92)
 			m.metallic = 1.0
-			m.roughness = 0.1
+			m.roughness = 0.06
 		"rim":
-			m.albedo_color = Color(0.6, 0.61, 0.63)
+			m.albedo_color = Color(0.74, 0.75, 0.77)
 			m.metallic = 1.0
 			m.roughness = 0.24
 		"carbon":
-			m.albedo_color = Color(0.05, 0.05, 0.055)
-			m.metallic = 0.35
-			m.roughness = 0.3
+			m.albedo_color = Color(0.045, 0.045, 0.05)
+			m.metallic = 0.4
+			m.roughness = 0.28
+			m.clearcoat_enabled = true
+			m.clearcoat_roughness = 0.04
 		"interior":
-			m.albedo_color = Color(0.07, 0.065, 0.06)
-			m.roughness = 0.75
+			m.albedo_color = Color(0.06, 0.055, 0.05)
+			m.roughness = 0.8
 		"tyre":
-			m.albedo_color = Color(0.03, 0.03, 0.03)
-			m.roughness = 0.92
+			m.albedo_color = Color(0.035, 0.035, 0.037)
+			m.roughness = 0.85
 		"brake":
-			m.albedo_color = Color(0.32, 0.32, 0.33)
-			m.metallic = 0.9
-			m.roughness = 0.45
+			m.albedo_color = Color(0.36, 0.36, 0.37)
+			m.metallic = 0.85
+			m.roughness = 0.35
 		"head":
 			m.albedo_color = Color(0.95, 0.96, 1.0)
 			m.emission_enabled = true
@@ -98,8 +112,43 @@ static func material(slot: String, livery: String) -> Material:
 	return m
 
 
+const CAR_LAYER := 2   # render layer of car bodies: the contact-shadow decal skips it
+
+
+static var _shadow_tex: Texture2D
+
+
+## Soft contact shadow under the car (a decal on the road), so it sits on the ground instead of floating.
+## Directional shadows alone leave a bright gap under the sills; ambient occlusion would close it but the
+## Mobile renderer has no SSAO.
+static func _contact_shadow(bmin: Vector3, bmax: Vector3) -> Decal:
+	if _shadow_tex == null:
+		var g := Gradient.new()
+		g.set_color(0, Color(0, 0, 0, 0.78))
+		g.set_color(1, Color(0, 0, 0, 0.0))
+		g.add_point(0.55, Color(0, 0, 0, 0.55))
+		var t := GradientTexture2D.new()
+		t.gradient = g
+		t.fill = GradientTexture2D.FILL_RADIAL
+		t.fill_from = Vector2(0.5, 0.5)
+		t.fill_to = Vector2(1.0, 0.5)
+		t.width = 128
+		t.height = 128
+		_shadow_tex = t
+	var d := Decal.new()
+	d.name = "ContactShadow"
+	d.texture_albedo = _shadow_tex
+	d.size = Vector3((bmax.x - bmin.x) * 1.2, 1.2, (bmax.z - bmin.z) * 1.12)
+	d.position = Vector3(0, 0.3, (bmin.z + bmax.z) * 0.5)
+	d.cull_mask = 1               # project onto the world only, never onto the car itself
+	d.upper_fade = 0.3
+	d.lower_fade = 0.3
+	return d
+
+
 static func tail_material() -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	m.albedo_color = Color(0.6, 0.02, 0.02)
 	m.emission_enabled = true
 	m.emission = Color(1.0, 0.04, 0.03)
@@ -152,6 +201,7 @@ static func build(livery: String, with_audio: bool, car_id := DEFAULT_CAR) -> Ra
 		var copy := MeshInstance3D.new()
 		copy.mesh = inst.mesh
 		copy.name = inst.name
+		copy.layers = CAR_LAYER
 		for s in inst.mesh.get_surface_count():
 			var slot := _slot(inst.mesh.surface_get_material(s))
 			copy.set_surface_override_material(s, tail if slot == "tail" else material(slot, livery))
@@ -163,6 +213,7 @@ static func build(livery: String, with_audio: bool, car_id := DEFAULT_CAR) -> Ra
 			copy.transform = _accumulated(inst)
 			visual.add_child(copy)
 	model.free()
+	car.add_child(_contact_shadow(bmin, bmax))
 
 	# Axle-symmetric suspension points (the models are hand-built, so left/right can differ by a few mm).
 	for k in ["Wheel_FL", "Wheel_FR", "Wheel_RL", "Wheel_RR"]:

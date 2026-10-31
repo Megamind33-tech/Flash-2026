@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bkal38oltsl88"
-path="res://.godot/imported/tower_brick_b_normal.jpg-ee9cce77965b28888fb5c8ad37381845.ctex"
+path.s3tc="res://.godot/imported/tower_brick_b_normal.jpg-ee9cce77965b28888fb5c8ad37381845.s3tc.ctex"
+path.etc2="res://.godot/imported/tower_brick_b_normal.jpg-ee9cce77965b28888fb5c8ad37381845.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/city/tower_brick_b_normal.jpg"
-dest_files=["res://.godot/imported/tower_brick_b_normal.jpg-ee9cce77965b28888fb5c8ad37381845.ctex"]
+dest_files=["res://.godot/imported/tower_brick_b_normal.jpg-ee9cce77965b28888fb5c8ad37381845.s3tc.ctex", "res://.godot/imported/tower_brick_b_normal.jpg-ee9cce77965b28888fb5c8ad37381845.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

@@ -32,12 +32,27 @@ var quick := {"city": "lusaka", "weather": "clear", "time": "day", "format": "ra
 func _place_showroom_car() -> void:
 	if viewport_car:
 		viewport_car.queue_free()
-	viewport_car = CarBuilder.build("player_white", false, Game.player_car())
+	var args := OS.get_cmdline_user_args()   # screenshots: --show-car <id> [--livery <livery>]
+	var car_id: String = args[args.find("--show-car") + 1] if args.has("--show-car") else Game.player_car()
+	var livery: String = args[args.find("--livery") + 1] if args.has("--livery") else "player_white"
+	viewport_car = CarBuilder.build(livery, false, car_id)
 	# Not frozen: let the car settle on its real suspension (input disabled = parking brake on).
 	showroom.add_child(viewport_car)
 	var d := 140.0
 	var p := show_track.position_at(d) + show_track.right_at(d) * 2.0
 	viewport_car.global_transform = Transform3D(Basis.looking_at(-show_track.tangent_at(d), Vector3.UP), p + Vector3.UP * 0.3)
+	# Local reflections for the paint and glass (barriers, ads, road, buildings), captured once: without it the
+	# clear coat only mirrors the sky and the car looks flat.
+	if not showroom.has_node("ShowroomProbe"):
+		var probe := ReflectionProbe.new()
+		probe.name = "ShowroomProbe"
+		probe.update_mode = ReflectionProbe.UPDATE_ONCE
+		probe.size = Vector3(40, 16, 40)
+		probe.box_projection = true
+		probe.max_distance = 300.0
+		probe.cull_mask = 1                  # the world, not the car itself
+		showroom.add_child(probe)
+		probe.global_position = p + Vector3.UP * 1.2
 
 
 func _ready() -> void:
@@ -470,7 +485,7 @@ func _show(p: String) -> void:
 			subtitle.text = "   SETTINGS"
 			_item("Steering", "Tilt" if s["steering"] == "tilt" else "Touch", func(): s["steering"] = "touch" if s["steering"] == "tilt" else "tilt"; _save_settings())
 			_item("Steering Sensitivity", "%.1f" % float(s["sensitivity"]), func(): s["sensitivity"] = 0.6 if float(s["sensitivity"]) >= 1.6 else snappedf(float(s["sensitivity"]) + 0.2, 0.1); _save_settings())
-			_item("Graphics", ["Low · 30 FPS", "Medium", "High"][int(s["quality"])], func(): s["quality"] = (int(s["quality"]) + 1) % 3; _save_settings())
+			_item("Graphics", ["Low · 30 FPS", "Medium", "High", "Ultra · next launch"][clampi(int(s["quality"]), 0, 3)], func(): s["quality"] = (int(s["quality"]) + 1) % 4; _save_settings())
 			_item("Frame Rate Counter", "On" if s["showFps"] else "Off", func(): s["showFps"] = not s["showFps"]; _save_settings())
 			_item("Control Size", "%d%%" % roundi(float(s.get("controlsSize", 1.0)) * 100), func(): s["controlsSize"] = _cycle([0.8, 0.9, 1.0, 1.1, 1.2], float(s.get("controlsSize", 1.0))); _save_settings())
 			_item("Control Opacity", "%d%%" % roundi(float(s.get("controlsOpacity", 0.85)) * 100), func(): s["controlsOpacity"] = _cycle([0.4, 0.6, 0.85, 1.0], float(s.get("controlsOpacity", 0.85))); _save_settings())
@@ -487,9 +502,17 @@ func _show(p: String) -> void:
 			_info_row("City textures", "ambientCG · CC0")
 			_info_row("Skies", "Poly Haven · CC0")
 			_info_row("Trees and surfaces", "Poly Haven, ambientCG · CC0")
+			_info_row("Building facades", "Poly Haven modular facade kits · CC0")
 			_info_row("Driving model base", "Godot Truck Town demo · MIT")
+			# Street props and road scans (CC BY): title, author, licence and that we modified them.
+			var pf := FileAccess.open("res://assets/props/credits.json", FileAccess.READ)
+			if pf:
+				var props = JSON.parse_string(pf.get_as_text())
+				if props is Array:
+					for entry in props:
+						_info_row(str(entry.get("title", "")), "%s · %s · modified" % [entry.get("author", ""), entry.get("licence", "")])
 			_item("Back", "", _back)
-			desc.text = "Car models from BlendSwap, converted for GRIDLINE (badges removed, renamed, optimised). CC BY-SA models remain CC BY-SA 3.0."
+			desc.text = "Car models from BlendSwap, converted for GRIDLINE (badges removed, renamed, optimised). CC BY-SA models remain CC BY-SA 3.0. Street props and road scans from Sketchfab (CC BY 4.0), decimated, rescaled and re-baked for mobile; sources listed in assets/props/LICENSES.md."
 		"confirm":
 			subtitle.text = "   RESET CAREER?"
 			_item("Yes, reset my career", "", func(): Game.reset_career(); stack.clear(); _show("main"), false, true)
