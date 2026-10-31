@@ -108,6 +108,20 @@ func _ready() -> void:
 	add_child(camera)
 	camera.make_current()
 	Weather.attach_particles(camera)
+	var ca := args.find("--cam-ad")   # screenshots: frame the first ad of a kind (led, gantry, urban, barrier)
+	if ca >= 0 and AdPlacementManager.instance:
+		for p in AdPlacementManager.instance.placements.values():
+			var node: AdSurface = p["node"]
+			if node.kind == args[ca + 1]:
+				var cam := Camera3D.new()
+				add_child(cam)
+				var c := node.centre()
+				var back := 10.0 + node.size.x * 1.1
+				cam.global_position = c + node.facing() * back + track.right_at(track.project(c, [-1])[0]).cross(Vector3.UP) * 0.0 + Vector3.UP * 1.5 + (node.global_basis.x * back * 0.45)
+				cam.look_at(c, Vector3.UP)
+				cam.make_current()
+				camera.set_physics_process(false)
+				break
 	_dress_cars()
 	if not autotest or DisplayServer.get_name() != "headless":
 		hud = RaceHud.new()
