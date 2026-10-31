@@ -11,6 +11,7 @@ run/main_scene="res://scenes/main_menu.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 boot_splash/bg_color=Color(0, 0, 0, 1)
 config/icon="res://assets/ui/icon.png"
+config/project_settings_override="user://override.cfg"
 
 [autoload]
 
