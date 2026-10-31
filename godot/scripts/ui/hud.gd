@@ -233,10 +233,10 @@ func _build_speedo() -> void:
 	dial = RevDial.new()
 	dial.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dial.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	dial.offset_left = -150
-	dial.offset_right = 150
-	dial.offset_top = -318
-	dial.offset_bottom = -18
+	dial.offset_left = -110          # compact: keeps the road ahead and nearby cars visible
+	dial.offset_right = 110
+	dial.offset_top = -236
+	dial.offset_bottom = -16
 	hud_layer.add_child(dial)
 
 ## Boost gauge under the speedo and the skill feed on the right: each skill pops in with its points, the open chain
