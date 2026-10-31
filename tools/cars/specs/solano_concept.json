@@ -9,7 +9,7 @@
    ],
    "radius": 0.3404,
    "width": 0.3037,
-   "tris": 4972
+   "tris": 1491
   },
   "Wheel_RR": {
    "centre": [
@@ -19,7 +19,7 @@
    ],
    "radius": 0.3404,
    "width": 0.3037,
-   "tris": 4976
+   "tris": 1492
   },
   "Wheel_FR": {
    "centre": [
@@ -29,7 +29,7 @@
    ],
    "radius": 0.3404,
    "width": 0.3037,
-   "tris": 4976
+   "tris": 1492
   },
   "Wheel_FL": {
    "centre": [
@@ -39,7 +39,7 @@
    ],
    "radius": 0.3404,
    "width": 0.3037,
-   "tris": 4974
+   "tris": 1491
   }
  },
  "length": 4.5,

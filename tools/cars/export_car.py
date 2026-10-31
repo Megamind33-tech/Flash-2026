@@ -65,7 +65,7 @@ RULES = [  # first match wins (lower-case material name)
     ("carbon", r"carbon"), ("interior", r"leder|leather|stoff|felt|seat|chair|fussmatt"),
 ]
 STUDIO_MATS = r"^(stage|groundmat|road|earth|light)$"
-BODY_BUDGET, WHEEL_BUDGET, OBJ_CAP = 70000, 5000, 20000
+BODY_BUDGET, WHEEL_BUDGET, OBJ_CAP = 70000, 1500, 20000
 
 args = sys.argv[sys.argv.index("--") + 1:]
 car_id, out_dir = args[0], args[1]
