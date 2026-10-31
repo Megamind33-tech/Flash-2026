@@ -502,6 +502,7 @@ func _show(p: String) -> void:
 			_info_row("City textures", "ambientCG · CC0")
 			_info_row("Skies", "Poly Haven · CC0")
 			_info_row("Trees and surfaces", "Poly Haven, ambientCG · CC0")
+			_info_row("Building facades", "Poly Haven modular facade kits · CC0")
 			_info_row("Driving model base", "Godot Truck Town demo · MIT")
 			# Street props and road scans (CC BY): title, author, licence and that we modified them.
 			var pf := FileAccess.open("res://assets/props/credits.json", FileAccess.READ)

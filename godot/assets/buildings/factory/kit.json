@@ -1,0 +1,100 @@
+{
+ "kit": "factory",
+ "pieces": {
+  "bay_window_a": {
+   "source": [
+    "wall_window_centered_large_01",
+    "window_centered_large_01"
+   ],
+   "width": 3.0,
+   "depth": 0.23,
+   "height": 3.0,
+   "tris_before": 2278,
+   "tris": 700
+  },
+  "bay_window_b": {
+   "source": [
+    "wall_window_centered_double_01",
+    "window_centered_double_01"
+   ],
+   "width": 3.0,
+   "depth": 0.23,
+   "height": 3.0,
+   "tris_before": 2608,
+   "tris": 700
+  },
+  "bay_window_c": {
+   "source": [
+    "wall_window_centered_medium_01",
+    "window_centered_medium_01"
+   ],
+   "width": 3.0,
+   "depth": 0.23,
+   "height": 3.0,
+   "tris_before": 2050,
+   "tris": 650
+  },
+  "bay_blank": {
+   "source": [
+    "wall_standard_standard_01"
+   ],
+   "width": 3.0,
+   "depth": 0.0,
+   "height": 3.0,
+   "tris_before": 1152,
+   "tris": 249
+  },
+  "bay_shop": {
+   "source": [
+    "wall_door_window_small_01",
+    "door_window_small_01"
+   ],
+   "width": 3.0,
+   "depth": 0.235,
+   "height": 3.0,
+   "tris_before": 2166,
+   "tris": 800
+  },
+  "bay_door": {
+   "source": [
+    "wall_door_recessed_large_01",
+    "door_recessed_large_01"
+   ],
+   "width": 3.0,
+   "depth": 0.53,
+   "height": 3.0,
+   "tris_before": 2286,
+   "tris": 800
+  },
+  "strip_base": {
+   "source": [
+    "base_standard_standard_01"
+   ],
+   "width": 3.0,
+   "depth": 0.2,
+   "height": 0.75,
+   "tris_before": 8,
+   "tris": 8
+  },
+  "strip_cornice": {
+   "source": [
+    "cornice01_standard_standard_01"
+   ],
+   "width": 3.0,
+   "depth": 0.168,
+   "height": 0.152,
+   "tris_before": 48,
+   "tris": 48
+  },
+  "strip_crown": {
+   "source": [
+    "crown_standard_standard_01"
+   ],
+   "width": 3.0,
+   "depth": 0.13,
+   "height": 0.32,
+   "tris_before": 32,
+   "tris": 32
+  }
+ }
+}

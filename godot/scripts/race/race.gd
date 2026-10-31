@@ -124,7 +124,8 @@ func _ready() -> void:
 				break
 	var cp := args.find("--cam-prop")   # screenshots: view the first placed street prop of a kind from the road
 	if cp >= 0 and cp + 1 < args.size():
-		for n in find_children("Prop_%s_*" % args[cp + 1], "MultiMeshInstance3D", true, false):
+		for n in find_children("Prop_%s_*" % args[cp + 1], "MultiMeshInstance3D", true, false) \
+				+ find_children("Facade_%s_*" % args[cp + 1], "MultiMeshInstance3D", true, false):
 			var where: PackedVector3Array = n.get_meta("positions", PackedVector3Array())
 			if where.is_empty():
 				continue

@@ -55,6 +55,20 @@ func _ready() -> void:
 			bad.append("no traffic lights")
 		if int(counts.get("electrical_box_free", 0)) == 0:
 			bad.append("no street cabinets")
+		# Facade kit: every city gets clad buildings, and no bay stands closer to the circuit than the barrier.
+		var clad := BuildingKit.plan(data, track, 2)
+		var fac_root := Node3D.new()
+		add_child(fac_root)
+		var bays := BuildingKit.build(fac_root, data, style, clad, 2)
+		if bays == 0:
+			bad.append("no facade kit")
+		for n in fac_root.get_children():
+			for o: Vector3 in n.get_meta("positions", PackedVector3Array()):
+				var lat := absf(float(StreetProps._nearest(track, o)[1]))
+				if lat < hw + CityWorld.BARRIER + 0.6:
+					bad.append("facade on the circuit (lateral %.1f)" % lat)
+					break
+		fac_root.queue_free()
 		var total := 0
 		for v in counts.values():
 			total += int(v)
