@@ -1,7 +1,9 @@
 ## Dealership and garage: full-screen over the 3D showroom. The selected car turns on the street in the middle;
 ## the right panel is its spec sheet (class rating, five performance bars, engine/power/torque/top speed/0-100/
 ## weight/drivetrain/layout/gearbox) or its history; the bottom strip is the line-up as cards with sort options.
-## Tabs: SHOWROOM (buy), GARAGE (your cars, select), SELL. All makes and histories are fictional (CarCatalogue).
+## Two places share this screen: the DEALERSHIP (its own showroom venue, DealershipStudio: SHOWROOM to buy, SELL to
+## trade in) and MY GARAGE (the team headquarters, GarageStudio: only the cars you own, select / paint / inspect,
+## the rest of your fleet parked in the service bays). All makes and histories are fictional (CarCatalogue).
 class_name Dealership
 extends Control
 
@@ -137,10 +139,11 @@ func _ids() -> Array:
 
 func _refresh() -> void:
 	_money.text = "$" + RaceHud._thousands(int(Game.save["career"]["money"]))
-	_title.text = {"showroom": "DEALERSHIP  /  SHOWROOM", "garage": "DEALERSHIP  /  MY GARAGE", "sell": "DEALERSHIP  /  SELL"}[tab]
+	_title.text = {"showroom": "DEALERSHIP  /  SHOWROOM", "garage": "MY GARAGE", "sell": "DEALERSHIP  /  SELL"}[tab]
 	for c in _tabs.get_children():
 		c.queue_free()
-	for t in [["showroom", "SHOWROOM"], ["garage", "MY GARAGE"], ["sell", "SELL"]]:
+	var tabs := [["garage", "MY CARS"]] if tab == "garage" else [["showroom", "SHOWROOM"], ["sell", "SELL"]]
+	for t in tabs:
 		var tt: String = t[0]
 		_tabs.add_child(_chip(t[1], tab == tt, func(): tab = tt; _refresh()))
 	for c in _cams.get_children():

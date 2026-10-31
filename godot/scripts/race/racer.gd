@@ -81,9 +81,27 @@ func _recovery(delta: float) -> void:
 		recover()
 
 
+## Other competitors (set by the race) so a recovered car is never dropped on top of one.
+var rivals: Array = []
+
+
 func recover() -> void:
+	# Put the car back 8 m behind where it got stuck, but on a clear piece of road: never inside another car (two
+	# bodies spawned overlapping fly apart or appear to drive through each other). Try lanes, then further back.
 	var d := track.wrapd(distance - 8.0)
 	var pos := track.position_at(d) + Vector3.UP * 0.6
+	var found := false
+	for back: float in [8.0, 16.0, 24.0, 36.0, 50.0]:
+		for lane: float in [0.0, -2.8, 2.8]:
+			var dd := track.wrapd(distance - back)
+			var p := track.position_at(dd) + track.right_at(dd) * lane + Vector3.UP * 0.6
+			if rivals.all(func(o): return o == self or o.eliminated or o.car.global_position.distance_to(p) > 6.5):
+				d = dd
+				pos = p
+				found = true
+				break
+		if found:
+			break
 	car.place(Transform3D(Basis.looking_at(-track.tangent_at(d), Vector3.UP), pos))
 	_hint[0] = -1
 	_project()

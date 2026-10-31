@@ -28,7 +28,7 @@ var hub_level: ColorRect
 const ORANGE := Color(1.0, 0.42, 0.0)
 const HUB_CARDS := [["modes", "CAREER", "Driver · Owner · Clubs"], ["campaigns", "CAMPAIGNS", "Story chapters"],
 	["competitions", "COMPETITIONS", "Daily · City Cups"], ["pvp", "PVP RIVALS", "Ghost duels"],
-	["quick", "QUICK RACE", "11 venues · any weather"], ["garage", "DEALERSHIP", "Buy · sell · garage"],
+	["quick", "QUICK RACE", "11 venues · any weather"], ["garage", "MY GARAGE", "Your cars · paint"], ["dealership", "DEALERSHIP", "Buy · sell · trade in"],
 	["drivers", "DRIVERS", "Cards · profiles"]]
 const CARD_ART := {"modes": "res://assets/ui/cards/career.jpg", "drivers": "res://assets/ui/portraits/Male_Adult_05.png"}
 var sel_tier := 0
@@ -324,7 +324,8 @@ func _build_hub() -> void:
 	hub.add_child(hub_next)
 	# three big modes
 	var x := L
-	for t in [["modes", "CAREER", "Driver · seasons · campaigns"], ["team_owner", "TEAM OWNER", "Run your racing company"], ["dealership", "DEALERSHIP", "Buy · sell · your garage"]]:
+	for t in [["modes", "CAREER", "Driver · seasons · campaigns"], ["team_owner", "TEAM OWNER", "Run your racing company"],
+			["garage", "MY GARAGE", "Your cars · paint · inspect"], ["dealership", "DEALERSHIP", "Buy · sell · trade in"]]:
 		var tb := UiStyle.tile_button(t[1], t[2], Vector2(330, 150))
 		tb.position = Vector2(x, 840 - safe.w)
 		var pg: String = t[0]
@@ -564,7 +565,7 @@ func _info_row(text: String, value: String) -> void:
 
 
 func _go(p: String) -> void:
-	if p in ["garage", "dealership", "sell"]:
+	if p in ["garage", "dealership", "sell"]:   # garage = your cars at the team HQ; dealership/sell = the showroom
 		_open_dealership({"garage": "garage", "dealership": "showroom", "sell": "sell"}[p])
 		return
 	if p in ["drivers", "team_owner", "clubs", "modes"] and has_method("_open_" + p):
@@ -596,6 +597,7 @@ func _overlay_opened(o: Control) -> void:
 		if studio:
 			studio.show_fleet([], "")
 			studio.set_accent(UiStyle.ACCENT)
+		_use_venue("garage")
 		_place_showroom_car()
 		_show(page))
 
@@ -617,7 +619,38 @@ func _open_drivers() -> void:
 
 
 func _open_dealership(start_tab: String) -> void:
+	_use_venue("garage" if start_tab == "garage" else "dealership")
+	if start_tab == "garage" and studio:   # your other cars live in the bays
+		var others := Game.owned_cars().filter(func(c): return c != Game.player_car())
+		studio.show_fleet(others, "")
 	_overlay_opened(Dealership.open(self, start_tab))
+
+
+## Two 3D venues: the team garage/headquarters (home, garage, Team HQ) and the dealership showroom. Only the
+## active one is in the scene tree (each has its own environment, lights and probes).
+var hq_studio: GarageStudio
+var dealer_studio: DealershipStudio
+
+
+func _use_venue(v: String) -> void:
+	if hq_studio == null:
+		hq_studio = studio
+	if hq_studio == null:
+		return
+	var want: GarageStudio = hq_studio
+	if v == "dealership":
+		if dealer_studio == null:
+			dealer_studio = DealershipStudio.new()
+		want = dealer_studio
+	if want == studio and want.is_inside_tree():
+		return
+	var parent := studio.get_parent()
+	parent.remove_child(studio)
+	studio = want
+	parent.add_child(studio)
+	if studio is DealershipStudio:
+		(studio as DealershipStudio).show_display(display_car if display_car != "" else Game.player_car())
+	_place_showroom_car()
 
 
 func show_car(id: String, paint := "") -> void:

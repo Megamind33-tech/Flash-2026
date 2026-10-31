@@ -34,12 +34,28 @@ func _process(delta: float) -> void:
 	match step:
 		0:
 			if t > 1.0:
+				step = -1   # this step awaits frames; keep _process from re-entering it
 				menu = get_tree().current_scene
 				check(menu != null and menu.has_method("_go"), "main menu loaded")
 				for p in ["career", "campaigns", "competitions", "pvp", "quick", "settings", "credits", "profile"]:   # garage = Dealership overlay (ui_buttons_test)
 					menu._go(p)
 					check(menu.page == p and menu.list.get_child_count() > 0, "page %s (%d items)" % [p, menu.list.get_child_count()])
 					menu._back()
+				# Two places: the dealership (its own showroom venue, buy/sell) and my garage (team HQ, owned cars only).
+				menu._go("dealership")
+				check(menu.studio is DealershipStudio and menu.studio.is_inside_tree(), "dealership opens the showroom venue")
+				var dl: Dealership = menu.overlay
+				check(dl != null and dl.tab == "showroom" and dl._tabs.get_child_count() == 2, "dealership tabs: showroom + sell")
+				dl.closed.emit()
+				dl.queue_free()
+				await get_tree().process_frame
+				check(menu.studio is GarageStudio and not (menu.studio is DealershipStudio) and menu.studio.is_inside_tree(), "back at the team garage after leaving the dealership")
+				menu._go("garage")
+				var gg: Dealership = menu.overlay
+				check(menu.studio is GarageStudio and not (menu.studio is DealershipStudio), "my garage stays in the team HQ")
+				check(gg._ids().all(func(c): return Game.owns_car(c)), "my garage lists only owned cars (%d)" % gg._ids().size())
+				gg.queue_free()
+				await get_tree().process_frame
 				menu._open_options()
 				var opts := menu.find_child("*", true, false)
 				var tabs := menu.find_children("*", "TabContainer", true, false)

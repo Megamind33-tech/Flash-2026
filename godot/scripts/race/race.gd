@@ -111,6 +111,8 @@ func _ready() -> void:
 		Game.session["entry_paid"] = true
 		Game.persist()
 	_spawn_grid()
+	for r in racers:
+		r.rivals = racers
 	skills = Skills.new(player, racers)
 	_race_audio()
 	reset_dynamic_resolution()
@@ -121,6 +123,7 @@ func _ready() -> void:
 	add_child(camera)
 	camera.make_current()
 	Weather.attach_particles(camera)
+	_log_overlaps = "--log-overlaps" in args
 	if "--log-impacts" in args:   # diagnostics: every hard speed change, with what was near the car
 		for r in racers:
 			r.car.impact.connect(func(strength: float): _log_impact(r, strength))
@@ -325,6 +328,16 @@ func _setup_format() -> void:
 			ghost_car.collision_mask = 0
 			ghost_car.process_mode = Node.PROCESS_MODE_DISABLED
 			ghost_car.name = "Ghost"
+			# A ghost has no collision by design, so it must read as a ghost: translucent cyan, no shadow. Drawn as a
+			# solid car, other cars visibly drove through it and it looked like a collision bug.
+			var gm := StandardMaterial3D.new()
+			gm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			gm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			gm.albedo_color = Color(0.35, 0.85, 1.0, 0.28)
+			gm.cull_mode = BaseMaterial3D.CULL_BACK
+			for gi in ghost_car.find_children("*", "GeometryInstance3D", true, false):
+				(gi as GeometryInstance3D).material_override = gm
+				(gi as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			add_child(ghost_car)
 			ghost_car.global_transform = Ghosts.at(ghost["frames"], 0.0)
 
@@ -441,6 +454,34 @@ static func make_sky_material() -> Material:
 	sky_mat.sky_top_color = Color(0.32, 0.48, 0.7)
 	sky_mat.sky_horizon_color = Color(0.72, 0.76, 0.8)
 	return sky_mat
+
+
+## Diagnostics (--log-overlaps): two car bodies interpenetrating (centres closer than a car is wide) for more
+## than 0.15 s is a collision failure, not a bump.
+var _log_overlaps := false
+var _overlap_t := {}
+var overlap_events := 0
+
+
+func _check_overlaps(delta: float) -> void:
+	for i in racers.size():
+		for j in range(i + 1, racers.size()):
+			var a: Racer = racers[i]
+			var b: Racer = racers[j]
+			if a.eliminated or b.eliminated:
+				continue
+			var rel: Vector3 = b.car.global_position - a.car.global_position
+			var lat := absf(rel.dot(a.car.global_basis.x))
+			var lon := absf(rel.dot(a.car.global_basis.z))
+			var key := a.id + "|" + b.id
+			if lat < 1.5 and lon < 3.4:
+				_overlap_t[key] = float(_overlap_t.get(key, 0.0)) + delta
+				if absf(float(_overlap_t[key]) - 0.15) < delta * 0.5:
+					overlap_events += 1
+					print("[OVERLAP] %s inside %s at d=%.0f lat=%.2f lon=%.2f speeds=%.0f/%.0f rec=%d/%d" % [a.id, b.id, a.distance, lat, lon,
+						a.car.speed_kmh, b.car.speed_kmh, a.recoveries, b.recoveries])
+			else:
+				_overlap_t[key] = 0.0
 
 
 func _log_impact(r: Racer, strength: float) -> void:
@@ -560,6 +601,8 @@ func _physics_process(delta: float) -> void:
 		if _flash <= 0.0 and randf() < delta * 0.08:
 			_flash = 0.18
 		sun.light_energy = 2.5 if _flash > 0.0 else float(Weather.PRESET["storm"]["sun"])
+	if _log_overlaps:
+		_check_overlaps(delta)
 	for r in racers:
 		r.physics_update(delta, running and not r.eliminated, race_time)
 		if autotest and running:

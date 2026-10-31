@@ -21,7 +21,7 @@ echo "== menu nav";   timeout 500 "$G" --headless --path . res://tests/menu_nav_
 echo "== buttons";    timeout 300 "$G" --headless --path . res://tests/ui_buttons_test.tscn 2>&1 | grep -E "^BUTTONS|FAIL"
 echo "== landmarks";   timeout 300 "$G" --headless --path . res://tests/landmark_test.tscn 2>&1 | grep -E "LANDMARK|SCRIPT ERROR"
 echo "== city formats"; for f in "kitwe elimination rain" "mogadishu time_attack clear" "nairobi duel storm" "giza_desert race dust"; do set -- $f; timeout 900 "$G" --headless --path . --fixed-fps 60 res://scenes/race.tscn -- --autotest 2 --seed 7 --city $1 --format $2 --weather $3 2>&1 | grep -E "format=|race complete"; done
-echo "== AI race";     timeout 900 "$G" --headless --path . --fixed-fps 60 res://scenes/race.tscn -- --autotest 2 --seed 7 2>&1 | grep -E "race complete|  P[0-9]|car="
+echo "== AI race";     timeout 900 "$G" --headless --path . --fixed-fps 60 res://scenes/race.tscn -- --autotest 2 --seed 7 --log-overlaps 2>&1 | grep -E "race complete|  P[0-9]|car=|OVERLAP"
 if [[ "${1:-}" == "--shots" ]]; then
   for s in "menu main_menu 3" "garage main_menu 3 --page garage" "grid race 2.5" "racing race 14"; do set -- $s
     xvfb-run -a -s "-screen 0 1920x1080x24" timeout 900 "$G" --path . --rendering-method mobile --resolution 1920x1080 --fixed-fps 30 \

@@ -411,7 +411,7 @@ func show_fleet(cars: Array, paint: String) -> void:
 	if _covered:
 		_covered.visible = cars.is_empty()
 	for i in mini(cars.size(), BAYS.size()):
-		var car := CarBuilder.build(paint, false, str(cars[i]))
+		var car := CarBuilder.build(paint if paint != "" else Game.paint_for(str(cars[i])), false, str(cars[i]))   # "" = each car's own paint
 		car.freeze = true
 		car.process_mode = Node.PROCESS_MODE_DISABLED
 		add_child(car)
