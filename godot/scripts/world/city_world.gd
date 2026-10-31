@@ -119,6 +119,8 @@ static func build(parent: Node3D, data: Dictionary, style: Dictionary, track: Tr
 	_side_roads(root, data, style)
 	var ac := _buildings(root, data, style, rng)
 	_props(root, data, style, track, rng, ac)
+	barrier_ads(root, track, track.half_width + BARRIER, 0.6)
+	_rooftop_boards(root, data, track)
 	return root
 
 
@@ -323,6 +325,84 @@ static func _gantry(root: Node3D, track: TrackPath) -> void:
 	root.add_child(gmi)
 
 
+static var _ad_mat: StandardMaterial3D
+
+
+static func ad_material() -> StandardMaterial3D:
+	if _ad_mat == null:
+		_ad_mat = StandardMaterial3D.new()
+		_ad_mat.albedo_texture = load("res://assets/ads/ads_atlas.png")
+		_ad_mat.roughness = 0.45
+		_ad_mat.emission_enabled = Weather.time_of_day != "day"
+		_ad_mat.emission_texture = _ad_mat.albedo_texture
+		_ad_mat.emission_energy_multiplier = 0.9 if Weather.time_of_day == "night" else 0.3
+	return _ad_mat
+
+
+static func _ad_uv(ad: int) -> Rect2:
+	return Rect2((ad % 4) * 0.25, (ad / 4) * 0.25, 0.25, 0.25)
+
+
+## Roadside billboards: [position (base, Godot space), yaw facing the road, ad index]. 12 x 5 m panels on legs.
+static func billboards(root: Node3D, list: Array) -> void:
+	if list.is_empty():
+		return
+	var panel := Bucket.new()
+	var legs := []
+	for b in list:
+		var base: Vector3 = b[0]
+		var basis := Basis(Vector3.UP, float(b[1]))
+		var r := _ad_uv(int(b[2]))
+		var w := 6.0
+		var c := [Vector3(-w, 4.0, 0), Vector3(w, 4.0, 0), Vector3(w, 9.0, 0), Vector3(-w, 9.0, 0)]
+		var q := c.map(func(v): return base + basis * v)
+		panel.quad(q[0], q[3], q[2], q[1], basis * Vector3(0, 0, 1),
+			Vector2(r.position.x, r.end.y), r.position, Vector2(r.end.x, r.position.y), r.end)
+		for lx in [-3.5, 3.5]:
+			legs.append(Transform3D(basis, base + basis * Vector3(lx, 2.2, -0.15)))
+	var mesh := ArrayMesh.new()
+	panel.commit(mesh, ad_material())
+	var mi := MeshInstance3D.new()
+	mi.name = "Billboards"
+	mi.mesh = mesh
+	root.add_child(mi)
+	var leg := BoxMesh.new()
+	leg.size = Vector3(0.35, 4.4, 0.35)
+	_multimesh(root, leg, _paint(Color(0.3, 0.31, 0.33)), legs, "BillboardLegs")
+
+
+## Sponsor banners on the inner barrier face along the straights (one atlas material, one mesh).
+static func barrier_ads(root: Node3D, track: TrackPath, offset: float, height: float) -> void:
+	var bk := Bucket.new()
+	var d := 30.0
+	var ad := 0
+	while d < track.length - 30.0:
+		var i0 := int(d / track.length * track.points.size())
+		if absf(track.curvature(i0, 6)) < 0.004:
+			for s: float in [-1.0, 1.0]:
+				var a := track.position_at(d)
+				var b := track.position_at(d + 6.0)
+				var ra := track.right_at(d)
+				var rb := track.right_at(d + 6.0)
+				var r := _ad_uv((ad + (0 if s > 0 else 7)) % 16)
+				var o := offset - 0.03
+				var p0 := a + ra * s * o + Vector3.UP * 0.12
+				var p1 := b + rb * s * o + Vector3.UP * 0.12
+				var uvs := [Vector2(r.position.x, r.end.y), r.position, Vector2(r.end.x, r.position.y), r.end]
+				if s < 0:
+					uvs = [uvs[3], uvs[2], uvs[1], uvs[0]]
+					uvs = [Vector2(r.position.x, r.end.y), r.position, Vector2(r.end.x, r.position.y), r.end]
+				bk.quad(p0, p0 + Vector3.UP * height * 1.4, p1 + Vector3.UP * height * 1.4, p1, -ra * s, uvs[0], uvs[1], uvs[2], uvs[3])
+			ad += 1
+		d += 6.5
+	var mesh := ArrayMesh.new()
+	bk.commit(mesh, ad_material())
+	var mi := MeshInstance3D.new()
+	mi.name = "BarrierAds"
+	mi.mesh = mesh
+	root.add_child(mi)
+
+
 static func _poly(flat: Array) -> PackedVector2Array:
 	var out := PackedVector2Array()
 	for k in range(0, flat.size(), 2):
@@ -462,6 +542,36 @@ static func _buildings(root: Node3D, data: Dictionary, style: Dictionary, rng: R
 	return ac
 
 
+## Billboards on the roofs of buildings that face the circuit (every few buildings close to the road).
+static func _rooftop_boards(root: Node3D, data: Dictionary, track: TrackPath) -> void:
+	var list := []
+	var hint := [-1]
+	var k := 0
+	for b in data.get("buildings", []):
+		var h := float(b[0])
+		if h > 26.0:
+			continue
+		var poly := _poly(b[1])
+		var cen := Vector2.ZERO
+		for q in poly:
+			cen += q
+		cen /= poly.size()
+		var pos := Vector3(cen.x, 0, cen.y)
+		var pr := track.project(pos, [-1])
+		if absf(float(pr[1])) > track.half_width + 22.0:
+			continue
+		k += 1
+		if k % 6 != 0:
+			continue
+		var on := track.position_at(float(pr[0]))
+		var face := (on - pos)
+		face.y = 0
+		list.append([pos + Vector3.UP * h, atan2(face.x, face.z), list.size() * 3 % 16])
+		if list.size() >= 24:
+			break
+	billboards(root, list)
+
+
 static func _multimesh(root: Node3D, mesh: Mesh, mat: Material, xforms: Array, name: String, shadows := true) -> void:
 	if xforms.is_empty():
 		return
@@ -571,6 +681,23 @@ static func _props(root: Node3D, data: Dictionary, style: Dictionary, track: Tra
 			var s := 1.0 if rng.randf() < 0.5 else -1.0
 			trees.append(track.position_at(d) + track.right_at(d) * s * (hw + BARRIER + 3.4))
 		d += 17.0
+	# Drop trees that would stand inside a building footprint (grid-indexed point-in-polygon test).
+	var bgrid := {}
+	var polys := []
+	for b in data.get("buildings", []):
+		var poly := _poly(b[1])
+		polys.append(poly)
+		for q in poly:
+			(bgrid.get_or_add(Vector2i(floori(q.x / 40.0), floori(q.y / 40.0)), []) as Array).append(polys.size() - 1)
+	trees = trees.filter(func(t):
+		var q := Vector2(t.x, t.z)
+		var g := Vector2i(floori(q.x / 40.0), floori(q.y / 40.0))
+		for dx in [-1, 0, 1]:
+			for dy in [-1, 0, 1]:
+				for bi in bgrid.get(g + Vector2i(dx, dy), []):
+					if Geometry2D.is_point_in_polygon(q, polys[bi]) or Geometry2D.is_point_in_polygon(q + Vector2(2.5, 0), polys[bi]) or Geometry2D.is_point_in_polygon(q - Vector2(2.5, 0), polys[bi]):
+						return false
+		return true)
 	var tmesh := WorldDressing._tree_mesh("jacaranda_tree", 19.47)
 	var tint := Color.WHITE.lerp(Color(str(style["tree_tint"])), 0.45)
 	var tmat: Material = tmesh.surface_get_material(0).duplicate()

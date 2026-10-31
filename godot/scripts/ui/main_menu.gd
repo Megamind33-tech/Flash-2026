@@ -16,6 +16,14 @@ var cam: Camera3D
 var orbit := 0.0
 var showroom: Node3D
 var show_track: TrackPath
+var nav: Control
+var hub: Control
+var hub_next: Label
+var hub_car: Label
+const ORANGE := Color(1.0, 0.42, 0.0)
+const HUB_CARDS := [["career", "CAREER", "Four tiers · 11 venues"], ["campaigns", "CAMPAIGNS", "Story chapters"],
+	["competitions", "COMPETITIONS", "Daily · City Cups"], ["pvp", "PVP RIVALS", "Ghost duels"],
+	["quick", "QUICK RACE", "Any venue · any weather"], ["garage", "GARAGE", "Buy · choose your car"]]
 var sel_tier := 0
 var sel_campaign: Dictionary = {}
 var quick := {"city": "lusaka", "weather": "clear", "time": "day", "format": "race"}
@@ -38,6 +46,7 @@ func _ready() -> void:
 	Game.apply_settings()
 	_build_showroom()
 	_build_ui()
+	_build_hub()
 	_show("main")
 	var args := OS.get_cmdline_user_args()   # screenshots/tests: open a page directly (e.g. --page garage)
 	if args.has("--page"):
@@ -73,6 +82,7 @@ func _process(delta: float) -> void:
 
 func _build_ui() -> void:
 	var nui := VBoxContainer.new()
+	nav = nui
 	nui.position = Vector2(56, 48)
 	nui.custom_minimum_size = Vector2(760, 0)
 	nui.add_theme_constant_override("separation", 0)
@@ -153,6 +163,118 @@ func _build_ui() -> void:
 	add_child(ver)
 
 
+## Home hub: big image cards over the showroom, a hero line for the player's car and the next career event.
+func _build_hub() -> void:
+	hub = Control.new()
+	hub.set_anchors_preset(Control.PRESET_FULL_RECT)
+	hub.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(hub)
+	var shade := TextureRect.new()   # bottom gradient for legibility
+	var g := Gradient.new()
+	g.set_color(0, Color(0, 0, 0, 0))
+	g.set_color(1, Color(0, 0, 0, 0.85))
+	var gt := GradientTexture2D.new()
+	gt.gradient = g
+	gt.fill_from = Vector2(0.5, 0.0)
+	gt.fill_to = Vector2(0.5, 1.0)
+	shade.texture = gt
+	shade.position = Vector2(0, 520)
+	shade.size = Vector2(1920, 560)
+	shade.stretch_mode = TextureRect.STRETCH_SCALE
+	shade.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hub.add_child(shade)
+	var logo := UiStyle.label("GRIDLINE", UiStyle.display(), 120, Color.WHITE)
+	logo.position = Vector2(64, 30)
+	hub.add_child(logo)
+	var tag := UiStyle.label("THE RACING LEAGUE", UiStyle.cond_bold(), 30, ORANGE)
+	tag.position = Vector2(70, 150)
+	hub.add_child(tag)
+	hub_car = UiStyle.label("", UiStyle.display(), 64, Color.WHITE)
+	hub_car.position = Vector2(64, 330)
+	hub.add_child(hub_car)
+	hub_next = UiStyle.label("", UiStyle.cond(), 28, UiStyle.MUTED)
+	hub_next.position = Vector2(68, 410)
+	hub.add_child(hub_next)
+	var go := Button.new()
+	go.text = "  RACE NOW  "
+	go.add_theme_font_override("font", UiStyle.display())
+	go.add_theme_font_size_override("font_size", 44)
+	for st in ["normal", "hover", "pressed", "focus"]:
+		go.add_theme_stylebox_override(st, UiStyle.box(ORANGE if st != "pressed" else ORANGE.darkened(0.2), 0, Color.TRANSPARENT, 6))
+	go.add_theme_color_override("font_color", Color.BLACK)
+	go.position = Vector2(64, 460)
+	go.pressed.connect(_race_next)
+	hub.add_child(go)
+	var x := 64.0
+	for c in HUB_CARDS:
+		var card := _hub_card(c[0], c[1], c[2])
+		card.position = Vector2(x, 1080 - 64 - 360)
+		hub.add_child(card)
+		x += 300.0
+	for corner in [["PROFILE", "profile", 1500.0], ["SETTINGS", "settings", 1700.0]]:
+		var b := Button.new()
+		b.text = corner[0]
+		b.flat = true
+		b.add_theme_font_override("font", UiStyle.cond_bold())
+		b.add_theme_font_size_override("font_size", 28)
+		b.add_theme_color_override("font_color", UiStyle.MUTED)
+		b.position = Vector2(corner[2], 1080 - 64 - 360 - 60)
+		var page: String = corner[1]
+		b.pressed.connect(func(): _go(page))
+		hub.add_child(b)
+
+
+func _hub_card(page: String, title: String, sub: String) -> Control:
+	var card := Button.new()
+	card.custom_minimum_size = Vector2(280, 360)
+	card.size = Vector2(280, 360)
+	card.clip_contents = true
+	for st in ["normal", "focus"]:
+		card.add_theme_stylebox_override(st, UiStyle.box(Color(0.06, 0.065, 0.075, 0.82), 1, Color(1, 1, 1, 0.12), 14))
+	card.add_theme_stylebox_override("hover", UiStyle.box(Color(0.1, 0.1, 0.11, 0.9), 3, ORANGE, 14))
+	card.add_theme_stylebox_override("pressed", UiStyle.box(Color(0.12, 0.08, 0.04, 0.95), 3, ORANGE, 14))
+	var img := TextureRect.new()
+	img.texture = load("res://assets/ui/cards/%s.jpg" % page)
+	img.position = Vector2(1, 1)
+	img.size = Vector2(278, 220)
+	img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	img.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(img)
+	var bar := ColorRect.new()
+	bar.color = ORANGE
+	bar.position = Vector2(20, 238)
+	bar.size = Vector2(36, 5)
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(bar)
+	var t := UiStyle.label(title, UiStyle.display(), 46, Color.WHITE)
+	t.position = Vector2(20, 248)
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(t)
+	var st2 := UiStyle.label(sub, UiStyle.cond(), 24, UiStyle.MUTED)
+	st2.position = Vector2(21, 304)
+	st2.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(st2)
+	card.pressed.connect(func(): _go(page))
+	return card
+
+
+## "Race now": the first unfinished event on the player's current career card.
+func _race_next() -> void:
+	_launch(_next_event())
+
+
+func _next_event() -> Dictionary:
+	var ti := Career.unlocked_tier(int(Game.save["career"]["reputation"]))
+	var pr := Game.progress()
+	var evs := Career.season_events(ti, int(pr["season"].get(Career.tier(ti)["id"], 0)))
+	for e in evs:
+		if not (pr["done"] as Array).has(e["id"]):
+			return e
+	return evs[0]
+
+
 func _refresh_status() -> void:
 	var c: Dictionary = Game.save["career"]
 	money.text = "$" + RaceHud._thousands(int(c["money"]))
@@ -186,6 +308,14 @@ func _back() -> void:
 
 func _show(p: String) -> void:
 	page = p
+	if hub:
+		hub.visible = p == "main"
+		nav.visible = p != "main"
+		if p == "main":
+			var info := CarBuilder.info(Game.player_car())
+			hub_car.text = str(info["name"]).to_upper()
+			var nx := _next_event()
+			hub_next.text = "NEXT  ·  %s  ·  %s  ·  %s %s" % [Career.city_name(nx["city"]).to_upper(), Career.FORMATS[nx["format"]]["name"].to_upper(), Weather.LABEL[nx["weather"]].to_upper(), nx["time"].to_upper()]
 	for c in list.get_children():
 		list.remove_child(c)   # detach now so the item counter only sees the new page
 		c.queue_free()
@@ -263,7 +393,7 @@ func _show(p: String) -> void:
 			var did: bool = Game.progress()["daily"] == daily["daily"]
 			_item("Daily Challenge", "DONE" if did else "x2 PRIZE", func(): _launch(daily), not did)
 			var ti := Career.unlocked_tier(int(career["reputation"]))
-			for c in CityStyles.ORDER:
+			for c in CityStyles.ALL:
 				var city: String = c
 				_item("%s Cup" % CityStyles.data(city).get("name", city), "3 ROUNDS", func(): Game.start_championship(Career.city_cup(city, ti), "%s Cup" % CityStyles.data(city).get("name", city)); Game.persist(); _launch(Game.event(Game.champ_rounds()[0]), true))
 			_item("Classic Ashford Championship", "", func(): _go("championship"))
@@ -271,7 +401,7 @@ func _show(p: String) -> void:
 			desc.text = "Today: %s · %s · %s in the %s." % [daily["name"], Weather.LABEL[daily["weather"]], Career.FORMATS[daily["format"]]["name"], CarBuilder.info(daily["car"])["name"]]
 		"pvp":
 			subtitle.text = "   PVP RIVALS"
-			for c in CityStyles.ORDER:
+			for c in CityStyles.ALL:
 				var city: String = c
 				var mine := Ghosts.best_ms(city, "you")
 				var rival := Ghosts.load_ghost(city, "rival")
@@ -281,7 +411,7 @@ func _show(p: String) -> void:
 			desc.text = "Race the fastest lap ever set on each street circuit: rivals' laps are recorded in every race. Online ghost exchange arrives with the server build."
 		"quick":
 			subtitle.text = "   QUICK RACE"
-			_item("City", Career.city_name(quick["city"]).to_upper(), func(): quick["city"] = _cycle(["ashford"] + CityStyles.ORDER, quick["city"]); _show("quick"))
+			_item("City", Career.city_name(quick["city"]).to_upper(), func(): quick["city"] = _cycle(["ashford"] + CityStyles.ALL, quick["city"]); _show("quick"))
 			_item("Weather", Weather.LABEL[quick["weather"]].to_upper(), func(): quick["weather"] = _cycle(Weather.KINDS, quick["weather"]); _show("quick"))
 			_item("Time of Day", quick["time"].to_upper(), func(): quick["time"] = _cycle(Weather.TIMES, quick["time"]); _show("quick"))
 			_item("Format", Career.FORMATS[quick["format"]]["name"].to_upper(), func(): quick["format"] = _cycle(["race", "sprint", "endurance", "elimination", "duel", "time_attack"], quick["format"]); _show("quick"))

@@ -90,6 +90,31 @@ Evaluated, not adopted yet: **dot-ui** (MIT, needs dot-core, "partially tested";
 - The HyperDrift Racers Lite sample (12 FBX road tiles, royalty-free) was reviewed but is **not used**: the circuits are
   generated directly from street data.
 
+## Beyond the city 0.6.0
+- **Scenic venues** (`tools/scenic/build_scenic.py` → `data/scenic/*.json`, built by `scripts/world/scenic_world.gd`):
+
+  | Venue | Length | Climb |
+  |---|---|---|
+  | Kafue Forest Road (Zambia, miombo woodland) | 3.6 km | — |
+  | Great North Highway (Zambia) | 8.5 km | — |
+  | Rift Valley Escarpment (Kenya) | 4.3 km | 76 m |
+  | Schwarzwald Pass (Germany) | 4.1 km | 71 m |
+
+  - Each is a loop that cannot cross itself, with a graded road (at most 3–8 % gradient).
+  - Terrain is cut and filled to the road, with mountains rising beyond. Rock and grass blend by slope.
+  - Steel guardrails have collision; the road surface is a collision trimesh.
+  - Forests use up to 9,000 impostor trees in culled chunks.
+  - Every venue is in the career tiers, Quick Race, the cups, PvP and the daily rotation.
+- **Advertising:** a fictional-sponsor atlas (`tools/scenic/make_ads.py`, no real brands). It feeds roadside
+  billboards, rooftop billboards facing the street circuits and barrier banners on every straight. Ads are lit at
+  night.
+- **City fixes:** trees are never placed inside building footprints.
+- **Every race opens differently:** a broadcast-style flyover from above the start line down to the grid before the
+  countdown, plus the weather and time-of-day call-out.
+- **New home hub:** a full-screen showroom; big image cards for Career, Campaigns, Competitions, PvP Rivals,
+  Quick Race and Garage; the car hero line; the next career event, launched with one "RACE NOW" tap.
+- Fixed: the recovery check no longer treats roads below y = −20 m as falling off the world.
+
 ## What works — verified in this container
 | Check | Result | How |
 |---|---|---|

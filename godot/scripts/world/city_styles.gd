@@ -5,6 +5,8 @@ class_name CityStyles
 extends RefCounted
 
 const ORDER := ["lusaka", "kitwe", "nairobi", "mogadishu", "cairo", "london", "berlin"]
+## Every venue: street circuits plus the scenic forest / highway / mountain roads.
+const ALL := ["lusaka", "kitwe", "kafue_forest", "great_north_highway", "nairobi", "rift_escarpment", "mogadishu", "cairo", "london", "berlin", "alpine_pass"]
 
 const STYLES := {
 	"lusaka": {
@@ -74,6 +76,8 @@ const STYLES := {
 
 
 static func get_style(id: String) -> Dictionary:
+	if ScenicWorld.is_scenic(id):
+		return ScenicWorld.STYLES[id]
 	return STYLES.get(id, STYLES["lusaka"])
 
 
@@ -92,6 +96,8 @@ static func roll_weather(id: String, roll_seed: int) -> String:
 
 
 static func data(id: String) -> Dictionary:
+	if ScenicWorld.is_scenic(id):
+		return ScenicWorld.data(id)
 	var f := FileAccess.open("res://data/cities/%s.json" % id, FileAccess.READ)
 	if f == null:
 		return {}

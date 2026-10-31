@@ -8,10 +8,10 @@ class_name Career
 extends RefCounted
 
 const TIERS := [
-	{"id": "street", "name": "Copperbelt Street Scene", "cities": ["kitwe", "lusaka"], "rep": 0, "prize": 1.0, "pace": 0.93},
-	{"id": "national", "name": "National Circuit", "cities": ["lusaka", "nairobi", "mogadishu"], "rep": 45, "prize": 1.7, "pace": 0.96},
-	{"id": "continental", "name": "Pan-African Cup", "cities": ["nairobi", "mogadishu", "cairo"], "rep": 120, "prize": 2.6, "pace": 0.985},
-	{"id": "world", "name": "World Street Series", "cities": ["cairo", "london", "berlin"], "rep": 240, "prize": 3.8, "pace": 1.0},
+	{"id": "street", "name": "Copperbelt Street Scene", "cities": ["kitwe", "lusaka", "kafue_forest"], "rep": 0, "prize": 1.0, "pace": 0.93},
+	{"id": "national", "name": "National Circuit", "cities": ["great_north_highway", "nairobi", "mogadishu", "rift_escarpment"], "rep": 45, "prize": 1.7, "pace": 0.96},
+	{"id": "continental", "name": "Pan-African Cup", "cities": ["rift_escarpment", "mogadishu", "cairo", "great_north_highway"], "rep": 120, "prize": 2.6, "pace": 0.985},
+	{"id": "world", "name": "World Street Series", "cities": ["cairo", "london", "berlin", "alpine_pass"], "rep": 240, "prize": 3.8, "pace": 1.0},
 ]
 ## format -> display name, laps, AI count, fee/prize multipliers, description
 const FORMATS := {
@@ -110,7 +110,7 @@ static func daily_event() -> Dictionary:
 	var key := "%04d%02d%02d" % [d["year"], d["month"], d["day"]]
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash("daily-" + key)
-	var city: String = CityStyles.ORDER[rng.randi() % CityStyles.ORDER.size()]
+	var city: String = CityStyles.ALL[rng.randi() % CityStyles.ALL.size()]
 	var fmt: String = ["time_attack", "race", "elimination", "duel"][rng.randi() % 4]
 	var ev := make_event("daily_" + key, city, fmt, CityStyles.roll_weather(city, rng.randi()), ["day", "dusk", "night"][rng.randi() % 3], 1,
 		"Daily Challenge · %s" % CityStyles.data(city).get("name", city))

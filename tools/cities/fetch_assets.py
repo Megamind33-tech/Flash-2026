@@ -12,7 +12,7 @@ ACG = {
     "bricks_a": "Bricks105", "bricks_b": "Bricks113A",
     "ground_dirt": "Ground110", "ground_sand": "Ground093A", "grass": "Grass004",
     "road_aged": "Asphalt031", "road_dark": "Asphalt033", "paving": "PavingStones138",
-    "fence": "Fence006", "tower_glass": "Facade001", "tower_white": "Facade006",
+    "fence": "Fence006", "rock": "Rock058", "forest_floor": "Ground068", "tower_glass": "Facade001", "tower_white": "Facade006",
     "tower_brick": "Facade018A", "tower_brick_b": "Facade020A", "tower_lit": "Facade018C",
 }
 HDRI = {  # name -> (Poly Haven id, resolution)

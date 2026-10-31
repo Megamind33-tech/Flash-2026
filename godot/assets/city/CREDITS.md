@@ -17,6 +17,8 @@
 | road_dark_* | https://ambientcg.com/view?id=Asphalt033 | CC0 1.0 |
 | paving_* | https://ambientcg.com/view?id=PavingStones138 | CC0 1.0 |
 | fence_* | https://ambientcg.com/view?id=Fence006 | CC0 1.0 |
+| rock_* | https://ambientcg.com/view?id=Rock058 | CC0 1.0 |
+| forest_floor_* | https://ambientcg.com/view?id=Ground068 | CC0 1.0 |
 | tower_glass_* | https://ambientcg.com/view?id=Facade001 | CC0 1.0 |
 | tower_white_* | https://ambientcg.com/view?id=Facade006 | CC0 1.0 |
 | tower_brick_* | https://ambientcg.com/view?id=Facade018A | CC0 1.0 |

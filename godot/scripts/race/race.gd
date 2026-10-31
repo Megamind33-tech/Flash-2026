@@ -83,10 +83,14 @@ func _ready() -> void:
 		WorldDressing.build(self, track, Game.quality() >= 1 or not autotest)
 	else:
 		var data := CityStyles.data(city_id)
-		track = CityWorld.track_from(data)
 		track_name = "%s, %s" % [data["name"], data["country"]]
 		_env = Weather.build_environment(self, style)
-		CityWorld.build(self, data, style, track)
+		if ScenicWorld.is_scenic(city_id):
+			track = ScenicWorld.track_from(data)
+			ScenicWorld.build(self, data, style, track)
+		else:
+			track = CityWorld.track_from(data)
+			CityWorld.build(self, data, style, track)
 	# AI braking points and corner speeds follow the grip the weather leaves.
 	track.lateral_grip_g *= Weather.grip
 	track.decel *= Weather.grip
@@ -108,9 +112,34 @@ func _ready() -> void:
 		hud = RaceHud.new()
 		add_child(hud)
 		hud.bind(self)
+	if DisplayServer.get_name() != "headless":
+		await _intro()
 	await get_tree().create_timer(0.75).timeout
 	phase = Phase.COUNTDOWN
 	notice.emit(Weather.label().to_upper())
+
+
+## Broadcast-style opener: sweep from above the start line down to the grid behind the player's car.
+func _intro() -> void:
+	var cam := Camera3D.new()
+	cam.far = 2500.0
+	cam.fov = 62.0
+	add_child(cam)
+	cam.make_current()
+	notice.emit(track_name.to_upper())
+	var grid := player.car.global_position
+	var fwd := track.tangent_at(track.wrapd(-30.0))
+	var a := track.position_at(40.0) + Vector3.UP * 22.0 + track.right_at(40.0) * 26.0
+	var b := grid - fwd * 9.0 + Vector3.UP * 3.0
+	var start := track.position_at(0.0)
+	var tw := create_tween()
+	tw.tween_method(func(k: float):
+		var e := k * k * (3.0 - 2.0 * k)
+		cam.global_position = a.lerp(b, e)
+		cam.look_at(start.lerp(grid + fwd * 12.0, e) + Vector3.UP * 0.8, Vector3.UP), 0.0, 1.0, 3.4)
+	await tw.finished
+	camera.make_current()
+	cam.queue_free()
 
 
 ## Format rules: AI pace for the tier, time-attack medals, ghosts for Time Attack / Ghost Duel.
