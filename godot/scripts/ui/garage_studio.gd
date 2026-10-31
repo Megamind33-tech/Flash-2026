@@ -27,6 +27,7 @@ var _shot_t := 0.0
 var _idle := 99.0
 var _drag_from := Vector2.ZERO
 var _dragging := false
+var _ring_mat: StandardMaterial3D
 var preset := ""        # set by the dealership's camera buttons; "" = cinematic
 var frame_offset := 0.0 # degrees: shifts the car left (negative) / right in frame for side panels
 var frame_pitch := 0.0  # degrees: negative tilts the view down so the car sits higher in frame
@@ -201,6 +202,7 @@ func _plinth() -> void:
 	rm.emission_energy_multiplier = 1.1
 	rm.albedo_color = Color(0.1, 0.05, 0.02)
 	ring.material_override = rm
+	_ring_mat = rm
 	ring.position = Vector3(0, 0.08, 0)
 	ring.scale = Vector3(1, 0.3, 1)
 	add_child(ring)
@@ -267,3 +269,9 @@ func drive_camera(cam: Camera3D, delta: float, focus: Vector3) -> void:
 	cam.rotate_object_local(Vector3.UP, deg_to_rad(frame_offset))
 	cam.rotate_object_local(Vector3.RIGHT, deg_to_rad(frame_pitch))
 	cam.fov = fov
+
+
+## Plinth ring colour: the warm house accent, or a team's colour on Team Owner screens.
+func set_accent(c: Color) -> void:
+	if _ring_mat:
+		_ring_mat.emission = c

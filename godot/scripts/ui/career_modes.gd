@@ -44,7 +44,10 @@ func _clear() -> void:
 func _render() -> void:
 	_clear()
 	var bg := ColorRect.new()
-	bg.color = Color(0.02, 0.02, 0.03, 0.78 if mode == "hub" else 0.9)
+	# Team owner: the team garage (3D studio, ring in team colours) stays visible behind the HQ screens.
+	bg.color = Color(0.02, 0.02, 0.03, 0.78 if mode == "hub" else (0.74 if mode == "team" else 0.9))
+	if menu and menu.get("studio"):
+		menu.studio.set_accent(Color(str(TeamOwner.state()["color"])) if mode == "team" and TeamOwner.founded() else UiStyle.ACCENT)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	var back := DriverCards._btn("‹  BACK", func():
@@ -149,7 +152,7 @@ func _side_tab(text: String, on: bool, cb: Callable) -> Button:
 	return b
 
 
-func _small(text: String, cb: Callable, col := UiStyle.GOLD, enabled := true) -> Button:
+func _small(text: String, cb: Callable, col := UiStyle.ACCENT, enabled := true) -> Button:
 	var b := Button.new()
 	b.text = "  %s  " % text
 	b.focus_mode = Control.FOCUS_NONE
@@ -333,32 +336,7 @@ func _team() -> void:
 		return
 	match tab:
 		"overview":
-			var tiles := HBoxContainer.new()
-			tiles.add_theme_constant_override("separation", 16)
-			_body.add_child(tiles)
-			var wages := 0
-			for d in s["drivers"]:
-				wages += int(d["salary"])
-			for t in [["WEEK", str(int(s["week"]))], ["REPUTATION", str(int(s["reputation"]))], ["DRIVERS", "%d / 4" % (s["drivers"] as Array).size()],
-					["CARS", str((s["fleet"] as Array).size())], ["PARTNERS", "%d / 3" % (s["sponsors"] as Array).size()], ["WAGES / WEEK", "$" + RaceHud._thousands(wages)]]:
-				var p := PanelContainer.new()
-				p.add_theme_stylebox_override("panel", UiStyle.box(Color(1, 1, 1, 0.05), 0, Color.TRANSPARENT, 6))
-				p.custom_minimum_size = Vector2(230, 130)
-				var v := VBoxContainer.new()
-				v.alignment = BoxContainer.ALIGNMENT_CENTER
-				p.add_child(v)
-				v.add_child(UiStyle.label(t[1], UiStyle.display(), 58, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, false))
-				v.add_child(UiStyle.label(t[0], UiStyle.cond_bold(), 20, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_CENTER, false))
-				tiles.add_child(p)
-			_section("HOW IT WORKS")
-			var how := UiStyle.label("Scout drivers and sign up to four. Buy team cars and assign one to each driver. Train once a week per driver. " +
-				"Sign up to three partners: they pay every event and a bonus for a win. Enter competitions from Local to International: " +
-				"the field gets faster, the purses bigger. Press NEXT WEEK to pay salaries and refresh scouts and offers.", UiStyle.body(), 26, UiStyle.TEXT, HORIZONTAL_ALIGNMENT_LEFT, false)
-			how.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			_body.add_child(how)
-			if not (s["history"] as Array).is_empty():
-				_section("LATEST RESULT")
-				_result_rows(s["history"][0])
+			_hq_overview(s)
 		"drivers":
 			if (s["drivers"] as Array).is_empty():
 				_section("No drivers yet. Sign one in SCOUTING.")
@@ -502,6 +480,94 @@ func _team() -> void:
 				_section("No results yet.")
 			for r in s["history"]:
 				_result_rows(r)
+
+
+## Team HQ dashboard: finance tiles, the driver line-up with their cars, the coming schedule and the last result.
+func _hq_overview(s: Dictionary) -> void:
+	var team_col := Color(str(s["color"]))
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 18)
+	_body.add_child(head)
+	var badge := _tag_tile(str(s["name"]).substr(0, 3).to_upper(), s["color"], 96)
+	head.add_child(badge)
+	var hv := VBoxContainer.new()
+	hv.add_theme_constant_override("separation", -10)
+	hv.add_child(UiStyle.label(str(s["name"]).to_upper(), UiStyle.display(), 72, Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, false))
+	hv.add_child(UiStyle.label("HEADQUARTERS  ·  SEASON WEEK %d  ·  REPUTATION %d" % [int(s["week"]), int(s["reputation"])], UiStyle.cond_bold(), 24, team_col.lightened(0.35), HORIZONTAL_ALIGNMENT_LEFT, false))
+	head.add_child(hv)
+	var wages := 0
+	for d in s["drivers"]:
+		wages += int(d["salary"])
+	var partner := 0
+	for sp in s["sponsors"]:
+		partner += int(sp["per_event"])
+	var tiles := HBoxContainer.new()
+	tiles.add_theme_constant_override("separation", 14)
+	_body.add_child(tiles)
+	for t in [["BUDGET", "$" + RaceHud._thousands(TeamOwner.money()), UiStyle.MONEY], ["WAGES / WEEK", "-$" + RaceHud._thousands(wages), UiStyle.RED],
+			["PARTNERS / EVENT", "+$" + RaceHud._thousands(partner), UiStyle.MONEY], ["DRIVERS", "%d / 4" % (s["drivers"] as Array).size(), Color.WHITE],
+			["TEAM CARS", str((s["fleet"] as Array).size()), Color.WHITE], ["PARTNERS", "%d / 3" % (s["sponsors"] as Array).size(), Color.WHITE]]:
+		var p := PanelContainer.new()
+		p.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.CHARCOAL, 1, UiStyle.LINE, 8))
+		p.custom_minimum_size = Vector2(236, 118)
+		var v := VBoxContainer.new()
+		v.alignment = BoxContainer.ALIGNMENT_CENTER
+		v.add_theme_constant_override("separation", -6)
+		p.add_child(v)
+		v.add_child(UiStyle.label(t[1], UiStyle.display(), 50, t[2], HORIZONTAL_ALIGNMENT_CENTER, false))
+		v.add_child(UiStyle.label(t[0], UiStyle.cond_bold(), 18, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_CENTER, false))
+		tiles.add_child(p)
+	var cols := HBoxContainer.new()
+	cols.add_theme_constant_override("separation", 28)
+	_body.add_child(cols)
+	var left := VBoxContainer.new()
+	left.add_theme_constant_override("separation", 8)
+	cols.add_child(left)
+	left.add_child(UiStyle.label("DRIVER LINE-UP", UiStyle.cond_bold(), 24, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false))
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 12)
+	left.add_child(line)
+	var ros := TeamOwner.roster()
+	if ros.is_empty():
+		line.add_child(_small("SCOUT YOUR FIRST DRIVER ›", func(): tab = "scouting"; _render()))
+	for i in ros.size():
+		var holder := Control.new()
+		holder.custom_minimum_size = DriverCards.CARD * 0.62 + Vector2(0, 34)
+		var cardc := DriverCards.card(ros[i])
+		cardc.scale = Vector2(0.62, 0.62)
+		holder.add_child(cardc)
+		var car := TeamOwner.car_of((s["drivers"] as Array)[i])
+		var cl := UiStyle.label(str(CarBuilder.info(car)["name"]).to_upper() if car != "" else "NO CAR ASSIGNED", UiStyle.cond_bold(), 18, Color.WHITE if car != "" else UiStyle.RED, HORIZONTAL_ALIGNMENT_LEFT, false)
+		cl.position = Vector2(0, DriverCards.CARD.y * 0.62 + 4)
+		holder.add_child(cl)
+		line.add_child(holder)
+	var right := VBoxContainer.new()
+	right.add_theme_constant_override("separation", 6)
+	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cols.add_child(right)
+	right.add_child(UiStyle.label("SCHEDULE", UiStyle.cond_bold(), 24, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false))
+	var wk := int(s["week"])
+	var k := 0
+	for c in TeamOwner.COMPETITIONS:
+		if k >= 5:
+			break
+		var ok := TeamOwner.can_enter(c)
+		var row := PanelContainer.new()
+		row.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.CHARCOAL, 0, Color.TRANSPARENT, 6))
+		var hb := HBoxContainer.new()
+		hb.add_theme_constant_override("separation", 14)
+		row.add_child(hb)
+		hb.add_child(UiStyle.label("  WK %d" % (wk + k), UiStyle.font("BarlowCondensed-ExtraBold"), 24, UiStyle.ACCENT, HORIZONTAL_ALIGNMENT_LEFT, false))
+		var nm := UiStyle.label(str(c["name"]).to_upper(), UiStyle.cond_bold(), 24, Color.WHITE if ok else UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false)
+		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		hb.add_child(nm)
+		hb.add_child(UiStyle.label("%s · $%s  " % [str(c["level"]).to_upper(), RaceHud._thousands(int(c["purse"]))], UiStyle.cond(), 20, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_RIGHT, false))
+		right.add_child(row)
+		k += 1
+	right.add_child(_small("ENTER A COMPETITION ›", func(): tab = "competitions"; _render()))
+	if not (s["history"] as Array).is_empty():
+		_section("LATEST RESULT")
+		_result_rows(s["history"][0])
 
 
 func _cycle_car(driver_id: String) -> void:
