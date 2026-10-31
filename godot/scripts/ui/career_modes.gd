@@ -568,7 +568,11 @@ func _clubs() -> void:
 				_section("RECENT CLUB RACES")
 				for r in (s["results"] as Array).slice(0, 5):
 					var rr := _row(Color.TRANSPARENT, 64)
-					_col(rr, "P%d of %d" % [r["pos"], r["field"]], "week %d · %s" % [r["week"], r["comp"]], 400)
+					var cname: String = str(r["comp"])
+					for cc in Clubs.COMPETITIONS:
+						if cc["id"] == r["comp"]:
+							cname = cc["name"]
+					_col(rr, "P%d of %d" % [int(r["pos"]), int(r["field"])], "week %d · %s" % [int(r["week"]), cname], 500)
 					_col(rr, "+%d" % r["points"], "CLUB POINTS", 200, 30, UiStyle.GOLD)
 			if Clubs.is_owner():
 				_section("APPLICATIONS")

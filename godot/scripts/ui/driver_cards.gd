@@ -118,7 +118,7 @@ static func card(d: Dictionary, big := false) -> Control:
 	glow.set_anchors_preset(Control.PRESET_FULL_RECT)
 	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(glow)
-	var num := UiStyle.label(str(d.get("number", "")), UiStyle.display(), int(240 * k), Color(1, 1, 1, 0.16), HORIZONTAL_ALIGNMENT_RIGHT, false)
+	var num := UiStyle.label(str(int(d.get("number", 0))), UiStyle.display(), int(240 * k), Color(1, 1, 1, 0.16), HORIZONTAL_ALIGNMENT_RIGHT, false)
 	num.position = Vector2(sz.x * 0.25, -20 * k)
 	num.size = Vector2(sz.x * 0.72, 260 * k)
 	root.add_child(num)
@@ -164,7 +164,7 @@ static func card(d: Dictionary, big := false) -> Control:
 	for s in [["PTS", d.get("points", 0)], ["WINS", d.get("wins", 0)], ["PODIUMS", d.get("podiums", 0)], ["RATING", d.get("rating", 0)]]:
 		var col := VBoxContainer.new()
 		col.add_theme_constant_override("separation", int(-8 * k))
-		col.add_child(UiStyle.label(str(s[1]), UiStyle.font("BarlowCondensed-ExtraBold"), int(30 * k), UiStyle.GOLD if s[0] == "RATING" else Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, false))
+		col.add_child(UiStyle.label(str(int(s[1])), UiStyle.font("BarlowCondensed-ExtraBold"), int(30 * k), UiStyle.GOLD if s[0] == "RATING" else Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, false))
 		col.add_child(UiStyle.label(s[0], UiStyle.cond(), int(16 * k), UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false))
 		row.add_child(col)
 	return root
@@ -228,7 +228,7 @@ func _profile(d: Dictionary) -> void:
 	for s in [["STARTS", d.get("starts", 0)], ["WINS", d.get("wins", 0)], ["PODIUMS", d.get("podiums", 0)], ["POINTS", d.get("points", 0)], ["RATING", d.get("rating", 0)]]:
 		var v := VBoxContainer.new()
 		v.add_theme_constant_override("separation", -10)
-		v.add_child(UiStyle.label(str(s[1]), UiStyle.display(), 84, UiStyle.GOLD if s[0] == "RATING" else Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, false))
+		v.add_child(UiStyle.label(str(int(s[1])), UiStyle.display(), 84, UiStyle.GOLD if s[0] == "RATING" else Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, false))
 		v.add_child(UiStyle.label(s[0], UiStyle.cond_bold(), 22, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false))
 		stats.add_child(v)
 	col.add_child(UiStyle.label("ATTRIBUTES", UiStyle.cond_bold(), 26, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false))
