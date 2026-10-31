@@ -44,11 +44,55 @@ static func founded() -> bool:
 	return str(state()["name"]) != ""
 
 
-static func found(name: String, color: String) -> void:
+const NAME_MIN := 3
+const NAME_MAX := 28
+const NAME_CHARS := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 &-'."
+
+
+## Why a company name cannot be used, or "" when it can. Trims, collapses spaces; letters, digits, spaces and & - ' .
+## only; 3-28 characters; must contain a letter; must not copy a league team's name.
+static func name_problem(raw: String) -> String:
+	var n := clean_name(raw)
+	if n.length() < NAME_MIN:
+		return "Use at least %d characters." % NAME_MIN
+	if n.length() > NAME_MAX:
+		return "Use at most %d characters." % NAME_MAX
+	var letter := false
+	for ch in n:
+		if not NAME_CHARS.contains(ch):
+			return "Only letters, numbers, spaces and & - ' . are allowed."
+		letter = letter or (ch.to_lower() != ch.to_upper())
+	if not letter:
+		return "The name needs at least one letter."
+	for t in Game.default_teams():
+		if str(t["name"]).to_lower() == n.to_lower():
+			return "%s already races in the league." % t["name"]
+	return ""
+
+
+static func clean_name(raw: String) -> String:
+	var n := raw.strip_edges()
+	while n.contains("  "):
+		n = n.replace("  ", " ")
+	return n
+
+
+## Founds the company once. Returns "" on success or the reason it was refused (invalid name, already founded).
+## The team runs on the player's wallet; founding is recorded in the save (week, colour, ledger entry of $0).
+static func found(name: String, color: String) -> String:
+	if founded():
+		return "You already run %s." % state()["name"]
+	var problem := name_problem(name)
+	if problem != "":
+		return problem
+	if not Color.html_is_valid(color):
+		return "Pick a team colour."
 	var s := state()
-	s["name"] = name
+	s["name"] = clean_name(name)
 	s["color"] = color
+	s["founded"] = {"week": int(s.get("week", 1)), "wallet": money(), "time": Time.get_datetime_string_from_system(true)}
 	Game.persist()
+	return ""
 
 
 static func money() -> int:

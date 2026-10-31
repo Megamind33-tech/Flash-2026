@@ -66,12 +66,29 @@ func _render() -> void:
 	match mode:
 		"hub":
 			_hub()
+		"team" when not TeamOwner.founded():
+			_formation()
 		"team":
 			_frame("TEAM OWNER", TeamOwner.state()["name"] if TeamOwner.founded() else "Found your racing company",
 				["overview", "drivers", "scouting", "training", "garage", "partners", "competitions", "results"] if TeamOwner.founded() else [])
 		"clubs":
 			var t := ["my club", "browse", "invites", "competitions", "standings", "challenges", "own club"]
 			_frame("LIVE CAREER", "Offline preview · other clubs and players are simulated on this device", t)
+
+
+## Not founded yet: the focused two-step onboarding (CompanyFormation) instead of the HQ tabs.
+func _formation() -> void:
+	add_child(DriverCards._title("TEAM OWNER", "Start a racing company", Vector2(240, 30)))
+	var f := CompanyFormation.new()
+	f.studio = menu.get("studio") if menu else null
+	f.color = _new_color
+	if _new_name != "":
+		f.company = _new_name
+	f.founded.connect(func(n: String):
+		tab = "overview"
+		_render.call_deferred()
+		_toast("%s is founded. Sign your first driver in SCOUTING." % n))
+	add_child(f)
 
 
 # ------------------------------------------------------------------ shared layout
@@ -326,17 +343,6 @@ func _mode_card(title: String, img: String, text: String, status: String, gate: 
 
 func _team() -> void:
 	var s := TeamOwner.state()
-	if not TeamOwner.founded():
-		_section("COMPANY NAME")
-		_new_name = _new_name if _new_name != "" else "%s Racing" % str(Game.save["career"]["driverName"]).split(" ")[-1]
-		_body.add_child(_line_edit(_new_name, "Company name", func(t): _new_name = t))
-		_section("TEAM COLOUR")
-		_color_chips(_body, _new_color, func(c): _new_color = c; _render())
-		_body.add_child(_small("FOUND COMPANY", func():
-			TeamOwner.found(_new_name.strip_edges() if _new_name.strip_edges() != "" else "Gridline Racing", _new_color)
-			Game.add_xp(50)
-			_render()))
-		return
 	match tab:
 		"overview":
 			_hq_overview(s)

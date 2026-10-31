@@ -41,8 +41,50 @@ func _ready() -> void:
 	check(Game.unlocked("own_club"), "test unlock")
 
 	# team owner
-	TeamOwner.found("Test Racing", "#B3261E")
+	# the onboarding screen, driven like a player: type, continue, double-tap FOUND COMPANY, land on the HQ
+	var fhost := Node.new()
+	add_child(fhost)
+	var fcm := CareerModes.open(fhost, "team")
+	await get_tree().process_frame
+	var forms := fcm.find_children("*", "CompanyFormation", true, false)
+	check(forms.size() == 1, "unfounded Team Owner opens the formation screen")
+	if forms.size() == 1:
+		var form: CompanyFormation = forms[0]
+		form._name_edit.text = "x"
+		form._update_name("x")
+		check(form._continue.disabled, "continue disabled for an invalid name")
+		form._update_name("Flow Racing")
+		check(not form._continue.disabled, "continue enabled for a valid name")
+		form._continue.pressed.emit()
+		await get_tree().process_frame
+		var go := form.find_child("FoundButton", true, false) as Button
+		check(go != null, "confirm step shows FOUND COMPANY")
+		if go:
+			go.pressed.emit()
+			go.pressed.emit()   # double tap
+		check(TeamOwner.founded() and TeamOwner.state()["name"] == "Flow Racing", "founded from the screen")
+		await get_tree().process_frame
+		await get_tree().process_frame
+		check(fcm.find_children("*", "CompanyFormation", true, false).is_empty(), "HQ replaces the formation screen")
+	fhost.queue_free()
+	Game.save.erase("team")
+	check(TeamOwner.found("  ", "#B3261E") != "" and not TeamOwner.founded(), "blank company name refused")
+	check(TeamOwner.found("ab", "#B3261E") != "", "too-short name refused")
+	check(TeamOwner.found("123", "#B3261E") != "", "name without letters refused")
+	check(TeamOwner.found("Team <script>", "#B3261E") != "", "symbols refused")
+	check(TeamOwner.found("halden motorsport", "#B3261E") != "", "league team name refused")
+	check(TeamOwner.found("Test   Racing ", "#B3261E") == "", "valid name founds")
+	check(TeamOwner.state()["name"] == "Test Racing", "name trimmed and spaces collapsed")
+	check(TeamOwner.found("Second Co", "#1F4E8C") != "" and TeamOwner.state()["name"] == "Test Racing", "second founding refused (no duplicate)")
+	check(TeamOwner.state().has("founded"), "founding recorded in the save")
 	check(TeamOwner.founded(), "found team")
+	var cf := CompanyFormation.new()
+	cf.company = "Another Co"
+	check(cf.submit() != "" and TeamOwner.state()["name"] == "Test Racing", "formation screen refuses a second company")
+	cf._busy = true
+	check(cf.submit() == "busy", "formation screen ignores a second tap while founding")
+	check(CompanyFormation.monogram("Kafue Motorsport") == "KM" and CompanyFormation.monogram("Volt") == "VO", "monogram")
+	cf.free()
 	var sc := TeamOwner.scouts()
 	check(sc.size() == 6, "six scouts")
 	check(TeamOwner.sign(sc[0]) and TeamOwner.sign(sc[1]), "sign two")
