@@ -225,8 +225,8 @@ static func make_spray() -> GPUParticles3D:
 		return null
 	var parts := GPUParticles3D.new()
 	parts.name = "Spray"
-	parts.amount = 60
-	parts.lifetime = 0.6
+	parts.amount = 36
+	parts.lifetime = 0.45
 	parts.local_coords = false
 	parts.position = Vector3(0, 0.35, -2.3)
 	var pm := ParticleProcessMaterial.new()
@@ -239,10 +239,10 @@ static func make_spray() -> GPUParticles3D:
 	pm.gravity = Vector3(0, -5, 0)
 	pm.scale_min = 0.6
 	pm.scale_max = 1.6
-	pm.color = Color(0.85, 0.87, 0.9, 0.09)
+	pm.color = Color(0.8, 0.82, 0.85, 0.045)
 	parts.process_material = pm
 	var quad := QuadMesh.new()
-	quad.size = Vector2(1.1, 1.1)
+	quad.size = Vector2(0.8, 0.8)
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
