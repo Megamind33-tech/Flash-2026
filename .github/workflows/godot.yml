@@ -1,0 +1,74 @@
+# Gate G12: the Godot port's checks on every push. Engine and SDK come from tools/deps/fetch_deps.sh
+# (pinned SHA-256), cached between runs. Exit codes come from the test scenes themselves.
+name: GRIDLINE Godot
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: godot-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  godot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      DEPS_DIR: ${{ github.workspace }}/../deps
+      G: ${{ github.workspace }}/../deps/godot-4.7.2/Godot_v4.7.2-stable_linux.x86_64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/../deps
+          key: deps-${{ hashFiles('tools/deps/fetch_deps.sh') }}
+      - name: Dependencies (Godot 4.7.2, templates, Android SDK; pinned hashes)
+        run: |
+          pip install --quiet pillow
+          bash tools/deps/fetch_deps.sh
+      - name: Import
+        working-directory: godot
+        run: timeout 900 "$G" --headless --path . --import > import.log 2>&1 || (tail -50 import.log; exit 1)
+      - name: Asset budgets (G2)
+        run: python3 -I tools/assets/budget_check.py
+      - name: Core tests
+        working-directory: godot
+        run: timeout 300 "$G" --headless --path . res://tests/core_tests.tscn
+      - name: Stability (kerb strike)
+        working-directory: godot
+        run: timeout 600 "$G" --headless --path . --fixed-fps 60 res://tests/stability_test.tscn
+      - name: Potholes (G5)
+        working-directory: godot
+        run: timeout 300 "$G" --headless --path . --fixed-fps 60 res://tests/pothole_test.tscn
+      - name: Street props placement
+        working-directory: godot
+        run: timeout 600 "$G" --headless --path . res://tests/street_props_test.tscn
+      - name: Full race, Lusaka, 3 laps, 5 cars
+        working-directory: godot
+        run: timeout 1500 "$G" --headless --path . --fixed-fps 60 res://scenes/race.tscn -- --autotest 3 --city lusaka
+      - name: Elimination format in the rain (Kitwe)
+        working-directory: godot
+        run: timeout 1500 "$G" --headless --path . --fixed-fps 60 res://scenes/race.tscn -- --autotest 2 --city kitwe --format elimination --weather rain
+      - name: Debug APK
+        working-directory: godot
+        run: |
+          keytool -genkeypair -v -keystore "$RUNNER_TEMP/debug.keystore" -storepass android -alias androiddebugkey \
+            -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          export GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$RUNNER_TEMP/debug.keystore"
+          export GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey
+          export GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android
+          mkdir -p ../builds/android
+          timeout 1500 "$G" --headless --path . --export-debug "Android" ../builds/android/gridline.apk
+          ls -la ../builds/android/gridline.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gridline-debug-apk
+          path: builds/android/gridline.apk
+          if-no-files-found: error
