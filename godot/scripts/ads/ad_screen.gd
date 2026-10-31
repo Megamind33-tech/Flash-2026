@@ -26,6 +26,8 @@ var _fade := -1.0
 var _player: VideoStreamPlayer
 var _notifier: VisibleOnScreenNotifier3D
 var _on_screen := false
+var _spill: OmniLight3D
+static var _colors := {}
 
 
 static func registry() -> Dictionary:
@@ -142,6 +144,17 @@ func _build_panel() -> void:
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.visibility_range_end = view_distance * 2.5
 	add_child(mi)
+	# Light spill: big displays light what is in front of them in the colour of their content (one shadowless light,
+	# colours precomputed in data/ads/creative_colors.json; no texture read-back on the phone).
+	if mount in ["led_wall", "suspended", "pole"] and Game.quality() >= 1:
+		_spill = OmniLight3D.new()
+		_spill.position = Vector3(0, -size.y * 0.25, maxf(1.0, size.x * 0.25))
+		_spill.omni_range = size.x * 1.1
+		_spill.light_energy = {"led_wall": 1.1, "suspended": 0.5, "pole": 0.8}[mount]
+		_spill.omni_attenuation = 1.6
+		_spill.shadow_enabled = false
+		add_child(_spill)
+		_tint_spill(0)
 	if str(entry.get("media", "image")) == "video" and Game.quality() >= 1:
 		var path := SCREENS + str(_creatives[0]) + ".ogv"
 		if ResourceLoader.exists(path):
@@ -156,6 +169,16 @@ func _build_panel() -> void:
 			holder.layer = -100
 			holder.add_child(_player)
 			add_child(holder)
+
+
+func _tint_spill(i: int) -> void:
+	if _spill == null:
+		return
+	if _colors.is_empty():
+		var f := FileAccess.open("res://data/ads/creative_colors.json", FileAccess.READ)
+		_colors = JSON.parse_string(f.get_as_text()) if f else {"_": [1, 1, 1]}
+	var c: Array = _colors.get(str(_creatives[posmod(i, _creatives.size())]), [0.8, 0.8, 0.8])
+	_spill.light_color = Color(c[0], c[1], c[2]).lightened(0.15)
 
 
 func _set_still(i: int, param: String) -> void:
@@ -197,6 +220,7 @@ func _process(delta: float) -> void:
 		if _fade >= 1.0:
 			_i += 1
 			_set_still(_i, "tex_a")
+			_tint_spill(_i)
 			_mat.set_shader_parameter("blend", 0.0)
 			_fade = -1.0
 			_t = 0.0

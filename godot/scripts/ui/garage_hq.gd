@@ -113,7 +113,7 @@ func _setup_materials() -> void:
 	mats["block"] = _tex("concrete_grey", Color(0.62, 0.63, 0.65), 0.85, 0.35)
 	mats["cladding"] = _flat(Color(0.25, 0.26, 0.28), 0.5, 0.55)
 	mats["roof"] = _flat(Color(0.32, 0.33, 0.35), 0.75, 0.3)
-	mats["skylight"] = _glow(Color(0.86, 0.9, 0.96), 2.6)
+	mats["skylight"] = _glow(Color(0.86, 0.9, 0.96), 1.7)
 	mats["office_floor"] = _tex("concrete_beige", Color(0.72, 0.7, 0.66), 0.6, 0.4)
 	mats["slab"] = _tex("concrete_grey", Color(0.78, 0.78, 0.8), 0.8, 0.3)
 	mats["office_wall"] = _flat(Color(0.82, 0.83, 0.84), 0.7)
@@ -160,6 +160,7 @@ func build(quality: int) -> void:
 	_commit()
 	_props(quality)
 	_screens(quality)
+	_workshop(quality)
 	_lights(quality)
 
 
@@ -171,6 +172,7 @@ func _commit() -> void:
 	mi.name = "HQ_Structure"
 	mi.mesh = mesh
 	root.add_child(mi)
+	buckets.clear()   # later passes (workshop racks) commit their own mesh
 
 
 func _floor() -> void:
@@ -475,6 +477,106 @@ func _props(quality: int) -> void:
 	root.add_child(smi)
 
 
+## An operating workshop (owner brief: "make the space we have convincing"): two bays with team cars up on the
+## lifts (one with a wheel off for a tyre change), crew at work, tyre racks, a work light over each active bay, a
+## telemetry/control room behind the office glass with a live video wall, engineers at the pit desks, and race cars
+## passing on the straight outside. Motion is cheap: vertex-shader idle on the crew (People/spectator shader),
+## screen content, and one car on a path outside every ~20 s.
+func _workshop(quality: int) -> void:
+	var gs := root as GarageStudio
+	var team_paint := "#1F4E8C"
+	# 1. two active bays: cars raised on the scissor lifts (platform top at 1.85 m)
+	var active := [[-17.0, "arden_gt3"], [-8.0, "elektra_egt"]]
+	for k in active.size():
+		var x: float = active[k][0]
+		var car := CarBuilder.build(team_paint, false, str(active[k][1]))
+		car.freeze = true
+		car.process_mode = Node.PROCESS_MODE_DISABLED
+		for gi in car.find_children("*", "GeometryInstance3D", true, false):
+			(gi as GeometryInstance3D).lod_bias = 0.3
+		car.transform = Transform3D(Basis(Vector3.UP, PI), Vector3(x, 1.86, 19.4))
+		for gi in car.find_children("*", "GeometryInstance3D", true, false):   # workshop cars: no shadow passes
+			(gi as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(car)
+		if k == 0:   # tyre change in progress: front-left wheel off, the tyre stood against the tool cart
+			var w := car.find_child("Wheel_FL", true, false)
+			if w:
+				for c in w.get_children():
+					if c is MeshInstance3D:
+						(c as MeshInstance3D).visible = false
+			var t := gs._prop("old_tyre", Vector3(x + 2.2, 0.33, 17.2), 70.0)
+			if t:
+				t.rotation_degrees.z = 8.0
+			gs._prop("tool_cart", Vector3(x + 2.6, 0, 16.4), 200.0)
+		# a caged work light over each active bay (warm, real light), and a pit monitor already stands at the bay
+		gs._prop("caged_hanging_light", Vector3(x, 4.6, 18.6), 0.0, 1.2)
+		var wl := OmniLight3D.new()
+		wl.position = Vector3(x, 4.2, 18.6)
+		wl.omni_range = 7.5
+		wl.light_energy = 1.8
+		wl.light_color = Color(1.0, 0.88, 0.7)
+		root.add_child(wl)
+	# 2. crew: two mechanics at the raised car, one at the second bay, engineers seated at the pit desks
+	var crew := [["Sports_Male_02", "idle", Vector3(-18.6, 0, 17.0), 35.0], ["Male_Adult_05", "idle", Vector3(-15.3, 0, 17.6), -40.0],
+		["Sports_Male_02", "idle", Vector3(-6.4, 0, 17.3), -20.0], ["Female_Adult_07", "seated", Vector3(-16.3, 0.05, -4.5), 90.0],
+		["Male_Adult_12", "seated", Vector3(-16.3, 0.05, -1.5), 90.0], ["Female_Adult_02", "seated", Vector3(22.2, 0.05, -10.0), 90.0],
+		["Male_Adult_01", "idle", Vector3(24.5, 0, -2.5), -110.0]]
+	for c in crew:
+		var m := People.animated_mesh(str(c[0]), str(c[1]))
+		if m == null:
+			continue
+		var mi := MeshInstance3D.new()
+		mi.mesh = m
+		mi.position = c[2]
+		mi.rotation_degrees.y = float(c[3])
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if quality >= 1 else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(mi)
+		if str(c[1]) == "seated":   # a seat under every seated engineer
+			gs._prop("metal_stool_01", (c[2] as Vector3) + Vector3(0, -0.05, 0), float(c[3]))
+	# 3. tyre racks against the partition: three levels of race tyres (one MultiMesh, 316-triangle tyre)
+	var tyre_mesh: Mesh = null
+	var tyre_scene := load("res://assets/garage/models/old_tyre/old_tyre_rack.gltf") as PackedScene
+	if tyre_scene:
+		var inst := tyre_scene.instantiate()
+		var mis := inst.find_children("*", "MeshInstance3D", true, false)
+		if not mis.is_empty():
+			tyre_mesh = (mis[0] as MeshInstance3D).mesh
+		inst.free()
+	var xf := []
+	for rack in 2:
+		var z0 := 9.0 + rack * 5.6
+		for lvl in 3:
+			box("steel", Vector3(0.7, 0.06, 5.0), Vector3(-23.0, 0.25 + lvl * 0.85, z0 + 2.4))
+			for i in 8:
+				xf.append(Transform3D(Basis(Vector3.FORWARD, PI * 0.5).rotated(Vector3.UP, 0.0).scaled(Vector3.ONE * 1.05), Vector3(-23.0, 0.62 + lvl * 0.85, z0 + 0.3 + i * 0.6)))
+		for zz: float in [z0 - 0.1, z0 + 4.9]:
+			box("steel", Vector3(0.08, 2.6, 0.08), Vector3(-23.3, 1.3, zz))
+			box("steel", Vector3(0.08, 2.6, 0.08), Vector3(-22.7, 1.3, zz))
+	if tyre_mesh:
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = tyre_mesh
+		mm.instance_count = xf.size()
+		for i in xf.size():
+			mm.set_instance_transform(i, xf[i])
+		var mmi := MultiMeshInstance3D.new()
+		mmi.name = "TyreRacks"
+		mmi.multimesh = mm
+		root.add_child(mmi)
+	# 4. control room: a 2 x 2 video wall on the office back wall (schedule, timing, telemetry, tyres)
+	var wall := [["hq_ops_schedule", Vector3(X1 - 0.45, 2.6, -13.2)], ["hq_ops_timing", Vector3(X1 - 0.45, 2.6, -10.4)],
+		["hq_ops_telemetry", Vector3(X1 - 0.45, 1.05, -13.2)], ["hq_ops_tyres", Vector3(X1 - 0.45, 1.05, -10.4)]]
+	for w in wall:
+		_screen(str(w[0]), "wall", Vector2(2.6, 1.4625), w[1], -90.0)
+	_commit()
+	# 5. life: passing race cars outside, workshop sounds at the bays, room tone
+	var life := GarageLife.new()
+	life.name = "GarageLife"
+	life.straight_z = Z0 - 39.0
+	life.bays = active.map(func(a): return Vector3(float(a[0]), 1.5, 18.0))
+	root.add_child(life)
+
+
 ## Phase 2: in-world digital screens (scripts/ads/ad_screen.gd, registry data/ads/screens.json).
 func _screen(id: String, mount: String, sz: Vector2, pos: Vector3, yaw_deg: float, extra := {}) -> AdScreen:
 	var s := AdScreen.new()
@@ -499,7 +601,7 @@ func _screens(quality: int) -> void:
 	var bays := [-26.0, -17.0, 1.0]
 	for k in 3:
 		_screen("hq_wall_bay_%d" % (k + 1), "wall", Vector2(2.8, 1.575), Vector3(bays[k], 4.1, Z1 - 0.32), 180.0)
-	_screen("hq_wall_office", "wall", Vector2(2.4, 1.35), Vector3(X1 - 0.45, 2.1, -8.0), -90.0)
+	_screen("hq_wall_office", "wall", Vector2(2.4, 1.35), Vector3(X1 - 0.45, 2.1, -4.0), -90.0)
 	# 4. pit monitors on stands at each bay and telemetry monitors on the engineers' desks
 	for k in 5:
 		_screen("hq_pit_monitor_%d" % (k + 1), "stand", Vector2(0.95, 0.535), Vector3(-26.0 + k * 9.0 + 2.6, 1.55, 16.2), 200.0)
@@ -533,7 +635,7 @@ func _lights(quality: int) -> void:
 		for z: float in [-12.0, 2.0, 16.0]:
 			gs._prop("hanging_industrial_lamp", Vector3(x, 8.4, z), 0.0, 1.6)
 			box("office_light", Vector3(0.9, 0.02, 0.9), Vector3(x, 8.0, z), 32)
-			if (x == -24.0 or x == 8.0 or (x == -8.0 and z != 2.0)) and lit < (6 if quality >= 1 else 3):
+			if z == 16.0 and lit < (5 if quality >= 1 else 3):   # real lights only over the workshop bays
 				var o := OmniLight3D.new()
 				o.position = Vector3(x, 7.2, z)
 				o.omni_range = 17.0

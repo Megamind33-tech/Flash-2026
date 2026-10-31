@@ -134,6 +134,11 @@ func _evidence_flags() -> void:
 				(c as CanvasItem).visible = false
 			elif c is CanvasLayer:
 				(c as CanvasLayer).visible = false
+	var ca := args.find("--cam-at")   # evidence: a free camera, --cam-at x,y,z --look x,y,z [--fov n]
+	if ca >= 0 and ca + 1 < args.size():
+		var p := args[ca + 1].split_floats(",")
+		var l := args[args.find("--look") + 1].split_floats(",") if args.has("--look") else PackedFloat64Array([0, 1, 0])
+		evidence_cam = [Vector3(p[0], p[1], p[2]), Vector3(l[0], l[1], l[2]), float(args[args.find("--fov") + 1]) if args.has("--fov") else 50.0]
 	var gs := args.find("--garage-shot")
 	if gs >= 0 and gs + 1 < args.size() and studio:
 		studio.set_preset(args[gs + 1])
@@ -164,8 +169,16 @@ func _build_showroom() -> void:
 	cam.make_current()
 
 
+var evidence_cam := []
+
+
 func _process(delta: float) -> void:
 	orbit += delta * 6.0
+	if not evidence_cam.is_empty() and cam:
+		cam.global_position = evidence_cam[0]
+		cam.look_at(evidence_cam[1], Vector3.UP)
+		cam.fov = evidence_cam[2]
+		return
 	if viewport_car == null or not is_instance_valid(viewport_car):
 		return
 	var focus := viewport_car.global_position + Vector3.UP * 0.7

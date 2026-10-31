@@ -69,8 +69,9 @@
     "hq_pit_monitor_*": {
       "media": "image",
       "rotate": [
-        "gridline",
-        "copperline_tyres"
+        "live_timing",
+        "telemetry_tyres",
+        "race_schedule"
       ],
       "seconds": 7,
       "brightness": 0.9
@@ -78,8 +79,11 @@
     "hq_telemetry_*": {
       "media": "image",
       "rotate": [
-        "gridline"
+        "telemetry_speed",
+        "live_timing",
+        "telemetry_tyres"
       ],
+      "seconds": 6,
       "brightness": 0.8
     },
     "hq_outdoor_west": {
@@ -104,6 +108,34 @@
         "arden_motors"
       ],
       "brightness": 1.0
+    },
+    "hq_ops_schedule": {
+      "media": "image",
+      "rotate": [
+        "race_schedule"
+      ],
+      "brightness": 0.9
+    },
+    "hq_ops_timing": {
+      "media": "image",
+      "rotate": [
+        "live_timing"
+      ],
+      "brightness": 0.9
+    },
+    "hq_ops_telemetry": {
+      "media": "video",
+      "rotate": [
+        "telemetry_speed"
+      ],
+      "brightness": 0.9
+    },
+    "hq_ops_tyres": {
+      "media": "image",
+      "rotate": [
+        "telemetry_tyres"
+      ],
+      "brightness": 0.9
     }
   }
 }

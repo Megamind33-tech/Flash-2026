@@ -9,3 +9,5 @@
 | crowd_applause.ogg | [Applause in a large hall](https://opengameart.org/content/applause-in-a-large-hall-or-church) | eXpl0it3r | CC0 (trimmed) |
 | countdown_*.wav, wind_loop.wav, boost_whoosh.wav, ui_click.wav, skill_chime.wav | synthesised for GRIDLINE | GRIDLINE | project-owned |
 | engine.wav, tirescreech.wav, carhit*.wav | earlier imports (see docs) | — | — |
+| shop_*.ogg (ratchet, drill, clink, clatter, drop, machine) | [68 Workshop Sounds](https://opengameart.org/content/68-workshop-sounds) (OpenGameArt) | see page | CC0 (trimmed, normalised) |
+| hall_tone.ogg | synthesised room tone (rumble, ventilation, hum) | GRIDLINE | project-owned |

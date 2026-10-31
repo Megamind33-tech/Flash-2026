@@ -14,17 +14,21 @@ const SHOTS := {
 	"rear": [-178.0, 1.45, 9.2, 30.0],
 	"low": [-48.0, 0.55, 8.4, 32.0],
 	"top": [-90.0, 4.2, 9.8, 32.0],
-	"wide": [-28.0, 3.4, 21.0, 52.0],    # establishing shot: the hall behind the car
+	"hero": [-58.0, 1.0, 6.4, 31.0],    # main menu default: the car fills the frame, front three-quarter
+	"inspect_front": [-22.0, 0.75, 6.0, 33.0],
+	"inspect_side": [-96.0, 0.95, 6.8, 29.0],
+	"inspect_rear": [-152.0, 1.15, 6.6, 31.0],
+	"wide": [-28.0, 3.4, 21.0, 52.0],    # establishing shot: the hall behind the car (not a selection view)
 	"bay": [-140.0, 2.2, 15.0, 46.0],    # toward the service bays and the glazed wall
 	"led": [-160.0, 1.6, 12.0, 55.0],    # from the floor across the hall to the LED wall over the bays
 }
-const CINEMATIC := ["front", "side", "rear", "low"]
+const CINEMATIC := ["hero", "inspect_front", "inspect_side", "inspect_rear"]   # idle cycle: always on the car
 
-var yaw := -72.0
-var pitch_h := 1.25
-var dist := 9.2
+var yaw := -58.0
+var pitch_h := 1.05
+var dist := 7.4
 var fov := 30.0
-var _target := SHOTS["front"]
+var _target := SHOTS["hero"]
 var _shot_i := 0
 var _shot_t := 0.0
 var _idle := 99.0
@@ -101,7 +105,7 @@ func _environment() -> void:
 	env.sky = sky
 	env.background_mode = Environment.BG_SKY
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.55
+	env.ambient_light_energy = 0.4    # deeper background so the lit hero zone leads the eye
 	env.ambient_light_sky_contribution = 0.85
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
@@ -272,14 +276,51 @@ func _lights() -> void:
 	sun.directional_shadow_max_distance = 70.0
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	add_child(sun)
-	var key := SpotLight3D.new()
-	key.position = Vector3(4.5, 4.2, 5.5)
-	key.look_at_from_position(key.position, CAR_POS + Vector3.UP * 0.5, Vector3.UP)
-	key.spot_range = 16.0
-	key.spot_angle = 38.0
-	key.light_energy = 2.2
-	key.light_color = Color(1.0, 0.97, 0.92)
-	add_child(key)
+	# Photo-studio strip lights on stands either side of the car: their tall reflections run down the doors and
+	# a low grazing spot each reveals the body's curvature (the old frontal key flattened it).
+	var strip := StandardMaterial3D.new()
+	strip.albedo_color = Color.WHITE
+	strip.emission_enabled = true
+	strip.emission = Color(1.0, 0.98, 0.95)
+	strip.emission_energy_multiplier = 4.0
+	strip.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var stand := _mat(Color(0.08, 0.08, 0.09), 0.4, 0.7)
+	for p: Vector3 in [Vector3(3.9, 0, 2.6), Vector3(-3.6, 0, -2.9)]:
+		var face := (Vector3(0, 0, 0) - Vector3(p.x, 0, p.z)).normalized()
+		var holder := Node3D.new()
+		holder.position = p
+		holder.rotation.y = atan2(face.x, face.z)
+		add_child(holder)
+		var bar := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(0.32, 2.2, 0.06)
+		bar.mesh = bm
+		bar.position = Vector3(0, 1.6, 0)
+		bar.material_override = strip
+		bar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		holder.add_child(bar)
+		var frm := MeshInstance3D.new()
+		var fm := BoxMesh.new()
+		fm.size = Vector3(0.38, 2.3, 0.1)
+		frm.mesh = fm
+		frm.position = Vector3(0, 1.6, -0.05)
+		frm.material_override = stand
+		holder.add_child(frm)
+		var pole := MeshInstance3D.new()
+		var pm2 := BoxMesh.new()
+		pm2.size = Vector3(0.05, 0.5, 0.05)
+		pole.mesh = pm2
+		pole.position = Vector3(0, 0.25, -0.05)
+		pole.material_override = stand
+		holder.add_child(pole)
+		var graze := SpotLight3D.new()
+		graze.position = p + Vector3.UP * 1.0
+		graze.look_at_from_position(graze.position, CAR_POS + Vector3.UP * 0.55, Vector3.UP)
+		graze.spot_range = 9.0
+		graze.spot_angle = 30.0
+		graze.light_energy = 1.6
+		graze.light_color = Color(1.0, 0.98, 0.95)
+		add_child(graze)
 	var rim := SpotLight3D.new()
 	rim.position = Vector3(-2.0, 3.8, -7.5)
 	rim.look_at_from_position(rim.position, CAR_POS + Vector3.UP * 0.6, Vector3.UP)

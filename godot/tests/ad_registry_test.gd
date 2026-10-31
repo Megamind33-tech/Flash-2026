@@ -20,7 +20,7 @@ func _ready() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://ads/screens.json"))
 	AdScreen.reload_registry()
 	check(AdScreen.entry_for("hq_led_wall")["rotate"][0] == "kafue_cola", "LED wall starts on Kafue Cola (shipped registry)")
-	check(AdScreen.entry_for("hq_pit_monitor_3")["rotate"][0] == "gridline", "wildcard placement hq_pit_monitor_*")
+	check(AdScreen.entry_for("hq_pit_monitor_3")["rotate"][0] == "live_timing", "wildcard placement hq_pit_monitor_* (pit monitors show live timing)")
 	var a := AdScreen.new()
 	a.placement_id = "hq_wall_bay_1"
 	add_child(a)

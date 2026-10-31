@@ -409,3 +409,26 @@ Next (phase 2): world PBR and lighting.
 - **Remaining:** phase 4 extras (background activity: animated mechanics/people in the bays), phase 5 is inherited
   where screens use GarageStudio (home, Team HQ, dealership) but each needs a visual check; phase 6 Kitwe circuit;
   phase 7 device profiling (impossible in this container: all numbers above are lavapipe software rendering).
+
+## 14. Garage realism correction + Dealership/Garage split (session 018vwXNe)
+- **Collisions.** Cars no longer weld together (§13). "Cars passing through a car": the ghost in time attack / ghost
+  duel is collision-free by design but was drawn solid — now a translucent cyan ghost; recovery searches for a
+  clear spot instead of dropping a car onto another; a passing showroom car and the workshop cars were added to the
+  scene before being positioned (one frame at the origin, inside the hero car) — fixed. `--log-overlaps` counts
+  interpenetrations (0 in four test races; in the build script's AI race).
+- **Dealership vs My Garage.** Two places: the Dealership is its own venue (`scripts/ui/dealership_studio.gd`:
+  bright showroom, storefront, display cars, promo screen; Showroom + Sell), My Garage stays in the team HQ (owned
+  cars only; the rest of your fleet parked in the bays in their own paint). Separate home tiles; venues swap
+  without reloading the menu scene. Checked in `tests/menu_nav_test`.
+- **Hero presentation.** Hero + three inspection camera presets (6-7 m) drive the menu's idle cycle; the wide shot
+  is establishing only. Photo-studio strip lights with grazing spots reveal the body lines; second, darker contact
+  shadow core. Ambient lowered and skylights dimmed so the hero zone leads; hall lights concentrated on the workshop.
+- **Workshop and operations.** Two bays with team cars up on scissor lifts (one wheel off for a tyre change), caged
+  work lights, crew (Rocketbox, vertex-animated idle), tyre racks (one MultiMesh, 316-triangle tyre), engineers on
+  stools at the pit desks and in the control room, a 2 × 2 video wall (schedule, live timing, animated speed trace,
+  tyres; `tools/ads/make_info_screens.py`), pit monitors and telemetry desks on the same registry.
+- **Alive.** `scripts/ui/garage_life.gd`: race cars pass on the straight outside every 18-30 s (engine audio,
+  Doppler), workshop sounds from the active bays (CC0 68 Workshop Sounds), a compressor hum and a room tone.
+  Large screens spill light in their content's colour (`data/ads/creative_colors.json`).
+- **Measured (software renderer, 1280x720, not a phone):** see `docs/evidence/garage2/README.md`.
+- **Not possible here:** Android device validation. The container has no phone; every number is lavapipe.

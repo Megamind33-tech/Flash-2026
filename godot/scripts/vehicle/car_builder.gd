@@ -242,6 +242,11 @@ static func build(livery: String, with_audio: bool, car_id := DEFAULT_CAR) -> Ra
 			visual.add_child(copy)
 	model.free()
 	car.add_child(_contact_shadow(bmin, bmax))
+	var core := _contact_shadow(bmin, bmax)   # tighter, darker core under the body: the car sits on the floor
+	core.name = "ContactShadowCore"
+	core.size = Vector3((bmax.x - bmin.x) * 0.92, 0.8, (bmax.z - bmin.z) * 0.9)
+	core.modulate = Color(1, 1, 1, 0.85)
+	car.add_child(core)
 
 	# Axle-symmetric suspension points (the models are hand-built, so left/right can differ by a few mm).
 	for k in ["Wheel_FL", "Wheel_FR", "Wheel_RL", "Wheel_RR"]:
