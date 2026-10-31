@@ -500,6 +500,7 @@ func _show(p: String) -> void:
 				_info_row("%s model" % info["name"], "%s · %s" % [info["author"], info["licence"]])
 			_info_row("Street layouts & buildings", "© OpenStreetMap contributors · ODbL")
 			_info_row("City textures", "ambientCG · CC0")
+			_info_row("People & drivers", "Microsoft Rocketbox · MIT")
 			_info_row("Skies", "Poly Haven · CC0")
 			_info_row("Trees and surfaces", "Poly Haven, ambientCG · CC0")
 			_info_row("Building facades", "Poly Haven modular facade kits · CC0")

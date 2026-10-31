@@ -341,6 +341,7 @@ func _spawn_grid() -> void:
 		var car_id := Game.player_car() if is_player else str(CarBuilder.TEAM_CARS.get(driver["team"], CarBuilder.DEFAULT_CAR))
 		var car := CarBuilder.build(livery, is_player and not autotest, car_id)
 		car.name = "Car_player" if is_player else "Car_" + driver["id"]
+		People.seat_driver(car, slot)
 		if not is_player:   # rivals drop to lighter LODs sooner; the player's car keeps full detail
 			for gi in car.find_children("*", "GeometryInstance3D", true, false):
 				(gi as GeometryInstance3D).lod_bias = 0.35

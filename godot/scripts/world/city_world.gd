@@ -173,7 +173,9 @@ static func build(parent: Node3D, data: Dictionary, style: Dictionary, track: Tr
 	barrier_ads(root, track, track.half_width + BARRIER, 0.6)
 	race_furniture(root, track, track.half_width + BARRIER)
 	_landmark(root, data, track)
-	CityTraffic.build(root, data, track)   # gate G9: parked cars, side-street traffic, flags
+	CityTraffic.build(root, data, track)
+	People.spectators(root, track, track.half_width + BARRIER + 0.3)
+	People.pedestrians(root, data, track)   # gate G9: parked cars, side-street traffic, flags
 	# Potholes on the worn roads (none on smooth European asphalt below wear 0.5).
 	var wear := float(style.get("wear", style.get("stains", 0.6)))
 	Potholes.place(root, track, int(maxf(0.0, wear - 0.4) * 24.0), hash(str(data["id"]) + "holes"))

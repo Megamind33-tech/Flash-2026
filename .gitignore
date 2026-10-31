@@ -44,3 +44,4 @@ artifacts/
 *.idsig
 /tools/cities/osm_cache/
 /tools/assets/originals/
+/tools/people/_tex/
