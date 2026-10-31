@@ -6,7 +6,9 @@ Writes four GLBs at real-world dimensions (metres) to godot/assets/ads/hardware/
 (material GL_screen, UV 0..1 across the visible face) that Godot fills with sponsor artwork; the housing uses
 GL_frame / GL_steel / GL_concrete PBR materials. Godot axes after export: +Y up and the screen faces +Z.
 """
-import bpy, bmesh, os, math
+import bpy
+import bmesh, os, math
+from mathutils import Matrix
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "godot", "assets", "ads", "hardware")
 MATS = {"GL_screen": ((0.05, 0.05, 0.05), 0.0, 0.25), "GL_frame": ((0.04, 0.04, 0.045), 0.6, 0.35),
@@ -72,11 +74,12 @@ def export(fname):
 def main():
     os.makedirs(OUT, exist_ok=True)
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    # 1. LED trackside board: 6 x 1 m display on 0.8 m legs, 0.25 m deep cabinet.
-    box("Cabinet", (6.2, 0.25, 1.15), (0, 0.13, 1.375), "GL_frame")
+    # 1. LED trackside board: 6 x 1 m display on 1.3 m legs, 0.25 m deep cabinet. The screen starts above the
+    #    0.95 m concrete barrier and its printed banner, so drivers see the whole display over the wall.
+    box("Cabinet", (6.2, 0.25, 1.15), (0, 0.13, 1.875), "GL_frame")
     for x in (-2.6, 2.6):
-        box("Leg", (0.12, 0.12, 0.8), (x, 0.15, 0.4), "GL_steel")
-    screen("Screen", 6.0, 1.0, (0, -0.005, 1.375))
+        box("Leg", (0.12, 0.12, 1.3), (x, 0.15, 0.65), "GL_steel")
+    screen("Screen", 6.0, 1.0, (0, -0.005, 1.875))
     export("led_trackside_board.glb")
     # 2. Sponsor barrier: 3 m precast block (jersey profile approximated by two boxes) with a recessed panel.
     box("Base", (3.0, 0.6, 0.35), (0, 0.3, 0.175), "GL_concrete")
@@ -90,7 +93,12 @@ def main():
         box("Chord", (17.5, 0.25, 0.25), (0, 0, z), "GL_steel")
     for i in range(18):
         x = -8.5 + i
-        box("Web", (0.08, 0.08, 1.2), (x + 0.5, 0, 6.85), "GL_steel").rotation_euler = (0, math.radians(35 if i % 2 else -35), 0)
+        # Build each web at the origin, bake its tilt into the mesh, then move it: rotating an object whose
+        # vertices are already in place swung the webs around the world origin (scattered from 0.5 to 9 m).
+        w = box("Web", (0.08, 0.08, 1.2), (0, 0, 0), "GL_steel")
+        w.location = (0, 0, 0)
+        w.data.transform(Matrix.Rotation(math.radians(35 if i % 2 else -35), 4, "Y"))
+        w.data.transform(Matrix.Translation((x + 0.5, 0, 6.85)))
     box("ScreenBox", (10.4, 0.5, 2.0), (0, 0, 6.85), "GL_frame")
     screen("Screen", 10.0, 1.6, (0, -0.26, 6.85))
     back = screen("ScreenBack", 10.0, 1.6, (0, -0.26, 6.85))

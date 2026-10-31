@@ -5,7 +5,7 @@ extends Node3D
 
 @export var kind := "led"                  # led | barrier | gantry | urban
 @export var size := Vector2(6, 1)          # visible screen size in metres
-@export var screen_height := 1.375         # height of the screen centre above the node origin
+@export var screen_height := 1.875         # height of the screen centre above the node origin
 @export var led := true                    # LED (emissive pixels) or printed panel
 @export var view_distance := 140.0         # beyond this an ad is neither drawn nor counted as seen
 

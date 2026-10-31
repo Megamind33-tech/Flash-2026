@@ -7,7 +7,7 @@
 script = ExtResource("1")
 kind = "led"
 size = Vector2(6,1)
-screen_height = 1.375
+screen_height = 1.875
 led = true
 view_distance = 140
 

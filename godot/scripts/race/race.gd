@@ -120,6 +120,25 @@ func _ready() -> void:
 		pc.look_at(hc, Vector3.UP)
 		pc.make_current()
 		camera.set_physics_process(false)
+	# Evidence: spectators behind the fence beside the grid, and the seated driver seen through the side window.
+	var cpp := args.find("--cam-people")
+	if cpp >= 0:
+		var pc := Camera3D.new()
+		add_child(pc)
+		var dg := track.wrapd(-30.0)
+		var r := track.right_at(dg)
+		pc.global_position = track.position_at(dg) + r * (track.half_width - 1.5) + Vector3.UP * 1.7
+		pc.look_at(track.position_at(track.wrapd(-14.0)) + r * (track.half_width + CityWorld.BARRIER + 1.2) + Vector3.UP * 1.3, Vector3.UP)
+		pc.make_current()
+		camera.set_physics_process(false)
+	if args.has("--cam-driver"):
+		var pc := Camera3D.new()
+		player.car.add_child(pc)
+		pc.position = Vector3(2.6, 1.25, -0.6)
+		pc.fov = 45.0
+		pc.look_at(player.car.to_global(Vector3(0.36, 0.75, -0.25)), Vector3.UP)
+		pc.make_current()
+		camera.set_physics_process(false)
 	var ca := args.find("--cam-ad")   # screenshots: frame the first ad of a kind (led, gantry, urban, barrier)
 	if ca >= 0 and AdPlacementManager.instance:
 		for p in AdPlacementManager.instance.placements.values():
@@ -161,7 +180,7 @@ func _ready() -> void:
 		add_child(hud)
 		hud.bind(self)
 	# The opener ends by making the chase camera current, so skip it when a screenshot fixes the camera.
-	if DisplayServer.get_name() != "headless" and not (args.has("--cam-ad") or args.has("--cam-prop") or args.has("--cam-pothole")):
+	if DisplayServer.get_name() != "headless" and not (args.has("--cam-ad") or args.has("--cam-prop") or args.has("--cam-pothole") or args.has("--cam-people") or args.has("--cam-driver")):
 		await _intro()
 	await get_tree().create_timer(0.75).timeout
 	phase = Phase.COUNTDOWN
