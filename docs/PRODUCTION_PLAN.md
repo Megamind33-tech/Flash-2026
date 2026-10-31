@@ -217,3 +217,28 @@ Each card is self-contained: inputs, exit check, and file boundaries.
   `tools/deps/fetch_deps.sh`, `tools/assets/fetch_polyhaven.py`, `docs/DEPENDENCIES.md` and this plan committed.
 - **Not done:** no asset imported into `godot/`; no game code changed; no device test; no render check of decimated cars
   (G2/G10 will do it); no Unity change.
+
+## 8. Progress after the hand-over (session 018WCsTK, on `ccr-b4448911-xsbjt9`)
+- **G2 done:** `tools/assets/budget_check.py`, wired into `godot/tools_build.sh` (`STRICT_BUDGETS=1` makes it fatal).
+  - 30 assets are within budget. Two are waived for G10: Arden V8 at 270k triangles and Elektra at 84.5k.
+- **G3 done for the staged props:** `tools/assets/decimate_props.py` brought 10 props under budget.
+  - Each was checked by render: `docs/evidence/props_g3_decimation.jpg`.
+  - The broken-asphalt manhole scan tore when cut to 500 triangles, so it was restored and reclassified as a
+    3k road-patch scan.
+- **G4 in progress (code done, evidence partial):**
+  - Poly Haven CC0 `asphalt_02` and `asphalt_track` PBR sets at 1K.
+  - Roughness and puddles follow the real height map.
+  - Rubber and brake marks are baked per track from the AI line and its braking zones.
+  - Parallax was skipped on mobile cost.
+  - Evidence: Lusaka dry and wet at the same camera in `docs/evidence/road_step4/`. London is pending; it is slow
+    on the software renderer.
+- **G5 done:**
+  - Off-line potholes on worn roads. Grip ×0.72 per wheel and a jolt at the wheel on entry.
+  - `tests/pothole_test` PASS: 2 wheel hits, grip 0.72 in the hole and 1.00 out.
+  - AI cars on the racing line do not hit them (Kitwe race: 12 placed, 0 AI hits).
+- **G12 workflow written (`.github/workflows/godot.yml`) but not green.** Both workflows (this one and the older
+  `android.yml`) fail within 3 seconds with no runner assigned (runner_id 0, no steps). This looks like an
+  account-level Actions problem, such as a billing or spending limit or Actions being disabled, not a workflow
+  error. The owner needs to check Settings → Billing → Actions.
+- **G11 blocked:** the Freesound API answers "Authentication credentials were not provided" even though the
+  environment lists freesound.org. An API token has to be added in the environment's network secrets.
