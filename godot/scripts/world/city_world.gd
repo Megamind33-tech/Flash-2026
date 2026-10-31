@@ -134,6 +134,7 @@ static func build(parent: Node3D, data: Dictionary, style: Dictionary, track: Tr
 	var ac := _buildings(root, data, style, rng)
 	_props(root, data, style, track, rng, ac)
 	barrier_ads(root, track, track.half_width + BARRIER, 0.6)
+	race_furniture(root, track, track.half_width + BARRIER)
 	if style.get("poles", false):
 		_power_lines(root, track)
 	_rooftop_boards(root, data, track)
@@ -405,9 +406,8 @@ static func barrier_ads(root: Node3D, track: TrackPath, offset: float, height: f
 				var p0 := a + ra * s * o + Vector3.UP * 0.12
 				var p1 := b + rb * s * o + Vector3.UP * 0.12
 				var uvs := [Vector2(r.position.x, r.end.y), r.position, Vector2(r.end.x, r.position.y), r.end]
-				if s < 0:
-					uvs = [uvs[3], uvs[2], uvs[1], uvs[0]]
-					uvs = [Vector2(r.position.x, r.end.y), r.position, Vector2(r.end.x, r.position.y), r.end]
+				if s < 0:   # seen from the other side of the road: mirror u so the text reads correctly
+					uvs = [r.end, Vector2(r.end.x, r.position.y), r.position, Vector2(r.position.x, r.end.y)]
 				bk.quad(p0, p0 + Vector3.UP * height * 1.4, p1 + Vector3.UP * height * 1.4, p1, -ra * s, uvs[0], uvs[1], uvs[2], uvs[3])
 			ad += 1
 		d += 6.5
@@ -583,6 +583,105 @@ static func _buildings(root: Node3D, data: Dictionary, style: Dictionary, rng: R
 		mi.visibility_range_end = 1400.0
 		root.add_child(mi)
 	return ac
+
+
+## Racing furniture from the corner profile: 150/100/50 m braking boards before every tight corner,
+## yellow chevrons around the outside of it, and marshal posts every 400 m.
+static func race_furniture(root: Node3D, track: TrackPath, offset: float) -> void:
+	var n := track.points.size()
+	var ks := PackedFloat32Array()
+	for i in n:
+		ks.append(track.curvature(i, 5))
+	var corners := []
+	var i := 0
+	while i < n:
+		if absf(ks[i]) > 0.022:
+			var best := i
+			while i < n and absf(ks[i]) > 0.012:
+				if absf(ks[i]) > absf(ks[best]):
+					best = i
+				i += 1
+			corners.append(best)
+		i += 1
+	var boards := Bucket.new()
+	var chev := Bucket.new()
+	var posts := []
+	for c in corners:
+		var d_apex := track.cumulative[c]
+		var outside := signf(ks[c])   # chevrons go on the outside of the turn
+		for k in 3:
+			var d := track.wrapd(d_apex - 45.0 - 50.0 * k)
+			var p := track.position_at(d)
+			var r := track.right_at(d)
+			var t := track.tangent_at(d)
+			var base := p + r * outside * (offset + 0.4) + Vector3.UP * 1.0
+			var u0 := k / 3.0
+			boards.quad(base - r * 0.55, base - r * 0.55 + Vector3.UP * 1.1, base + r * 0.55 + Vector3.UP * 1.1, base + r * 0.55, -t,
+				Vector2(u0, 1), Vector2(u0, 0), Vector2(u0 + 1.0 / 3.0, 0), Vector2(u0 + 1.0 / 3.0, 1))
+			posts.append(Transform3D(Basis(), base + Vector3.UP * -0.5))
+		for k in range(-2, 3):
+			var d := track.wrapd(d_apex + k * 9.0)
+			var p := track.position_at(d)
+			var r := track.right_at(d)
+			var t := track.tangent_at(d)
+			var base := p + r * outside * (offset - 0.05) + Vector3.UP * 1.0
+			var f := 0.0 if outside > 0 else 1.0
+			chev.quad(base - t * 0.7, base - t * 0.7 + Vector3.UP * 1.0, base + t * 0.7 + Vector3.UP * 1.0, base + t * 0.7, -r * outside,
+				Vector2(f, 1), Vector2(f, 0), Vector2(1.0 - f, 0), Vector2(1.0 - f, 1))
+	var mesh := ArrayMesh.new()
+	var bm := StandardMaterial3D.new()
+	bm.albedo_texture = _board_texture()
+	bm.cull_mode = BaseMaterial3D.CULL_DISABLED
+	boards.commit(mesh, bm)
+	var cm := StandardMaterial3D.new()
+	cm.albedo_texture = _chevron_texture()
+	cm.emission_enabled = Weather.time_of_day != "day"
+	cm.emission_texture = cm.albedo_texture
+	cm.emission_energy_multiplier = 0.5
+	chev.commit(mesh, cm)
+	var mi := MeshInstance3D.new()
+	mi.name = "RaceFurniture"
+	mi.mesh = mesh
+	root.add_child(mi)
+	var pole := CylinderMesh.new()
+	pole.top_radius = 0.05
+	pole.bottom_radius = 0.05
+	pole.height = 1.0
+	_multimesh(root, pole, _paint(Color(0.85, 0.85, 0.85)), posts, "BoardPosts", false)
+	var booths := []
+	var d2 := 200.0
+	while d2 < track.length - 100.0:
+		var side := 1.0 if int(d2 / 400.0) % 2 == 0 else -1.0
+		booths.append(Transform3D(Basis(Vector3.UP, track.tangent_at(d2).signed_angle_to(Vector3.FORWARD, Vector3.DOWN)), track.position_at(d2) + track.right_at(d2) * side * (offset + 1.6) + Vector3.UP * 1.2))
+		d2 += 400.0
+	var booth := BoxMesh.new()
+	booth.size = Vector3(1.6, 2.4, 1.6)
+	_multimesh(root, booth, _paint(Color(1.0, 0.45, 0.05)), booths, "MarshalPosts")
+
+
+static func _board_texture() -> Texture2D:
+	var img := Image.create(192, 64, false, Image.FORMAT_RGB8)
+	img.fill(Color.WHITE)
+	# three boards side by side: 3, 2, 1 diagonal bars (150 / 100 / 50 m)
+	for b in 3:
+		var bars := 3 - b
+		for k in bars:
+			for y in 64:
+				for w in 5:
+					var x := b * 64 + 10 + k * 16 + w + int(y * 0.25)
+					if x < (b + 1) * 64 - 4:
+						img.set_pixel(x, y, Color(0.05, 0.05, 0.05))
+	return ImageTexture.create_from_image(img)
+
+
+static func _chevron_texture() -> Texture2D:
+	var img := Image.create(64, 64, false, Image.FORMAT_RGB8)
+	img.fill(Color(0.98, 0.78, 0.0))
+	for y in 64:
+		var x0 := 16 + int(absf(y - 32) * 0.6)
+		for w in 14:
+			img.set_pixel(clampi(x0 + w, 0, 63), y, Color(0.05, 0.05, 0.05))
+	return ImageTexture.create_from_image(img)
 
 
 ## Wooden distribution poles with three sagging cables along one side of the street.

@@ -71,11 +71,11 @@ func _anchor(c: Control, preset: int, pos: Vector2, sz: Vector2) -> void:
 
 func _build_radar() -> void:
 	var box := Panel.new()
-	box.add_theme_stylebox_override("panel", UiStyle.box(Color(0, 0, 0, 0.6), 3, Color(0, 0, 0, 0.9)))
+	box.add_theme_stylebox_override("panel", UiStyle.box(Color(0, 0, 0, 0.38), 1, Color(1, 1, 1, 0.12), 12))
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud_layer.add_child(box)
-	box.position = Vector2(40, 28)
-	box.size = Vector2(330, 230)
+	box.position = Vector2(32, 24)
+	box.size = Vector2(250, 170)
 	map = TrackMap.new()
 	map.set_anchors_preset(Control.PRESET_FULL_RECT)
 	map.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -84,13 +84,13 @@ func _build_radar() -> void:
 	for i in 2:
 		var bg := ColorRect.new()
 		bg.color = Color(0, 0, 0, 0.7)
-		bg.position = Vector2(40 + i * 167.5, 263)
-		bg.size = Vector2(162.5, 12)
+		bg.position = Vector2(32 + i * 127.5, 200)
+		bg.size = Vector2(122.5, 6)
 		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		hud_layer.add_child(bg)
 		var fill := ColorRect.new()
 		fill.color = UiStyle.MONEY if i == 0 else UiStyle.BLUE
-		fill.size = Vector2(0, 12)
+		fill.size = Vector2(0, 6)
 		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		bg.add_child(fill)
 		if i == 0:
@@ -98,7 +98,7 @@ func _build_radar() -> void:
 		else:
 			progress_fill = fill
 	fps_label = UiStyle.label("", UiStyle.cond(), 22, UiStyle.MUTED)
-	fps_label.position = Vector2(40, 282)
+	fps_label.position = Vector2(32, 210)
 	hud_layer.add_child(fps_label)
 
 
@@ -128,21 +128,39 @@ func _info_row(parent: Control, y: float, title: String, value_size: int) -> Lab
 	return v
 
 
+## Top-centre race strip: position · lap · lap time · best lap (one compact glass bar).
 func _build_info() -> void:
-	info["position"] = _info_row(hud_layer, 28, "POSITION", 58)
-	info["lap"] = _info_row(hud_layer, 104, "LAP", 58)
-	info["time"] = _info_row(hud_layer, 180, "TIME", 46)
-	info["best"] = _info_row(hud_layer, 256, "BEST LAP", 46)
+	var bar := PanelContainer.new()
+	bar.add_theme_stylebox_override("panel", UiStyle.box(Color(0, 0, 0, 0.42), 1, Color(1, 1, 1, 0.1), 12))
+	bar.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	bar.offset_left = -330
+	bar.offset_right = 330
+	bar.offset_top = 22
+	bar.offset_bottom = 104
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud_layer.add_child(bar)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 0)
+	bar.add_child(row)
+	for spec in [["position", "POS", 150], ["lap", "LAP", 130], ["time", "TIME", 200], ["best", "BEST", 180]]:
+		var cell := VBoxContainer.new()
+		cell.custom_minimum_size = Vector2(spec[2], 0)
+		cell.add_theme_constant_override("separation", -6)
+		row.add_child(cell)
+		cell.add_child(UiStyle.label(spec[1], UiStyle.cond_bold(), 20, Color(1.0, 0.42, 0.0), HORIZONTAL_ALIGNMENT_CENTER, false))
+		var v := UiStyle.label("", UiStyle.display(), 46 if spec[0] in ["position", "lap"] else 38, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, false)
+		cell.add_child(v)
+		info[spec[0]] = v
 
 
 func _build_board() -> void:
 	for i in race.racers.size():
 		var row := Control.new()
 		row.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-		row.offset_left = -420
-		row.offset_right = -40
-		row.offset_top = 340 + i * 47
-		row.offset_bottom = 340 + i * 47 + 44
+		row.offset_left = -300
+		row.offset_right = -28
+		row.offset_top = 24 + i * 34
+		row.offset_bottom = 24 + i * 34 + 32
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		hud_layer.add_child(row)
 		var bg := TextureRect.new()
@@ -151,22 +169,23 @@ func _build_board() -> void:
 		bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(bg)
-		var pos := UiStyle.label(str(i + 1), UiStyle.font("BarlowCondensed-ExtraBold"), 26, UiStyle.TEXT, HORIZONTAL_ALIGNMENT_CENTER, false)
+		bg.modulate = Color(1, 1, 1, 0.75)
+		var pos := UiStyle.label(str(i + 1), UiStyle.font("BarlowCondensed-ExtraBold"), 22, UiStyle.TEXT, HORIZONTAL_ALIGNMENT_CENTER, false)
 		pos.position = Vector2(0, 0)
-		pos.size = Vector2(44, 44)
+		pos.size = Vector2(34, 32)
 		row.add_child(pos)
 		var sw := ColorRect.new()
-		sw.position = Vector2(48, 0)
-		sw.size = Vector2(5, 44)
+		sw.position = Vector2(36, 4)
+		sw.size = Vector2(4, 24)
 		sw.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(sw)
-		var name := UiStyle.label("", UiStyle.cond_bold(), 26, UiStyle.TEXT, HORIZONTAL_ALIGNMENT_LEFT, false)
-		name.position = Vector2(64, 0)
-		name.size = Vector2(200, 44)
+		var name := UiStyle.label("", UiStyle.cond_bold(), 22, UiStyle.TEXT, HORIZONTAL_ALIGNMENT_LEFT, false)
+		name.position = Vector2(48, 0)
+		name.size = Vector2(140, 32)
 		row.add_child(name)
-		var gap := UiStyle.label("", UiStyle.cond(), 24, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_RIGHT, false)
-		gap.position = Vector2(220, 0)
-		gap.size = Vector2(146, 44)
+		var gap := UiStyle.label("", UiStyle.cond(), 20, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_RIGHT, false)
+		gap.position = Vector2(150, 0)
+		gap.size = Vector2(112, 32)
 		row.add_child(gap)
 		board_rows.append([bg, sw, name, gap])
 
@@ -174,28 +193,28 @@ func _build_board() -> void:
 func _build_speedo() -> void:
 	var box := Control.new()
 	box.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	box.offset_left = -220
-	box.offset_right = 220
-	box.offset_top = -190
-	box.offset_bottom = -20
+	box.offset_left = -170
+	box.offset_right = 170
+	box.offset_top = -150
+	box.offset_bottom = -14
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud_layer.add_child(box)
-	speed_label = UiStyle.label("0", UiStyle.display(), 132, Color.WHITE, HORIZONTAL_ALIGNMENT_RIGHT)
+	speed_label = UiStyle.label("0", UiStyle.display(), 100, Color.WHITE, HORIZONTAL_ALIGNMENT_RIGHT)
 	speed_label.position = Vector2(0, 0)
-	speed_label.size = Vector2(290, 140)
+	speed_label.size = Vector2(220, 106)
 	box.add_child(speed_label)
 	gear_label = UiStyle.label("N", UiStyle.display(), 60, UiStyle.GOLD)
-	gear_label.position = Vector2(305, 22)
+	gear_label.position = Vector2(232, 14)
 	gear_label.size = Vector2(120, 60)
 	box.add_child(gear_label)
 	var unit := UiStyle.label("KM/H", UiStyle.cond_bold(), 24, UiStyle.MUTED)
-	unit.position = Vector2(305, 80)
+	unit.position = Vector2(232, 66)
 	unit.size = Vector2(120, 30)
 	box.add_child(unit)
 	for i in RPM_SEGMENTS:
 		var seg := ColorRect.new()
-		seg.size = Vector2(16, 8)
-		seg.position = Vector2(220 - RPM_SEGMENTS * 10 + i * 20, 150)
+		seg.size = Vector2(11, 6)
+		seg.position = Vector2(170 - RPM_SEGMENTS * 7 + i * 14, 116)
 		seg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.add_child(seg)
 		rpm_segs.append(seg)
@@ -417,8 +436,8 @@ func _process(delta: float) -> void:
 	for i in RPM_SEGMENTS:
 		var red := i >= RPM_SEGMENTS * 0.86
 		rpm_segs[i].color = (UiStyle.RED if red else Color.WHITE) if i < lit else Color(1, 1, 1, 0.18)
-	rpm_fill.size.x = 162.5 * car.rpm
-	progress_fill.size.x = 162.5 * (0.0 if p.laps.progress < 0.0 else fposmod(p.laps.progress, race.track.length) / race.track.length)
+	rpm_fill.size.x = 122.5 * car.rpm
+	progress_fill.size.x = 122.5 * (0.0 if p.laps.progress < 0.0 else fposmod(p.laps.progress, race.track.length) / race.track.length)
 
 	if race.phase == race.Phase.COUNTDOWN:
 		var c := ceili(race.countdown_left)

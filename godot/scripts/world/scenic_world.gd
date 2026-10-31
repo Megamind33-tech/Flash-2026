@@ -69,6 +69,7 @@ static func build(parent: Node3D, d: Dictionary, style: Dictionary, track: Track
 	_trees(root, d, style)
 	CityWorld.billboards(root, d.get("billboards", []).map(func(b): return [Vector3(b[0], b[2], -float(b[1])), float(b[3]), int(b[4])]))
 	CityWorld.barrier_ads(root, track, track.half_width + 0.95, 0.55)
+	CityWorld.race_furniture(root, track, track.half_width + 1.6)
 	CityWorld._gantry(root, track)
 	return root
 

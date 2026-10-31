@@ -14,8 +14,8 @@ const PRESET := {
 	"cloudy": {"grip": 0.99, "aqua": 0.0, "wind": 0.0, "fog": 0.0016, "rain": 0.0, "wet": 0.0, "sun": 0.7, "sky": "partly"},
 	"rain":   {"grip": 0.8, "aqua": 0.004, "wind": 0.0, "fog": 0.004, "rain": 0.55, "wet": 0.8, "sun": 0.42, "sky": "overcast"},
 	"storm":  {"grip": 0.66, "aqua": 0.008, "wind": 0.6, "fog": 0.008, "rain": 1.0, "wet": 1.0, "sun": 0.3, "sky": "overcast"},
-	"fog":    {"grip": 0.95, "aqua": 0.0, "wind": 0.0, "fog": 0.022, "rain": 0.0, "wet": 0.35, "sun": 0.45, "sky": "misty"},
-	"dust":   {"grip": 0.88, "aqua": 0.0, "wind": 0.9, "fog": 0.014, "rain": 0.0, "wet": 0.0, "sun": 0.85, "sky": "clear"},
+	"fog":    {"grip": 0.95, "aqua": 0.0, "wind": 0.0, "fog": 0.011, "rain": 0.0, "wet": 0.35, "sun": 0.45, "sky": "misty"},
+	"dust":   {"grip": 0.88, "aqua": 0.0, "wind": 0.9, "fog": 0.009, "rain": 0.0, "wet": 0.0, "sun": 0.85, "sky": "clear"},
 }
 
 # Physics state read by RaceCarBody every tick.
