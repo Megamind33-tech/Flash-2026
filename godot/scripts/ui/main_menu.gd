@@ -25,6 +25,8 @@ var hub_specs: HBoxContainer
 var hub_player: Label
 var hub_money: Label
 var hub_level: ColorRect
+var hub_band: Control
+var version_label: Label
 const ORANGE := Color(1.0, 0.42, 0.0)
 const HUB_CARDS := [["modes", "CAREER", "Driver · Owner · Clubs"], ["campaigns", "CAMPAIGNS", "Story chapters"],
 	["competitions", "COMPETITIONS", "Daily · City Cups"], ["pvp", "PVP RIVALS", "Ghost duels"],
@@ -185,7 +187,27 @@ func _process(delta: float) -> void:
 		return
 	var focus := viewport_car.global_position + Vector3.UP * 0.7
 	if studio:
-		studio.frame_offset = -9.0 if overlay is Dealership else (3.0 if page == "main" else 0.0)
+		var home := page == "main" and overlay == null
+		if home and studio.cycle != GarageStudio.MENU_CYCLE:
+			studio.cycle = GarageStudio.MENU_CYCLE
+			studio.set_preset("")
+			studio._target = GarageStudio.SHOTS["menu"]
+		elif not home and studio.cycle != GarageStudio.CINEMATIC:
+			studio.cycle = GarageStudio.CINEMATIC
+		# Home: aim the camera so the car sits in the middle of the free band between the text column and the menu,
+		# whatever the aspect ratio (yaw offset from the band's screen position and the camera's field of view), and
+		# pull back when the band is narrow so the whole car fits.
+		var off := 0.0
+		studio.dist_scale = 1.0
+		if home and hub_band and hub_band.size.x > 10.0:
+			var vw := get_viewport().get_visible_rect().size
+			var frac := (hub_band.global_position.x + hub_band.size.x * 0.5) / vw.x
+			var hfov := 2.0 * atan(tan(deg_to_rad(cam.fov) * 0.5) * vw.x / vw.y)
+			off = rad_to_deg(atan((2.0 * frac - 1.0) * tan(hfov * 0.5)))
+			studio.dist_scale = clampf(0.42 / (hub_band.size.x / vw.x), 1.0, 1.45)
+		if version_label:
+			version_label.visible = not home
+		studio.frame_offset = -9.0 if overlay is Dealership else off
 		studio.frame_pitch = -4.5 if overlay is Dealership else 0.0
 		studio.drive_camera(cam, delta, viewport_car.global_position + Vector3.UP * 0.55)
 		return
@@ -281,78 +303,72 @@ func _build_ui() -> void:
 	ver.offset_top = -50
 	ver.offset_bottom = -20
 	add_child(ver)
+	version_label = ver   # shown on menu pages, hidden on the home screen (it collided with the tiles)
 
 
 ## Home hub: big image cards over the showroom, a hero line for the player's car and the next career event.
+## Home screen, built from containers (no single-resolution coordinates): safe-area margins, a top row (logo,
+## player chip), a middle row (the car's details and RACE NOW on the left, an empty expanding band where the 3D car
+## sits, the secondary menu on the right) and a bottom row of mode tiles that share the width. On any aspect ratio
+## the car stays in the free band; the camera frames it there (GarageStudio MENU_CYCLE).
 func _build_hub() -> void:
 	hub = Control.new()
 	hub.set_anchors_preset(Control.PRESET_FULL_RECT)
 	hub.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(hub)
 	var safe := UiStyle.safe_margins(get_viewport())
-	var L := 72.0 + safe.x
 	var shade := TextureRect.new()   # left-to-right graphite fade so the text column reads over the garage
 	var g := Gradient.new()
-	g.set_color(0, Color(0.02, 0.02, 0.025, 0.92))
+	g.set_color(0, Color(0.02, 0.02, 0.025, 0.9))
 	g.set_color(1, Color(0.02, 0.02, 0.025, 0.0))
 	var gt := GradientTexture2D.new()
 	gt.gradient = g
 	gt.fill_from = Vector2(0, 0.5)
 	gt.fill_to = Vector2(1, 0.5)
 	shade.texture = gt
-	shade.position = Vector2(0, 0)
-	shade.size = Vector2(1150, 1080)
+	shade.anchor_right = 0.42
+	shade.anchor_bottom = 1.0
 	shade.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	shade.stretch_mode = TextureRect.STRETCH_SCALE
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hub.add_child(shade)
-	# wordmark
-	var logo := UiStyle.label("GRIDLINE", UiStyle.display(), 92, Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, false)
-	logo.position = Vector2(L, 40 + safe.y)
-	hub.add_child(logo)
+	var m := MarginContainer.new()
+	m.set_anchors_preset(Control.PRESET_FULL_RECT)
+	m.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	m.add_theme_constant_override("margin_left", int(64 + safe.x))
+	m.add_theme_constant_override("margin_right", int(64 + safe.z))
+	m.add_theme_constant_override("margin_top", int(36 + safe.y))
+	m.add_theme_constant_override("margin_bottom", int(36 + safe.w))
+	hub.add_child(m)
+	var rows := VBoxContainer.new()
+	rows.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rows.add_theme_constant_override("separation", 0)
+	m.add_child(rows)
+	# top row: wordmark | player chip
+	var top := HBoxContainer.new()
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rows.add_child(top)
+	var brand := VBoxContainer.new()
+	brand.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	brand.add_theme_constant_override("separation", 0)
+	brand.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(brand)
+	brand.add_child(UiStyle.label("GRIDLINE", UiStyle.display(), 84, Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, false))
+	var tagrow := HBoxContainer.new()
+	tagrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tagrow.add_theme_constant_override("separation", 12)
+	brand.add_child(tagrow)
 	var bar := ColorRect.new()
 	bar.color = UiStyle.ACCENT
-	bar.position = Vector2(L + 4, 136 + safe.y)
-	bar.size = Vector2(48, 4)
-	hub.add_child(bar)
-	var tag := UiStyle.label("THE RACING LEAGUE", UiStyle.cond_bold(), 24, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false)
-	tag.position = Vector2(L + 62, 124 + safe.y)
-	hub.add_child(tag)
-	# the hero car
-	hub_make = UiStyle.label("", UiStyle.cond_bold(), 30, UiStyle.ACCENT, HORIZONTAL_ALIGNMENT_LEFT, false)
-	hub_make.position = Vector2(L, 300)
-	hub.add_child(hub_make)
-	hub_car = UiStyle.label("", UiStyle.display(), 120, Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, false)
-	hub_car.position = Vector2(L - 4, 330)
-	hub.add_child(hub_car)
-	hub_specs = HBoxContainer.new()
-	hub_specs.position = Vector2(L, 462)
-	hub_specs.add_theme_constant_override("separation", 34)
-	hub.add_child(hub_specs)
-	# primary action + next event
-	var go := UiStyle.primary_button("RACE NOW", Vector2(560, 112), 64)
-	go.position = Vector2(L, 560)
-	go.pressed.connect(_race_next)
-	hub.add_child(go)
-	hub_next = UiStyle.label("", UiStyle.cond(), 26, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false)
-	hub_next.position = Vector2(L + 2, 680)
-	hub.add_child(hub_next)
-	# three big modes
-	var x := L
-	for t in [["modes", "CAREER", "Driver · seasons · campaigns"], ["team_owner", "TEAM OWNER", "Run your racing company"],
-			["garage", "MY GARAGE", "Your cars · paint · inspect"], ["dealership", "DEALERSHIP", "Buy · sell · trade in"]]:
-		var tb := UiStyle.tile_button(t[1], t[2], Vector2(330, 150))
-		tb.position = Vector2(x, 840 - safe.w)
-		var pg: String = t[0]
-		tb.pressed.connect(func(): _click_play(); _go(pg))
-		hub.add_child(tb)
-		x += 350.0
-	# player chip (top right)
+	bar.custom_minimum_size = Vector2(48, 4)
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	tagrow.add_child(bar)
+	tagrow.add_child(UiStyle.label("THE RACING LEAGUE", UiStyle.cond_bold(), 24, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false))
 	var chip := PanelContainer.new()
 	chip.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.CHARCOAL, 1, UiStyle.LINE, 10))
-	chip.position = Vector2(1920 - 72 - 470 - safe.z, 40 + safe.y)
-	chip.custom_minimum_size = Vector2(470, 120)
-	hub.add_child(chip)
+	chip.custom_minimum_size = Vector2(440, 112)
+	chip.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	top.add_child(chip)
 	var cr := HBoxContainer.new()
 	cr.add_theme_constant_override("separation", 16)
 	chip.add_child(cr)
@@ -362,7 +378,7 @@ func _build_hub() -> void:
 		face.texture = load(fp)
 	face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	face.custom_minimum_size = Vector2(110, 118)
+	face.custom_minimum_size = Vector2(104, 110)
 	cr.add_child(face)
 	var cv := VBoxContainer.new()
 	cv.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -375,7 +391,7 @@ func _build_hub() -> void:
 	cv.add_child(hub_money)
 	var lvbg := ColorRect.new()
 	lvbg.color = Color(1, 1, 1, 0.12)
-	lvbg.custom_minimum_size = Vector2(300, 6)
+	lvbg.custom_minimum_size = Vector2(280, 6)
 	cv.add_child(lvbg)
 	hub_level = ColorRect.new()
 	hub_level.color = UiStyle.ACCENT
@@ -387,13 +403,50 @@ func _build_hub() -> void:
 	prof.set_anchors_preset(Control.PRESET_FULL_RECT)
 	prof.pressed.connect(func(): _go("profile"))
 	chip.add_child(prof)
-	# secondary menu (right)
+	# middle row: car column | free band for the 3D car | secondary menu
+	var mid := HBoxContainer.new()
+	mid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	rows.add_child(mid)
+	var col := VBoxContainer.new()
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.add_theme_constant_override("separation", 6)
+	col.custom_minimum_size = Vector2(560, 0)
+	mid.add_child(col)
+	hub_make = UiStyle.label("", UiStyle.cond_bold(), 30, UiStyle.ACCENT, HORIZONTAL_ALIGNMENT_LEFT, false)
+	col.add_child(hub_make)
+	hub_car = UiStyle.label("", UiStyle.display(), 112, Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, false)
+	col.add_child(hub_car)
+	hub_specs = HBoxContainer.new()
+	hub_specs.add_theme_constant_override("separation", 34)
+	col.add_child(hub_specs)
+	var gap := Control.new()
+	gap.custom_minimum_size = Vector2(0, 26)
+	col.add_child(gap)
+	var go := UiStyle.primary_button("RACE NOW", Vector2(540, 108), 62)
+	go.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	go.pressed.connect(_race_next)
+	col.add_child(go)
+	hub_next = UiStyle.label("", UiStyle.cond(), 26, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false)
+	col.add_child(hub_next)
+	var band := Control.new()   # the car is framed here
+	hub_band = band
+	band.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	band.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mid.add_child(band)
+	var hint := UiStyle.label("DRAG TO ROTATE", UiStyle.cond_bold(), 20, Color(1, 1, 1, 0.35), HORIZONTAL_ALIGNMENT_CENTER, false)
+	hint.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	hint.offset_left = -150
+	hint.offset_right = 150
+	hint.offset_top = -34
+	band.add_child(hint)
 	var sidep := PanelContainer.new()
 	sidep.add_theme_stylebox_override("panel", UiStyle.box(Color(0.05, 0.05, 0.06, 0.72), 1, UiStyle.LINE, 10))
-	sidep.position = Vector2(1920 - 72 - 330 - safe.z, 470)
-	hub.add_child(sidep)
+	sidep.size_flags_vertical = Control.SIZE_SHRINK_END
+	mid.add_child(sidep)
 	var side := VBoxContainer.new()
-	side.custom_minimum_size = Vector2(330, 0)
+	side.custom_minimum_size = Vector2(300, 0)
 	side.add_theme_constant_override("separation", 0)
 	sidep.add_child(side)
 	for it in [["campaigns", "Campaigns"], ["competitions", "Competitions"], ["pvp", "PvP Rivals"], ["quick", "Quick Race"], ["drivers", "Drivers"], ["clubs", "Live Career"], ["settings", "Settings"]]:
@@ -401,7 +454,7 @@ func _build_hub() -> void:
 		b.text = it[1].to_upper() + "   ›"
 		b.alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		b.focus_mode = Control.FOCUS_NONE
-		b.custom_minimum_size = Vector2(330, 58)
+		b.custom_minimum_size = Vector2(300, 60)   # touch target >= 48 dp at phone densities
 		b.add_theme_font_override("font", UiStyle.cond_bold())
 		b.add_theme_font_size_override("font_size", 30)
 		b.add_theme_color_override("font_color", Color(1, 1, 1, 0.82))
@@ -412,10 +465,18 @@ func _build_hub() -> void:
 		var pg2: String = it[0]
 		b.pressed.connect(func(): _click_play(); _go(pg2))
 		side.add_child(b)
-	var hint := UiStyle.label("DRAG TO ROTATE", UiStyle.cond_bold(), 20, Color(1, 1, 1, 0.35), HORIZONTAL_ALIGNMENT_CENTER, false)
-	hint.position = Vector2(1180, 1080 - 56 - safe.w)
-	hint.size = Vector2(300, 30)
-	hub.add_child(hint)
+	# bottom row: four mode tiles sharing the width
+	var tiles := HBoxContainer.new()
+	tiles.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tiles.add_theme_constant_override("separation", 20)
+	rows.add_child(tiles)
+	for t in [["modes", "CAREER", "Driver · seasons · campaigns"], ["team_owner", "TEAM OWNER", "Run your racing company"],
+			["garage", "MY GARAGE", "Your cars · paint · inspect"], ["dealership", "DEALERSHIP", "Buy · sell · trade in"]]:
+		var tb := UiStyle.tile_button(t[1], t[2], Vector2(300, 140))
+		tb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var pg: String = t[0]
+		tb.pressed.connect(func(): _click_play(); _go(pg))
+		tiles.add_child(tb)
 
 
 ## Recorded walkthrough (--walkthrough, used with --write-movie): hub -> dealership (switch car, paint preview) ->

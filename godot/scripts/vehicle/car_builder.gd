@@ -76,12 +76,13 @@ static func material(slot: String, livery: String) -> Material:
 				# instead of a flat grey sheen; the clear coat keeps the sharp reflections of the softboxes and sky.
 				m.normal_enabled = true
 				m.normal_texture = load("res://assets/models/cars/paint_flake_normal.png")
-				m.normal_scale = 0.12
+				m.normal_scale = 0.12   # needs the texture's mipmaps (import: mipmaps/generate=true) or it aliases into speckle
 				m.uv1_triplanar = true
 				m.uv1_scale = Vector3.ONE * 12.0
 			m.clearcoat_enabled = true
 			m.clearcoat = 1.0
-			m.clearcoat_roughness = 0.02
+			# 0.02 sparkled on the dense body mesh (specular aliasing between pixels); 0.05 keeps the mirror look.
+			m.clearcoat_roughness = 0.05
 			m.rim_enabled = true          # soft Fresnel brightening along the body edges
 			m.rim = 0.25
 			m.rim_tint = 0.6

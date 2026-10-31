@@ -18,11 +18,16 @@ const SHOTS := {
 	"inspect_front": [-22.0, 0.75, 6.0, 33.0],
 	"inspect_side": [-96.0, 0.95, 6.8, 29.0],
 	"inspect_rear": [-152.0, 1.15, 6.6, 31.0],
+	"menu": [-52.0, 1.25, 9.2, 30.0],          # home screen: the whole car, front three-quarter
+	"menu_side": [-88.0, 1.15, 9.6, 30.0],
+	"menu_rear": [-142.0, 1.3, 9.4, 30.0],
 	"wide": [-28.0, 3.4, 21.0, 52.0],    # establishing shot: the hall behind the car (not a selection view)
 	"bay": [-140.0, 2.2, 15.0, 46.0],    # toward the service bays and the glazed wall
 	"led": [-160.0, 1.6, 12.0, 55.0],    # from the floor across the hall to the LED wall over the bays
 }
-const CINEMATIC := ["hero", "inspect_front", "inspect_side", "inspect_rear"]   # idle cycle: always on the car
+const CINEMATIC := ["hero", "inspect_front", "inspect_side", "inspect_rear"]   # garage / inspection idle cycle
+const MENU_CYCLE := ["menu", "menu_side", "menu_rear"]   # home: always the complete car, never cropped
+var cycle: Array = CINEMATIC
 
 var yaw := -58.0
 var pitch_h := 1.05
@@ -43,6 +48,7 @@ const BAYS := [Vector3(7.2, 0.3, 1.0), Vector3(-6.6, 0.3, -1.0), Vector3(-6.6, 0
 var preset := ""        # set by the dealership's camera buttons; "" = cinematic
 var frame_offset := 0.0 # degrees: shifts the car left (negative) / right in frame for side panels
 var frame_pitch := 0.0  # degrees: negative tilts the view down so the car sits higher in frame
+var dist_scale := 1.0   # >1 pulls the camera back (home screen on narrow aspect ratios)
 
 
 func _ready() -> void:
@@ -195,19 +201,19 @@ func _room() -> void:
 	_box(Vector3(0.05, 0.08, 10), Vector3(12.68, 1.2, -2.0), stripe)
 	_accent_mats.append(stripe)
 	var logo := Label3D.new()
-	logo.text = "GRIDLINE"
+	logo.text = "TEAM GARAGE"   # the UI already carries the GRIDLINE wordmark; the wall names the place
 	logo.font = UiStyle.display()
 	logo.font_size = 300
-	logo.pixel_size = 0.0055
+	logo.pixel_size = 0.0034
 	logo.modulate = Color(1, 1, 1, 0.92)
 	logo.position = Vector3(12.66, 3.4, -2.0)
 	logo.rotation_degrees.y = -90.0
 	add_child(logo)
 	var sub := Label3D.new()
-	sub.text = "THE RACING LEAGUE  ·  TEAM GARAGE"
+	sub.text = "GRIDLINE RACING LEAGUE"
 	sub.font = UiStyle.cond_bold()
 	sub.font_size = 90
-	sub.pixel_size = 0.005
+	sub.pixel_size = 0.0034
 	sub.modulate = Color(1, 1, 1, 0.6)
 	sub.position = Vector3(12.66, 2.2, -2.0)
 	sub.rotation_degrees.y = -90.0
@@ -414,8 +420,8 @@ func drive_camera(cam: Camera3D, delta: float, focus: Vector3) -> void:
 		_shot_t += delta
 		if _shot_t > 7.0:
 			_shot_t = 0.0
-			_shot_i = (_shot_i + 1) % CINEMATIC.size()
-		var s: Array = SHOTS[CINEMATIC[_shot_i]]
+			_shot_i = (_shot_i + 1) % cycle.size()
+		var s: Array = SHOTS[cycle[_shot_i % cycle.size()]]
 		_target = [float(s[0]) + _shot_t * 2.2, s[1], s[2], s[3]]   # slow drift within each shot
 	var k := 1.0 - exp(-delta * (1.6 if _idle > 0.3 else 12.0))
 	yaw = lerpf(yaw, float(_target[0]), k) if _idle > 0.3 else yaw
@@ -423,7 +429,7 @@ func drive_camera(cam: Camera3D, delta: float, focus: Vector3) -> void:
 	dist = lerpf(dist, float(_target[2]), k)
 	fov = lerpf(fov, float(_target[3]), k)
 	var rot := Basis(Vector3.UP, deg_to_rad(yaw))
-	cam.global_position = focus + rot * Vector3(0, pitch_h, dist)
+	cam.global_position = focus + rot * Vector3(0, pitch_h * dist_scale, dist * dist_scale)
 	cam.look_at(focus + Vector3.UP * 0.1, Vector3.UP)
 	cam.rotate_object_local(Vector3.UP, deg_to_rad(frame_offset))
 	cam.rotate_object_local(Vector3.RIGHT, deg_to_rad(frame_pitch))
