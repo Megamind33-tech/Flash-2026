@@ -209,6 +209,15 @@ func _ready() -> void:
 			nc.make_current()
 			camera.set_physics_process(false)
 			print("[GRIDLINE] cam-node %s at %s, camera %s" % [args[cn + 1], aim, nc.global_position])
+	if args.has("--cam-road"):   # evidence (G4): the road surface ahead at driver height, toward the gutter
+		var rc := Camera3D.new()
+		add_child(rc)
+		var d0 := track.wrapd(80.0)
+		var rr := track.right_at(d0)
+		rc.global_position = track.position_at(d0) + rr * 1.5 + Vector3.UP * 1.2
+		rc.look_at(track.position_at(track.wrapd(d0 + 14.0)) + rr * (track.half_width * 0.5), Vector3.UP)
+		rc.make_current()
+		camera.set_physics_process(false)
 	var ca := args.find("--cam-ad")   # screenshots: frame the first ad of a kind (led, gantry, urban, barrier)
 	if ca >= 0 and AdPlacementManager.instance:
 		for p in AdPlacementManager.instance.placements.values():
@@ -217,11 +226,25 @@ func _ready() -> void:
 				var cam := Camera3D.new()
 				add_child(cam)
 				var c := node.centre()
-				# Driver's-eye view: on the road, a little before the ad, as a racer would see it.
-				var dd := float(track.project(c, [-1])[0])
-				var lead := 18.0 if node.kind != "gantry" else 45.0
-				cam.global_position = track.position_at(track.wrapd(dd - lead)) + Vector3.UP * 1.6
-				cam.look_at(c, Vector3.UP)
+				var far := ca + 2 < args.size() and args[ca + 2] == "far"
+				if far:
+					# Driver's-eye view: on the road, a little before the ad, as a racer would see it.
+					var dd := float(track.project(c, [-1])[0])
+					var lead := 18.0 if node.kind != "gantry" else 45.0
+					cam.global_position = track.position_at(track.wrapd(dd - lead)) + Vector3.UP * 1.6
+					cam.look_at(c, Vector3.UP)
+				else:
+					# Close-up (default): square-on to the screen, near enough to judge the hardware (legs, cabinet,
+					# truss webs) - a 3/4 view so depth shows. Gantry: from the road below, the whole span in frame.
+					var f := node.facing()
+					var side := f.cross(Vector3.UP).normalized()
+					var dist := {"led": 6.5, "barrier": 4.0, "urban": 14.0, "gantry": 16.0}.get(node.kind, 8.0)
+					var pos := c + f * dist + side * dist * 0.35
+					pos.y = 1.7 if node.kind != "urban" else maxf(1.7, c.y - 6.0)
+					cam.global_position = pos
+					cam.fov = 60.0
+					cam.look_at(node.global_transform * Vector3(0, node.screen_height * (0.8 if node.kind == "led" else 0.9), 0), Vector3.UP)
+				print("[GRIDLINE] cam-ad %s %s camera=%s" % [node.kind, node.placement_id, cam.global_position])
 				cam.make_current()
 				camera.set_physics_process(false)
 				break
@@ -250,7 +273,7 @@ func _ready() -> void:
 		add_child(hud)
 		hud.bind(self)
 	# The opener ends by making the chase camera current, so skip it when a screenshot fixes the camera.
-	if DisplayServer.get_name() != "headless" and not (args.has("--cam-ad") or args.has("--cam-prop") or args.has("--cam-pothole") or args.has("--cam-people") or args.has("--cam-driver") or args.has("--cam-water") or args.has("--cam-landmark") or args.has("--cam-node")):
+	if DisplayServer.get_name() != "headless" and not (args.has("--cam-ad") or args.has("--cam-prop") or args.has("--cam-pothole") or args.has("--cam-people") or args.has("--cam-driver") or args.has("--cam-water") or args.has("--cam-landmark") or args.has("--cam-node") or args.has("--cam-road")):
 		await _intro()
 	await get_tree().create_timer(0.75).timeout
 	phase = Phase.COUNTDOWN
