@@ -267,7 +267,7 @@ func _hub() -> void:
 	var team_line := "Run %s" % TeamOwner.state()["name"] if TeamOwner.founded() else "Found your own racing company"
 	var club := Clubs.my_club()
 	var club_line := "Racing for %s" % club["name"] if not club.is_empty() else "Join a club or open your own"
-	row.add_child(_mode_card("DRIVER CAREER", "res://assets/ui/portraits/%s.png" % Game.save["career"].get("avatar", "Male_Adult_01"),
+	row.add_child(_mode_card("DRIVER CAREER", "res://assets/ui/portraits/%s.png" % Game.save["career"].get("avatar", "Male_Adult_12"),
 		"Climb the four tiers: seasons, campaigns and championships across 11 venues.", "Tier %s · %d wins" % [Career.tier(Career.unlocked_tier(int(Game.save["career"]["reputation"])))["name"], int(Game.save["career"]["wins"])],
 		"", func(): closed.emit(); queue_free(); menu._go("career")))
 	row.add_child(_mode_card("TEAM OWNER", "res://assets/ui/cars/ravenna_hybrid.png",

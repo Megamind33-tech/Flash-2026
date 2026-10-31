@@ -592,6 +592,18 @@ func _show(p: String) -> void:
 		"profile":
 			subtitle.text = "   PROFILE"
 			_info_row("Level", "%d  ·  %s XP" % [Game.level(), RaceHud._thousands(Game.xp())])
+			var faces: Array = DriverCards.FACES["africa_m"] + DriverCards.FACES["africa_f"] + DriverCards.FACES["north_m"] + DriverCards.FACES["north_f"] + DriverCards.FACES["europe_m"] + DriverCards.FACES["europe_f"]
+			var cur := str(career.get("avatar", "Male_Adult_12"))
+			_item("Driver face", "%d / %d" % [faces.find(cur) + 1, faces.size()], func():
+				career["avatar"] = faces[(faces.find(cur) + 1) % faces.size()]
+				Game.persist()
+				_show("profile"))
+			var nats := ["ZMB", "KEN", "EGY", "SOM", "NGA", "ZAF", "GBR", "DEU"]
+			var nat := str(career.get("nat", "ZMB"))
+			_item("Nationality", nat, func():
+				career["nat"] = nats[(nats.find(nat) + 1) % nats.size()]
+				Game.persist()
+				_show("profile"))
 			if Game.TEST_UNLOCK_ALL:
 				_item("Add $100,000 test funds", "TEST BUILD", func(): Game.grant_test_funds(); _show("profile"))
 				_item("Add 1,000 XP", "TEST BUILD", func(): Game.add_xp(1000); Game.persist(); _show("profile"))

@@ -20,6 +20,25 @@ const FLAGS := {
 	"GHA": [false, "#CE1126", "#FCD116", "#006B3F"], "TZA": [false, "#1EB53A", "#000000", "#00A3DD"],
 }
 
+## Portrait pools by region, picked from the Rocketbox library (Adults + Professions) so faces fit the
+## driver's nationality. The library has few Black and North African faces; these are the ones available.
+const FACES := {
+	"africa_m": ["Male_Adult_04", "Male_Adult_12", "Business_Male_05", "Sports_Male_03"],
+	"africa_f": ["Business_Female_01"],
+	"north_m": ["Male_Adult_07", "Business_Male_06", "Business_Male_04"],
+	"north_f": ["Female_Adult_06", "Business_Female_01"],
+	"europe_m": ["Male_Adult_01", "Male_Adult_02", "Male_Adult_06", "Male_Adult_08", "Male_Adult_11", "Male_Adult_13", "Business_Male_01", "Business_Male_03"],
+	"europe_f": ["Female_Adult_01", "Female_Adult_02", "Female_Adult_04", "Female_Adult_05", "Female_Adult_07", "Female_Adult_09", "Female_Adult_13", "Business_Female_03", "Business_Female_04"],
+}
+const REGION := {"ZMB": "africa", "KEN": "africa", "NGA": "africa", "ZAF": "africa", "GHA": "africa", "TZA": "africa", "SOM": "africa",
+	"EGY": "north"}
+
+
+static func face_for(nat: String, female: bool, key: String) -> String:
+	var pool: Array = FACES["%s_%s" % [REGION.get(nat, "europe"), "f" if female else "m"]]
+	return pool[absi(hash(key)) % pool.size()]
+
+
 var menu
 var _grid: GridContainer
 var _detail: Control
@@ -50,7 +69,7 @@ static func player_driver() -> Dictionary:
 	var club := Clubs.my_club()
 	return {"id": "player", "first": parts[0] if parts.size() > 1 else "", "last": parts[-1] if parts.size() > 0 else name,
 		"nat": str(c.get("nat", "ZMB")), "team": str(club.get("name", "Independent")), "color": str(club.get("color", "#E0B040")),
-		"number": int(c.get("number", 7)), "avatar": str(c.get("avatar", "Male_Adult_01")),
+		"number": int(c.get("number", 7)), "avatar": str(c.get("avatar", "Male_Adult_12")),
 		"rating": clampi(60 + Game.level() * 2, 60, 99), "points": int(c.get("championshipPoints", 0)), "wins": int(c.get("wins", 0)),
 		"podiums": int(c.get("podiums", 0)), "starts": int(c.get("racesEntered", 0)),
 		"attrs": {"Pace": 60 + Game.level() * 2, "Racecraft": 55 + Game.level() * 2, "Wet": 55 + Game.level(), "Consistency": 60 + Game.level()},
@@ -61,7 +80,7 @@ static func league_driver(d: Dictionary) -> Dictionary:
 	var team := Game.team(str(d.get("team", "")))
 	var parts := str(d["name"]).split(" ", false)
 	var st: Dictionary = d.get("stats", {})
-	var avatars := {"ai_reyes": "Male_Adult_05", "ai_lindqvist": "Female_Adult_07", "ai_okafor": "Male_Adult_12", "ai_brandt": "Male_Adult_01"}
+	var avatars := {"ai_reyes": "Male_Adult_08", "ai_lindqvist": "Female_Adult_04", "ai_okafor": "Business_Male_05", "ai_brandt": "Male_Adult_13"}
 	var bios := {"ai_reyes": "Two-time Iberian GT champion. Metronomic over a race distance and the benchmark in the league.",
 		"ai_lindqvist": "Came up through Scandinavian ice racing. Brave on the brakes, fearless in the wet.",
 		"ai_okafor": "Lagos karting prodigy, the most aggressive overtaker on the grid. Sometimes too aggressive.",

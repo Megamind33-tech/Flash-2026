@@ -89,7 +89,7 @@ static func scouts() -> Array:
 		var youth := clampf((26.0 - age) / 9.0, 0.0, 1.0)
 		var base := rng.randi_range(38, 72)
 		var d := {"id": "sc_%d_%d" % [int(s["week"]), i], "first": first, "last": last, "nat": nat, "age": age, "female": female,
-			"avatar": (FEMALE_AVATARS if female else MALE_AVATARS)[rng.randi() % 3],
+			"avatar": DriverCards.face_for(nat, female, "%s %s %d" % [first, last, i]),
 			"pace": clampi(base + rng.randi_range(-8, 8), 30, 90), "racecraft": clampi(base + rng.randi_range(-10, 6), 30, 90),
 			"wet": clampi(base + rng.randi_range(-12, 10), 25, 90), "consistency": clampi(base + rng.randi_range(-10, 8), 30, 90),
 			"potential": clampi(base + int(10 + 22 * youth) + rng.randi_range(-4, 6), base + 4, 97),
