@@ -383,3 +383,29 @@ request or invitation, switchable, or owned) gated by level but open for testing
 - Note: the Mobile renderer ignores FSR 1 (Forward+ only); the render-scale setting still applies with bilinear
   upscaling.
 Next (phase 2): world PBR and lighting.
+
+## 13. Immersion directive — headquarters, screens, vehicle presentation (session 018vwXNe)
+- **Phase 1 — HQ architecture and lighting (done).** `scripts/ui/garage_hq.gd` wraps the approved hero bay in an
+  80 × 48 m, 11–13 m hall: portal frames + lattice trusses, skylight strips, glazed curtain wall with open door bays
+  onto apron / pit wall / straight / grandstand / skyline, two-level glass offices with mezzanine and stairs, five
+  service bays with scissor lifts, trophy cabinet, telemetry station, second hall beyond a glazed partition, ducts.
+  Lighting (`garage_studio.gd`): softbox light ceiling over the car, two broad overhead spots (one shadowed), warm
+  rim, daylight through the glass (2-split shadows), high-bay lamps (≤ 6 real lights), hall + hero reflection probes,
+  AgX tonemap, outdoor CC0 sky, light aerial fog. Structure merged per material (one mesh). Poly Haven props
+  decimated to game budgets (`tools/assets/decimate_garage.py`, 1.29 M → 418 k triangles for the whole hall at
+  LOD0); garage textures VRAM-compressed (were lossless). Front shot (software renderer): 980 → 685 MB video memory.
+  Evidence: `docs/evidence/hq/before_after_*.jpg` (same cameras, UI hidden).
+- **Phase 2 — in-world ad screens (done).** `scripts/ads/ad_screen.gd` + `screen_media.gdshader`: housings, bezels
+  and mounts (LED wall with cabinet seams + truss, suspended, wall, pit stand, desk monitor, outdoor pole);
+  emissive panel with viewing-angle falloff and LED pixel pitch; Theora video (decoded only while on screen and in
+  range, still fallback, off on the Performance tier) or cross-faded stills. Registry `data/ads/screens.json`,
+  overridable at `user://ads/screens.json` (`tests/ad_registry_test`). Fictional 16:9 creatives:
+  `tools/ads/make_screen_ads.py`. 15 HQ screens incl. a 10.7 m LED wall and two outdoor billboards.
+- **Phase 3 — vehicle presentation (started).** Metallic flake normal map under the clear coat, tyre and glass
+  tuning (`car_builder.gd`). Evidence: `docs/evidence/vehicle/`.
+- **Fixes from owner review:** cars sticking on contact (body friction 1.0 → low-friction elastic material;
+  `tests/contact_test`); photo-finish ties (sub-step line-crossing time in `lap_tracker.gd`); results header venue and
+  "1 LAP"; results screen in the graphite-and-amber theme.
+- **Remaining:** phase 4 extras (background activity: animated mechanics/people in the bays), phase 5 is inherited
+  where screens use GarageStudio (home, Team HQ, dealership) but each needs a visual check; phase 6 Kitwe circuit;
+  phase 7 device profiling (impossible in this container: all numbers above are lavapipe software rendering).

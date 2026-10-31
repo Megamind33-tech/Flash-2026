@@ -76,9 +76,9 @@ static func material(slot: String, livery: String) -> Material:
 				# instead of a flat grey sheen; the clear coat keeps the sharp reflections of the softboxes and sky.
 				m.normal_enabled = true
 				m.normal_texture = load("res://assets/models/cars/paint_flake_normal.png")
-				m.normal_scale = 0.35
+				m.normal_scale = 0.12
 				m.uv1_triplanar = true
-				m.uv1_scale = Vector3.ONE * 6.0
+				m.uv1_scale = Vector3.ONE * 12.0
 			m.clearcoat_enabled = true
 			m.clearcoat = 1.0
 			m.clearcoat_roughness = 0.02

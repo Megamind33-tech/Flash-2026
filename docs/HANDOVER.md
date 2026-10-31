@@ -1,5 +1,11 @@
 # Handover — GRIDLINE (Godot port)
 
+> **Newest (session 018vwXNe, immersion directive):** phases 1–2 done, phase 3 started — see
+> `docs/PRODUCTION_PLAN.md` §13. HQ hall `scripts/ui/garage_hq.gd`; in-world screens `scripts/ads/ad_screen.gd` +
+> registry `data/ads/screens.json`; owner-review fixes (car contact sticking, photo-finish ties, results header and
+> style). Evidence `docs/evidence/hq/`, `docs/evidence/vehicle/`, `docs/evidence/results_screen_fixed.png`.
+> Shots: `--hide-ui --garage-shot front|side|rear|low|top|wide|bay|led`, races `--time-scale N` (autotest only).
+
 > **Latest (session 018vwXNe, merged into the default branch and `main`):**
 > - **Real buildings** per city (`scripts/world/real_buildings.gd`, `tools/buildings/export_real_buildings.py` +
 >   `real_catalogue.json`): Sketchfab CC BY/CC0 models fitted to OSM footprints fronting the circuit, height-matched,
