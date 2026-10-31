@@ -26,6 +26,7 @@ ADDONS = {
     "hardflow": "Hard-surface boolean modelling toolkit (cars, kit modules)",
     "Bagapie": "Scattering, ivy and architecture helpers for the kit",
     "ambientcg_material_importer": "Import ambientCG CC0 materials as PBR setups",
+    "collada_support": "COLLADA (.dae) import for Sketchfab asset conversion (Blender 5.x has no built-in importer)",
 }
 
 
