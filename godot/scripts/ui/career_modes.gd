@@ -94,8 +94,8 @@ func _level_bar() -> Control:
 	fill.color = UiStyle.GOLD
 	fill.size = Vector2(572 * Game.level_progress(), 6)
 	bar.add_child(fill)
-	if Game.TEST_UNLOCK_ALL:
-		box.add_child(UiStyle.label("TEST BUILD · all modes unlocked", UiStyle.cond(), 18, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_RIGHT, false))
+	if Game.TEST_UNLOCK_ALL and Game.developer():
+		box.add_child(UiStyle.label("DEVELOPER MODE · all modes unlocked", UiStyle.cond(), 18, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_RIGHT, false))
 	return box
 
 
@@ -307,7 +307,7 @@ func _mode_card(title: String, img: String, text: String, status: String, gate: 
 	st.size = Vector2(476, 30)
 	p.add_child(st)
 	var open := gate == "" or Game.unlocked(gate)
-	var gate_text := "" if gate == "" else ("REQUIRES LEVEL %d%s" % [int(Game.LEVEL_GATES[gate]), "  ·  OPEN FOR TESTING" if Game.TEST_UNLOCK_ALL else ""])
+	var gate_text := "" if gate == "" else ("REQUIRES LEVEL %d%s" % [int(Game.LEVEL_GATES[gate]), "  ·  OPEN FOR TESTING" if Game.TEST_UNLOCK_ALL and Game.developer() else ""])
 	if gate_text != "":
 		var g := UiStyle.label(gate_text, UiStyle.cond(), 20, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false)
 		g.position = Vector2(32, 622)
@@ -718,7 +718,7 @@ func _clubs() -> void:
 			if Clubs.is_owner():
 				_section("You own %s. Manage applications and members in MY CLUB." % mine["name"])
 				return
-			var gate := "Requires level %d%s." % [int(Game.LEVEL_GATES["own_club"]), " Open for testing" if Game.TEST_UNLOCK_ALL else ""]
+			var gate := "Requires level %d%s." % [int(Game.LEVEL_GATES["own_club"]), " Open for testing" if Game.TEST_UNLOCK_ALL and Game.developer() else ""]
 			_section("OPEN YOUR OWN CLUB  ·  " + gate)
 			_new_name = _new_name if _new_name != "" else "%s Racing Club" % str(Game.save["career"]["driverName"]).split(" ")[-1]
 			_body.add_child(_line_edit(_new_name, "Club name", func(t): _new_name = t))

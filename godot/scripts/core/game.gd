@@ -264,6 +264,11 @@ func unlocked(feature: String) -> bool:
 	return TEST_UNLOCK_ALL or level() >= int(LEVEL_GATES.get(feature, 1))
 
 
+## Developer mode (Settings): shows test labels and the test-funds / XP buttons. Off in the release UI.
+func developer() -> bool:
+	return bool(settings().get("developer", false)) or OS.get_cmdline_user_args().has("--debug-ui")
+
+
 func grant_test_funds(amount := 100000) -> void:
 	_post(save["career"], amount, "Test", "Test funds")
 	persist()

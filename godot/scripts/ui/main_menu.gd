@@ -92,7 +92,8 @@ func _ready() -> void:
 		_click.volume_db = -10.0
 		add_child(_click)
 	var args := OS.get_cmdline_user_args()   # screenshots/tests: open a page directly (e.g. --page garage)
-	if args.has("--demo-career"):   # screenshots: a populated team, a club and funds (test save only)
+	if args.has("--demo-career") and not bool(Game.save["career"].get("demoGranted", false)):   # screenshots, once per save
+		Game.save["career"]["demoGranted"] = true
 		Game.grant_test_funds(250000)
 		Game.add_xp(2600)
 		if not TeamOwner.founded():
@@ -742,9 +743,9 @@ func _show(p: String) -> void:
 				career["nat"] = nats[(nats.find(nat) + 1) % nats.size()]
 				Game.persist()
 				_show("profile"))
-			if Game.TEST_UNLOCK_ALL:
-				_item("Add $100,000 test funds", "TEST BUILD", func(): Game.grant_test_funds(); _show("profile"))
-				_item("Add 1,000 XP", "TEST BUILD", func(): Game.add_xp(1000); Game.persist(); _show("profile"))
+			if Game.developer():
+				_item("Add $100,000 test funds", "DEVELOPER", func(): Game.grant_test_funds(); _show("profile"))
+				_item("Add 1,000 XP", "DEVELOPER", func(): Game.add_xp(1000); Game.persist(); _show("profile"))
 			_info_row("Races", str(career["racesEntered"]))
 			_info_row("Wins / Podiums", "%d / %d" % [career["wins"], career["podiums"]])
 			_info_row("Points", str(career["championshipPoints"]))
@@ -761,6 +762,10 @@ func _show(p: String) -> void:
 			_item("Steering", "Tilt" if s["steering"] == "tilt" else "Touch", func(): s["steering"] = "touch" if s["steering"] == "tilt" else "tilt"; _save_settings())
 			_item("Steering Sensitivity", "%.1f" % float(s["sensitivity"]), func(): s["sensitivity"] = 0.6 if float(s["sensitivity"]) >= 1.6 else snappedf(float(s["sensitivity"]) + 0.2, 0.1); _save_settings())
 			UiStyle.graphics_rows(list, _save_settings)
+			_item("Developer mode", "ON" if Game.developer() else "OFF", func():
+				s["developer"] = not bool(s.get("developer", false))
+				_save_settings()
+				_show("settings"))
 			var vols := [0.0, 0.25, 0.5, 0.75, 1.0]
 			var mi := 0
 			for k in vols.size():
