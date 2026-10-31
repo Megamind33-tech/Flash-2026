@@ -97,7 +97,7 @@ func new_save() -> Dictionary:
 		"version": SAVE_VERSION,
 		"career": {"driverName": "Rookie", "money": 0, "reputation": 0, "racesEntered": 0, "wins": 0, "podiums": 0,
 			"championshipPoints": 0, "ledger": [], "trackRecords": {}},
-		"settings": {"steering": "touch", "sensitivity": 1.0, "quality": 1, "showFps": false, "volume": 0.8},
+		"settings": {"steering": "touch", "sensitivity": 1.0, "quality": 1, "showFps": false, "volume": 0.8, "renderScale": 0.0, "fps": 60},
 		"aiDrivers": default_drivers(),
 		"teams": default_teams(),
 		"history": [],
@@ -181,9 +181,61 @@ func settings() -> Dictionary:
 	return save["settings"]
 
 
+## Graphics presets shown as buttons in Settings and the pause menu. Each sets the world detail tier (quality),
+## the frame-rate cap and the default 3D render resolution.
+const PRESETS := [
+	{"name": "Performance", "quality": 0, "fps": 30, "scale": 0.6},
+	{"name": "Balanced", "quality": 1, "fps": 60, "scale": 0.75},
+	{"name": "Quality", "quality": 2, "fps": 60, "scale": 0.9},
+	{"name": "Ultra", "quality": 3, "fps": 60, "scale": 1.0},
+]
+const RENDER_SCALES := [0.0, 0.5, 0.67, 0.75, 0.85, 1.0]   # 0 = Auto (dynamic resolution holds the frame rate)
+const FPS_CAPS := [30, 60, 90, 120]
+
+
+## Index of the preset the current settings match, or -1 when the player has customised them.
+func preset_index() -> int:
+	var s := settings()
+	for i in PRESETS.size():
+		var p: Dictionary = PRESETS[i]
+		if int(s["quality"]) == p["quality"] and int(s.get("fps", 60)) == p["fps"] and float(s.get("renderScale", 0.0)) <= 0.0:
+			return i
+	return -1
+
+
+func apply_preset(i: int) -> void:
+	var p: Dictionary = PRESETS[clampi(i, 0, PRESETS.size() - 1)]
+	var s := settings()
+	s["quality"] = p["quality"]
+	s["fps"] = p["fps"]
+	s["renderScale"] = 0.0
+	apply_settings()
+
+
+## The render scale the game starts a race at: the user's fixed choice, or the preset's default under Auto.
+func base_render_scale() -> float:
+	var s := settings()
+	var fixed := float(s.get("renderScale", 0.0))
+	return fixed if fixed > 0.0 else float(PRESETS[clampi(int(s["quality"]), 0, 3)]["scale"])
+
+
+func auto_resolution() -> bool:
+	return float(settings().get("renderScale", 0.0)) <= 0.0
+
+
+func set_render_scale(scale: float) -> void:
+	var tree := get_tree()
+	if tree == null or tree.root == null:
+		return
+	var vp := tree.root
+	vp.scaling_3d_scale = clampf(scale, 0.4, 1.0)
+	# FSR 1 upscaling keeps edges sharp below native resolution (Mobile and Forward+ renderers).
+	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR if scale < 0.99 and RenderingServer.get_current_rendering_method() != "gl_compatibility" else Viewport.SCALING_3D_MODE_BILINEAR
+
+
 func apply_settings() -> void:
 	var s := settings()
-	Engine.max_fps = 30 if int(s["quality"]) == 0 else 60
+	Engine.max_fps = int(s.get("fps", 30 if int(s["quality"]) == 0 else 60))
 	AudioServer.set_bus_volume_db(0, linear_to_db(clampf(float(s["volume"]), 0.0, 1.0)))
 	DisplayServer.screen_set_keep_on(true)
 	# Mesh LOD aggressiveness per tier (pixels of error allowed before a coarser LOD is used): the hero cars are
@@ -191,6 +243,7 @@ func apply_settings() -> void:
 	var tree := get_tree()
 	if tree and tree.root:
 		tree.root.mesh_lod_threshold = [12.0, 6.0, 2.0][clampi(int(s["quality"]), 0, 2)]
+	set_render_scale(base_render_scale())
 	_renderer_override(int(s["quality"]) >= 3)
 
 
@@ -317,8 +370,10 @@ static func default_drivers() -> Array:
 		d.call("ai_okafor", "Daniel Okafor", "NGA", "vantor", 66, 40, 74, 58), d.call("ai_brandt", "Jonas Brandt", "DEU", "northline", 60, 85, 38, 84)]
 
 
+## Base pace from the driver's attributes. The spread between the best and worst rival is about 1 %: talent
+## matters, but race-day form, mistakes and traffic (AIDriver) decide most races, so no one driver wins them all.
 static func pace_factor(driver: Dictionary) -> float:
-	return 0.86 + 0.14 * clampf(driver["skill"] / 100.0, 0, 1) + 0.02 * clampf(driver["experience"] / 100.0, 0, 1) - 0.02
+	return 0.895 + 0.07 * clampf(driver["skill"] / 100.0, 0, 1) + 0.015 * clampf(driver["experience"] / 100.0, 0, 1) - 0.01
 
 
 static func pace_noise(driver: Dictionary) -> float:

@@ -485,14 +485,14 @@ func _show(p: String) -> void:
 			subtitle.text = "   SETTINGS"
 			_item("Steering", "Tilt" if s["steering"] == "tilt" else "Touch", func(): s["steering"] = "touch" if s["steering"] == "tilt" else "tilt"; _save_settings())
 			_item("Steering Sensitivity", "%.1f" % float(s["sensitivity"]), func(): s["sensitivity"] = 0.6 if float(s["sensitivity"]) >= 1.6 else snappedf(float(s["sensitivity"]) + 0.2, 0.1); _save_settings())
-			_item("Graphics", ["Low · 30 FPS", "Medium", "High", "Ultra · next launch"][clampi(int(s["quality"]), 0, 3)], func(): s["quality"] = (int(s["quality"]) + 1) % 4; _save_settings())
+			UiStyle.graphics_rows(list, _save_settings)
 			_item("Frame Rate Counter", "On" if s["showFps"] else "Off", func(): s["showFps"] = not s["showFps"]; _save_settings())
 			_item("Control Size", "%d%%" % roundi(float(s.get("controlsSize", 1.0)) * 100), func(): s["controlsSize"] = _cycle([0.8, 0.9, 1.0, 1.1, 1.2], float(s.get("controlsSize", 1.0))); _save_settings())
 			_item("Control Opacity", "%d%%" % roundi(float(s.get("controlsOpacity", 0.85)) * 100), func(): s["controlsOpacity"] = _cycle([0.4, 0.6, 0.85, 1.0], float(s.get("controlsOpacity", 0.85))); _save_settings())
 			_item("Credits", "", func(): _go("credits"))
 			_item("Reset Career", "", func(): _go("confirm"), false, true)
 			_item("Back", "", _back)
-			desc.text = "Tap an option to change it. Tilt uses the phone's motion sensor; a Bluetooth controller also works."
+			desc.text = "Graphics: Performance runs lightest (30 FPS, lower resolution, fewer props); Ultra switches renderer at the next launch. Auto resolution lowers the 3D resolution when the frame rate drops."
 		"credits":
 			subtitle.text = "   CREDITS"
 			for id in CarBuilder.car_ids():

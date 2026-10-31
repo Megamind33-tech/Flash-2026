@@ -20,6 +20,7 @@ var event := {}
 var track: TrackPath
 var racers: Array[Racer] = []
 var ais: Array[AIDriver] = []
+var race_seed := 0
 var player: Racer
 var standings: Array = []
 var reward := {}
@@ -102,6 +103,7 @@ func _ready() -> void:
 		Game.session["entry_paid"] = true
 		Game.persist()
 	_spawn_grid()
+	reset_dynamic_resolution()
 	_setup_format()
 	camera = ChaseCamera.new()
 	camera.target = player.car
@@ -109,6 +111,9 @@ func _ready() -> void:
 	add_child(camera)
 	camera.make_current()
 	Weather.attach_particles(camera)
+	if "--log-impacts" in args:   # diagnostics: every hard speed change, with what was near the car
+		for r in racers:
+			r.car.impact.connect(func(strength: float): _log_impact(r, strength))
 	var cph := args.find("--cam-pothole")   # evidence: a pothole seen from 10 m, driver height
 	if cph >= 0 and not Potholes.holes.is_empty():
 		var h: Array = Potholes.holes[0]
@@ -385,13 +390,47 @@ static func make_sky_material() -> Material:
 	return sky_mat
 
 
+func _log_impact(r: Racer, strength: float) -> void:
+	var c := r.car
+	var pr: Array = track.project(c.global_position, [-1])
+	var d := float(pr[0])
+	var lat := (c.global_position - track.position_at(d)).dot(track.right_at(d))
+	var near := INF
+	for o in racers:
+		if o != r:
+			near = minf(near, o.car.global_position.distance_to(c.global_position))
+	var cause := "car" if near < 6.0 else ("barrier" if absf(lat) > track.half_width - 1.3 else ("pothole" if c._in_hole.has(true) else "NONE"))
+	var touching := []
+	var q := PhysicsShapeQueryParameters3D.new()
+	var sph := SphereShape3D.new()
+	sph.radius = 3.2
+	q.shape = sph
+	q.transform = Transform3D(Basis(), c.global_position + Vector3.UP * 0.6)
+	q.exclude = [c.get_rid()]
+	for h in c.get_world_3d().direct_space_state.intersect_shape(q, 8):
+		var col: Object = h["collider"]
+		touching.append(str(col.get_parent().name) + "/" + str(col.name) if col is Node else str(col))
+	print("[IMPACT] %s dv=%.1f m/s d=%.0f lat=%+.1f hw=%.1f k=%.4f wheels=%d speed=%.0f km/h nearest_car=%.1f m cause=%s near=%s" % [r.id, strength, d, lat, track.half_width,
+		track.curvature(int(d / track.length * track.points.size()), 4), c.wheels_on_ground, c.speed_kmh, near, cause, touching])
+
+
 func _spawn_grid() -> void:
 	var drivers: Array = Game.save["aiDrivers"]
 	var ai_count := mini(int(Game.session["ai"]), drivers.size())
 	var field := ai_count + 1
+	# A fresh seed every race (tests pass --seed for repeatable runs): grid order, form and mistakes change, so the
+	# fastest rival no longer starts on pole and wins every time. The grid is a qualifying draw weighted by pace.
+	var si := OS.get_cmdline_user_args().find("--seed")
+	race_seed = int(OS.get_cmdline_user_args()[si + 1]) if si >= 0 and si + 1 < OS.get_cmdline_user_args().size() else randi()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = race_seed
+	var order := []
+	for i in ai_count:
+		order.append([Game.pace_factor(drivers[i]) + rng.randfn(0.0, 0.012), drivers[i]])
+	order.sort_custom(func(a, b): return a[0] > b[0])
 	for slot in field:
 		var is_player := slot == field - 1   # the rookie starts from the back
-		var driver: Dictionary = {} if is_player else drivers[slot]
+		var driver: Dictionary = {} if is_player else order[slot][1]
 		var d := track.wrapd(-(12.0 + slot * 8.0))
 		var lat := -2.6 if slot % 2 == 0 else 2.6
 		var pos := track.position_at(d) + track.right_at(d) * lat + Vector3.UP * 0.35
@@ -419,11 +458,16 @@ func _spawn_grid() -> void:
 		if is_player:
 			player = r
 		if not is_player or Game.session["autopilot"]:
-			ais.append(AIDriver.new(r, track, driver if not is_player else {"skill": 70, "experience": 50, "aggression": 40, "consistency": 80}, 1000 + slot * 7919))
+			ais.append(AIDriver.new(r, track, driver if not is_player else {"skill": 70, "experience": 50, "aggression": 40, "consistency": 80}, race_seed + 1000 + slot * 7919))
 	standings = _classify()
 
 
 func _physics_process(delta: float) -> void:
+	if Engine.get_physics_frames() % 3 == 0:   # crowd excitement: car positions to the spectator shader at 20 Hz
+		var car_pos := []
+		for r in racers:
+			car_pos.append(r.car.global_position)
+		People.feed_cars(car_pos)
 	if phase == Phase.COUNTDOWN:
 		countdown_left -= delta
 		if countdown_left <= 0.0:
@@ -492,10 +536,52 @@ func _player_input() -> void:
 	car.brake_input = Input.get_action_strength("brake")
 
 
+## Auto resolution: every second, compare the frame rate with the cap. Below 90 % of the cap the 3D resolution
+## drops 8 % (to 50 % at the least); with headroom for 4 s it climbs back toward the preset's resolution. The HUD
+## is drawn at native resolution either way; only the 3D scene is scaled (FSR 1 upscaling).
+var _dr_time := 0.0
+var _dr_frames := 0
+var _dr_good := 0.0
+var render_scale := 1.0
+
+
+func reset_dynamic_resolution() -> void:
+	render_scale = Game.base_render_scale()
+	Game.set_render_scale(render_scale)
+	_dr_time = 0.0
+	_dr_frames = 0
+	_dr_good = 0.0
+
+
+func _dynamic_resolution(delta: float) -> void:
+	if not Game.auto_resolution() or get_tree().paused or autotest:
+		return
+	_dr_time += delta
+	_dr_frames += 1
+	if _dr_time < 1.0:
+		return
+	var fps := _dr_frames / _dr_time
+	var target := float(Engine.max_fps if Engine.max_fps > 0 else 60)
+	var top := Game.base_render_scale()
+	if fps < target * 0.9 and render_scale > 0.5:
+		render_scale = maxf(0.5, render_scale - 0.08)
+		Game.set_render_scale(render_scale)
+		_dr_good = 0.0
+	elif fps > target * 0.97 and render_scale < top:
+		_dr_good += _dr_time
+		if _dr_good >= 4.0:
+			render_scale = minf(top, render_scale + 0.05)
+			Game.set_render_scale(render_scale)
+			_dr_good = 0.0
+	_dr_time = 0.0
+	_dr_frames = 0
+
+
 func _process(delta: float) -> void:
 	_frames += 1
 	_frame_time += delta
 	_worst_frame = maxf(_worst_frame, delta)
+	_dynamic_resolution(delta)
 	if phase == Phase.SETUP or phase == Phase.RESULTS:
 		return
 	_standings_timer -= delta
@@ -587,7 +673,7 @@ func _complete() -> void:
 		print("[GRIDLINE] ads placements=%d impressions=%d (measured: %s)" % [ads["placements"], ads["impressions"], ads["criterion"]])
 	print("[GRIDLINE] potholes=%d player_hits=%d all_hits=%d" % [Potholes.holes.size(), player.car.pothole_hits, Potholes.events])
 	print("[GRIDLINE] format=%s city=%s weather=%s/%s grip=%.2f eliminated=%d medal=%d ghost=%s" % [format, city_id, Weather.kind, Weather.time_of_day, Weather.grip, _eliminations, medal, str(not ghost.is_empty())])
-	print("[GRIDLINE] race complete event=%s laps=%d player=P%d race_time=%.1fs avg_fps=%.1f worst_frame_ms=%.1f" % [event["id"], total_laps, player.position, race_time, avg_fps, _worst_frame * 1000.0])
+	print("[GRIDLINE] race complete seed=%d event=%s laps=%d player=P%d race_time=%.1fs avg_fps=%.1f worst_frame_ms=%.1f" % [race_seed, event["id"], total_laps, player.position, race_time, avg_fps, _worst_frame * 1000.0])
 	for s in standings:
 		var r: Racer = racers.filter(func(x): return x.id == s["id"])[0]
 		print("[GRIDLINE]   P%d %-16s finished=%s laps=%d progress=%.0f best=%s recoveries=%d rejected=%d" % [r.position, r.display_name, str(s["finished"]), s["laps"], s["progress"], Racer.format_ms(s["best"]), r.recoveries, r.laps.rejected_steps])

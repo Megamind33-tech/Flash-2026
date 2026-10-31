@@ -22,6 +22,11 @@ var bravery := 1.0          # corner-speed multiplier (only where the profile is
 var brake_reach := 0.35     # how far ahead (s) the driver reads the speed profile = braking point
 var wet_skill := 0.5        # 0..1: how much of their pace survives in rain, fog and dust
 var _defend_timer := 0.0
+var form := 0.0             # race-day form: +-1.5 % pace, rolled once per race
+var mistake_chance := 0.1   # per lap: lock-up / running wide somewhere on the lap
+var _mistake_at := -1.0     # lap distance of this lap's mistake (-1 = clean lap)
+var _mistake_left := 0.0
+var mistakes := 0
 
 
 func _init(p_racer: Racer, p_track: TrackPath, driver: Dictionary, seed: int) -> void:
@@ -34,6 +39,10 @@ func _init(p_racer: Racer, p_track: TrackPath, driver: Dictionary, seed: int) ->
 		noise = Game.pace_noise(driver)
 		aggression = clampf(driver["aggression"] / 100.0, 0.0, 1.0)
 		wet_skill = clampf(float(driver.get("consistency", 50)) / 100.0, 0.0, 1.0)
+	var consistency := clampf(float(driver.get("consistency", 50)) / 100.0, 0.0, 1.0)
+	form = clampf(_rng.randfn(0.0, 0.008), -0.016, 0.016)
+	pace += form
+	mistake_chance = lerpf(0.30, 0.08, consistency) * lerpf(1.0, 1.6, aggression)
 	line_bias = _rng.randf_range(-0.9, 0.9)
 	bravery = 1.0 + (aggression - 0.5) * 0.06 + _rng.randf_range(-0.015, 0.015)
 	brake_reach = lerpf(0.42, 0.30, aggression) + _rng.randf_range(-0.03, 0.03)
@@ -46,6 +55,7 @@ func drive(delta: float) -> void:
 	if lap != _lap:
 		_lap = lap
 		_jitter = clampf(_rng.randfn(0.0, noise), -2.0 * noise, 2.0 * noise)
+		_mistake_at = _rng.randf_range(0.1, 0.9) * track.length if lap >= 0 and _rng.randf() < mistake_chance else -1.0
 	var d := racer.distance
 	var fwd := car.global_basis.z
 	var speed := car.linear_velocity.dot(fwd)
@@ -68,6 +78,14 @@ func drive(delta: float) -> void:
 	if profile < track.max_speed * 0.95:
 		profile *= bravery
 	var target_speed := minf(profile * (pace + _jitter), cap)
+	# A mistake: a lock-up or a moment off the line costs about a second, then the driver gathers it up.
+	if _mistake_at >= 0.0 and fmod(d, track.length) > _mistake_at:
+		_mistake_at = -1.0
+		_mistake_left = _rng.randf_range(1.0, 2.0)
+		mistakes += 1
+	if _mistake_left > 0.0:
+		_mistake_left -= delta
+		target_speed *= 0.72
 	var err := target_speed - speed
 	if err > 0.0:
 		car.throttle = clampf(0.35 + err * 0.25, 0.0, 1.0)

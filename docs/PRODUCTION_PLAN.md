@@ -285,3 +285,29 @@ props, placement, pothole, three city-format races and an AI race.
   - Ads: the `--cam-ad` cameras frame the boards from too far to judge the LED legs and gantry webs: still unverified.
   - Puddles in rain: the wet road reads, individual puddles are subtle: G4 exit still open.
   - Potholes: visible as dark craters from 10 m at driver height; small in frame.
+
+## 10. Bug round from owner play-testing (session 018vwXNe)
+Reported: lag, idle supporters, the car "hit by the wind", cars sinking into the ground, no buttons for
+performance/quality graphics, predictable races (Reyes always P1).
+- **Sinking cars — fixed.** The springs compressed 10.5 cm under the car's weight and the hub was mounted for zero
+  sag, so every body sat 10 cm below its drawn ride height (tyres into the arches, sills on the road). Hubs are now
+  mounted `SAG` higher, springs stiffened 55 → 75 with matching damping. New `tests/ride_height_test` (in
+  `tools_build.sh`): all five cars within 1 mm at rest, ≤ 1.6 cm at 160 km/h. Stability test still passes.
+- **Wind — fixed.** The gust clock advanced once per car per frame, so with a full grid the gusts flickered several
+  times a second and shoved the car like hits. The clock now follows the physics clock; gusts are slow and storm/dust
+  crosswind is halved (0.35 / 0.45 m/s²). `--log-impacts` logs every hard speed change with what was near the car:
+  in three autotest races every impact was a car or a barrier, none from nothing.
+- **Supporters — animated.** `spectator.gdshader` animates the Rocketbox crowd in the vertex stage (no skeletons):
+  cheering fans bounce and pump their arms, clappers clap, pedestrians breathe and shift weight; every fan has their
+  own phase and tempo, and fans near a passing car get louder (race feeds car positions at 20 Hz).
+- **Graphics buttons — added.** Settings and the in-race pause menu now have button rows: Graphics
+  (Performance / Balanced / Quality / Ultra), Resolution (Auto, 50–100 %) and Frame Rate (30/60/90/120).
+  Resolution and frame rate apply immediately; detail applies on restart.
+- **Lag.** The 3D scene now renders below native resolution with FSR 1 upscaling (Balanced 75 %, Performance 60 %),
+  and Auto resolution drops the scale when the frame rate falls under 90 % of the cap (down to 50 %) and climbs back
+  with headroom. The FPS counter shows the current resolution. Real gains must be confirmed on devices (G1/G13).
+- **Predictable races — fixed.** Pace spread between the best and worst rival cut from ~2.5 % to ~1 %; each driver
+  gets race-day form (±1.6 %) and lap mistakes (8–30 % chance per lap from consistency and aggression); the grid is
+  a pace-weighted qualifying draw and the seed changes every race (`--seed N` for repeatable tests). Six seeded races:
+  winners Lindqvist, Okafor ×2, Reyes ×2, Brandt.
+Evidence: `docs/evidence/bugfix_round.jpg`.

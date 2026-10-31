@@ -1,5 +1,9 @@
 # Handover — GRIDLINE (Godot port)
 
+> **Bug round (session 018vwXNe):** sinking cars, wind shove, idle crowd, missing graphics buttons, lag and
+> predictable AI were addressed; see `docs/PRODUCTION_PLAN.md` §10. Races now use a fresh seed each time; pass
+> `--seed N` for repeatable runs.
+
 > **Update (session 018vwXNe):** items 1 (landmarks, water, people, potholes, rain dusk) and 3 (Ultra logging) below were
 > worked on; see `docs/PRODUCTION_PLAN.md` §9. Still open: ad close-ups framed too far to judge, puddle visibility (G4),
 > ads roll-out (owner), G10/G11/G12/G1 (owner). Godot lives in `/home/user/deps/godot-4.7.2/` in this container;

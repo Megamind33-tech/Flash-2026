@@ -11,11 +11,12 @@ echo "== import";      timeout 600 "$G" --headless --path . --import > /dev/null
 echo "== budgets";      python3 -I ../tools/assets/budget_check.py | tail -1 || { echo "BUDGET CHECK FAILED"; [ "${STRICT_BUDGETS:-0}" = 1 ] && exit 1; }
 echo "== core tests";  "$G" --headless --path . res://tests/core_tests.tscn 2>&1 | grep -E "core tests|FAIL"
 echo "== stability";   timeout 600 "$G" --headless --path . --fixed-fps 60 res://tests/stability_test.tscn 2>&1 | grep -E "STABILITY"
+echo "== ride height"; timeout 300 "$G" --headless --path . --fixed-fps 60 res://tests/ride_height_test.tscn 2>&1 | grep -E "RIDE HEIGHT"
 echo "== props";       timeout 300 "$G" --headless --path . -s res://tests/props_test.gd 2>&1 | grep -E "^PROPS|FAIL"
 echo "== placement";   timeout 600 "$G" --headless --path . res://tests/street_props_test.tscn 2>&1 | grep -E "STREET PROPS|FAIL"
 echo "== landmarks";   timeout 300 "$G" --headless --path . res://tests/landmark_test.tscn 2>&1 | grep -E "LANDMARK|SCRIPT ERROR"
-echo "== city formats"; for f in "kitwe elimination rain" "mogadishu time_attack clear" "nairobi duel storm"; do set -- $f; timeout 900 "$G" --headless --path . --fixed-fps 60 res://scenes/race.tscn -- --autotest 2 --city $1 --format $2 --weather $3 2>&1 | grep -E "format=|race complete"; done
-echo "== AI race";     timeout 900 "$G" --headless --path . --fixed-fps 60 res://scenes/race.tscn -- --autotest 2 2>&1 | grep -E "race complete|  P[0-9]|car="
+echo "== city formats"; for f in "kitwe elimination rain" "mogadishu time_attack clear" "nairobi duel storm"; do set -- $f; timeout 900 "$G" --headless --path . --fixed-fps 60 res://scenes/race.tscn -- --autotest 2 --seed 7 --city $1 --format $2 --weather $3 2>&1 | grep -E "format=|race complete"; done
+echo "== AI race";     timeout 900 "$G" --headless --path . --fixed-fps 60 res://scenes/race.tscn -- --autotest 2 --seed 7 2>&1 | grep -E "race complete|  P[0-9]|car="
 if [[ "${1:-}" == "--shots" ]]; then
   for s in "menu main_menu 3" "garage main_menu 3 --page garage" "grid race 2.5" "racing race 14"; do set -- $s
     xvfb-run -a -s "-screen 0 1920x1080x24" timeout 900 "$G" --path . --rendering-method mobile --resolution 1920x1080 --fixed-fps 30 \

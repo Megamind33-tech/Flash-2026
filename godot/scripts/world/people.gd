@@ -1,7 +1,8 @@
 ## Gate G9 part 2: people from the Microsoft Rocketbox avatar library (MIT; tools/people/build_people.py):
 ## spectators cheering and clapping along the start straight, pedestrians standing on side-street pavements,
 ## and a seated driver in every car. Static posed meshes, MultiMesh-instanced per avatar/pose
-## (one draw call each), about 1.9k triangles each.
+## (one draw call each), about 1.9k triangles each. The crowd moves through spectator.gdshader (vertex animation:
+## cheering, clapping, swaying, louder when a car passes); race.gd feeds it the car positions every frame.
 class_name People
 extends RefCounted
 
@@ -10,6 +11,48 @@ const AVATARS := ["Male_Adult_01", "Male_Adult_05", "Male_Adult_12", "Female_Adu
 const DRIVERS := ["Sports_Male_02", "Sports_Female_01", "Male_Adult_05", "Female_Adult_07", "Male_Adult_12"]
 
 static var _meshes := {}
+static var _animated := {}       # avatar_pose -> mesh copy with spectator.gdshader materials
+static var crowd_materials: Array[ShaderMaterial] = []
+const POSES := {"cheer": 0, "clap": 1, "idle": 2}
+
+
+## The posed mesh with its surfaces swapped for the crowd-animation shader (textures kept).
+static func animated_mesh(avatar: String, pose: String) -> Mesh:
+	var key := avatar + "_" + pose
+	if _animated.has(key):
+		return _animated[key]
+	var src := mesh(avatar, pose)
+	if src == null or not (src is ArrayMesh) or not POSES.has(pose):
+		_animated[key] = src
+		return src
+	var copy := (src as ArrayMesh).duplicate() as ArrayMesh
+	var shader: Shader = load("res://scripts/world/spectator.gdshader")
+	for i in copy.get_surface_count():
+		var old := copy.surface_get_material(i) as BaseMaterial3D
+		var m := ShaderMaterial.new()
+		m.shader = shader
+		m.set_shader_parameter("pose", POSES[pose])
+		if old:
+			m.set_shader_parameter("albedo_tex", old.albedo_texture)
+			m.set_shader_parameter("use_alpha", old.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED)
+			m.set_shader_parameter("roughness_value", old.roughness)
+		copy.surface_set_material(i, m)
+		crowd_materials.append(m)
+	_animated[key] = copy
+	return copy
+
+
+## Called by the race every frame: positions of up to 8 cars, so fans near a car cheer harder.
+static func feed_cars(positions: Array) -> void:
+	if crowd_materials.is_empty():
+		return
+	var arr := PackedVector4Array()
+	arr.resize(8)
+	for i in mini(positions.size(), 8):
+		var p: Vector3 = positions[i]
+		arr[i] = Vector4(p.x, p.y, p.z, 1.0)
+	for m in crowd_materials:
+		m.set_shader_parameter("cars", arr)
 
 
 static func mesh(avatar: String, pose: String) -> Mesh:
@@ -30,7 +73,7 @@ static func mesh(avatar: String, pose: String) -> Mesh:
 static func _instances(root: Node3D, groups: Dictionary, name: String, range_end: float) -> void:
 	for key in groups:
 		var parts: Array = String(key).split("|")
-		var m := mesh(parts[0], parts[1])
+		var m := animated_mesh(parts[0], parts[1])
 		if m == null:
 			continue
 		var mm := MultiMesh.new()

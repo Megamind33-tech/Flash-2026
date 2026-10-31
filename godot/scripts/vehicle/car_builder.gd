@@ -26,6 +26,11 @@ const TEAM_CARS := {"halden": "ravenna_hybrid", "corsair": "arden_gt3", "vantor"
 const PAINT := {"player_white": Color("#E9EBEE"), "halden_blue": Color("#1F4E8C"), "corsair_red": Color("#B3261E"),
 	"vantor_gold": Color("#E0A100"), "northline_green": Color("#2E7D32")}
 const REST := 0.12
+const STIFFNESS := 75.0
+## Static spring compression under the car's own weight (measured: 0.105 m at stiffness 55, and it scales with
+## 1/stiffness). The hub is mounted this much lower so the body sits at the model's drawn ride height instead of
+## sinking 10 cm onto the tyres (tests/ride_height_test).
+const SAG := 0.105 * 55.0 / STIFFNESS
 
 static var _scenes := {}
 static var _materials := {}
@@ -225,16 +230,16 @@ static func build(livery: String, with_audio: bool, car_id := DEFAULT_CAR) -> Ra
 		var radius: float = w[1]
 		var wheel := VehicleWheel3D.new()
 		wheel.name = k
-		wheel.position = Vector3(signf(centre.x) * (absf(centre.x) + absf(oc.x)) * 0.5, radius + REST, (centre.z + oc.z) * 0.5)
+		wheel.position = Vector3(signf(centre.x) * (absf(centre.x) + absf(oc.x)) * 0.5, radius + REST - SAG, (centre.z + oc.z) * 0.5)
 		wheel.use_as_steering = front
 		wheel.use_as_traction = spec["awd"] or not front
 		wheel.wheel_radius = radius
 		wheel.wheel_rest_length = REST
 		wheel.suspension_travel = 0.16
-		wheel.suspension_stiffness = 55.0
+		wheel.suspension_stiffness = STIFFNESS
 		wheel.suspension_max_force = 40000.0
-		wheel.damping_compression = 2.2
-		wheel.damping_relaxation = 2.8
+		wheel.damping_compression = 2.6
+		wheel.damping_relaxation = 3.3
 		wheel.wheel_roll_influence = 0.08
 		wheel.wheel_friction_slip = car.grip
 		if wheel_meshes.has(k):

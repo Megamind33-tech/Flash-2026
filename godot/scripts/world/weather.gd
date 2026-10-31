@@ -13,9 +13,9 @@ const PRESET := {
 	"clear":  {"grip": 1.0, "aqua": 0.0, "wind": 0.0, "fog": 0.0007, "rain": 0.0, "wet": 0.0, "sun": 1.35, "sky": "clear"},
 	"cloudy": {"grip": 0.99, "aqua": 0.0, "wind": 0.0, "fog": 0.0016, "rain": 0.0, "wet": 0.0, "sun": 0.7, "sky": "partly"},
 	"rain":   {"grip": 0.8, "aqua": 0.004, "wind": 0.0, "fog": 0.004, "rain": 0.55, "wet": 0.8, "sun": 0.42, "sky": "overcast"},
-	"storm":  {"grip": 0.66, "aqua": 0.008, "wind": 0.6, "fog": 0.008, "rain": 1.0, "wet": 1.0, "sun": 0.3, "sky": "overcast"},
+	"storm":  {"grip": 0.66, "aqua": 0.008, "wind": 0.35, "fog": 0.008, "rain": 1.0, "wet": 1.0, "sun": 0.3, "sky": "overcast"},
 	"fog":    {"grip": 0.95, "aqua": 0.0, "wind": 0.0, "fog": 0.011, "rain": 0.0, "wet": 0.35, "sun": 0.45, "sky": "misty"},
-	"dust":   {"grip": 0.88, "aqua": 0.0, "wind": 0.9, "fog": 0.009, "rain": 0.0, "wet": 0.0, "sun": 0.85, "sky": "clear"},
+	"dust":   {"grip": 0.88, "aqua": 0.0, "wind": 0.45, "fog": 0.009, "rain": 0.0, "wet": 0.0, "sun": 0.85, "sky": "clear"},
 }
 
 # Physics state read by RaceCarBody every tick.
@@ -25,7 +25,6 @@ static var grip := 1.0
 static var aquaplane := 0.0
 static var wind_accel := 0.0
 static var wind_dir := Vector3(1, 0, 0)
-static var _t := 0.0
 static var _soft: Texture2D
 static var _glow: Texture2D
 
@@ -76,7 +75,6 @@ static func configure(p_kind: String, p_time: String, surface_grip: float, wind_
 	rng.seed = wind_seed
 	var a := rng.randf() * TAU
 	wind_dir = Vector3(cos(a), 0, sin(a))
-	_t = 0.0
 
 
 static func reset() -> void:
@@ -89,11 +87,13 @@ static func grip_at(speed: float) -> float:
 
 
 ## Gusting crosswind acceleration (m/s^2, world space). Small by design: it nudges, it never lifts.
-static func wind(delta: float) -> Vector3:
+## The gust clock follows the physics clock, not the number of calls: it used to advance once per car per frame,
+## so with a full grid the gusts flickered several times a second and felt like the car was being hit.
+static func wind(_delta: float = 0.0) -> Vector3:
 	if wind_accel <= 0.0:
 		return Vector3.ZERO
-	_t += delta
-	var gust := 0.55 + 0.45 * sin(_t * 0.7) * sin(_t * 1.9 + 1.3)
+	var t := float(Engine.get_physics_frames()) / float(Engine.physics_ticks_per_second)
+	var gust := 0.6 + 0.4 * sin(t * 0.23) * sin(t * 0.61 + 1.3)
 	return wind_dir * wind_accel * gust
 
 

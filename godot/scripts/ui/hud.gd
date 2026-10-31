@@ -52,6 +52,8 @@ func bind(p_race) -> void:
 	_build_buttons()
 	_build_controls()
 	_build_pause()
+	if "--show-pause" in OS.get_cmdline_user_args():   # screenshots: the pause menu over the grid
+		pause_panel.visible = true
 	race.notice.connect(_on_notice)
 	race.results_ready.connect(_show_results)
 
@@ -340,7 +342,7 @@ func _build_pause() -> void:
 	col.set_anchors_preset(Control.PRESET_CENTER)
 	col.offset_left = -380
 	col.offset_right = 380
-	col.offset_top = -230
+	col.offset_top = -400
 	pause_panel.add_child(col)
 	col.add_child(_subtitle("PAUSE MENU", race.track_name.to_upper()))
 	var items := [["Resume", func(): _set_pause(false), true, false], ["Restart Race", func(): race.restart(), false, false],
@@ -349,10 +351,22 @@ func _build_pause() -> void:
 		var b := UiStyle.list_item(it[0], "", it[2], it[3])
 		b.pressed.connect(it[1])
 		col.add_child(b)
-	var desc := UiStyle.label("Retiring forfeits the entry fee. Restarting keeps it.", UiStyle.body(), 28)
+	UiStyle.graphics_rows(col, _graphics_changed)
+	var desc := UiStyle.label("Resolution and frame rate change now; Graphics detail applies when you restart the race. Retiring forfeits the entry fee.", UiStyle.body(), 26)
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc.add_theme_stylebox_override("normal", UiStyle.box(UiStyle.BLACK))
 	desc.custom_minimum_size = Vector2(0, 80)
 	col.add_child(desc)
+
+
+func _graphics_changed() -> void:
+	Game.apply_settings()
+	Game.persist()
+	race.reset_dynamic_resolution()
+	var was := pause_panel.visible
+	pause_panel.queue_free()
+	_build_pause()
+	pause_panel.visible = was
 
 
 func _overlay() -> Control:
@@ -468,8 +482,8 @@ func _process(delta: float) -> void:
 	dots.append([car.global_position, UiStyle.GOLD])
 	map.dots = dots
 	map.queue_redraw()
-	fps_label.text = ("%d FPS · %d draws · %dk tris" % [Engine.get_frames_per_second(), Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
-		Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME) / 1000]) if Game.settings()["showFps"] else ""
+	fps_label.text = ("%d FPS · %d%% res · %d draws · %dk tris" % [Engine.get_frames_per_second(), roundi(get_viewport().scaling_3d_scale * 100.0),
+		Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME) / 1000]) if Game.settings()["showFps"] else ""
 
 
 func _update_board() -> void:
