@@ -21,11 +21,10 @@ ADDONS = {
     "thebetterbaker": "PBR baking for facades, props and car paint (gates G6, G10)",
     "bake_preflight": "Catch common bake mistakes before baking",
     "gorani": "Urban site context: buildings, roads and terrain from data (gate G7)",
-    "pterrain": "Real-world progressive terrain for scenic venues",
     "srtm_terrain_importer": "SRTM elevation for scenic venue terrain",
     "PolyQuilt_Fork": "Retopology for car and kit meshes",
     "hardflow": "Hard-surface boolean modelling toolkit (cars, kit modules)",
-    "bagapie": "Scattering, ivy and architecture helpers for the kit",
+    "Bagapie": "Scattering, ivy and architecture helpers for the kit",
     "ambientcg_material_importer": "Import ambientCG CC0 materials as PBR setups",
 }
 
@@ -49,9 +48,9 @@ def sha256_of(path):
 
 def main(blender, outdir):
     os.makedirs(outdir, exist_ok=True)
-    by_id = {e["id"]: e for e in catalogue()}
+    by_id = {e["id"].lower(): e for e in catalogue()}
     for ext_id, why in ADDONS.items():
-        e = by_id.get(ext_id)
+        e = by_id.get(ext_id.lower())
         if e is None:
             print(f"MISSING in catalogue: {ext_id}", flush=True)
             continue
@@ -65,7 +64,15 @@ def main(blender, outdir):
             raise SystemExit(f"SHA-256 mismatch for {ext_id}")
         r = subprocess.run([blender, "-b", "--factory-startup", "--command", "extension", "install-file",
                             "--repo", "user_default", "--enable", dest], capture_output=True, text=True)
-        status = "installed" if r.returncode == 0 else f"install failed ({r.returncode})"
+        # Blender's CLI exits 0 even when an install fails, so judge by the output.
+        text = r.stdout + r.stderr
+        installed = "Installed" in text or "Reinstalled" in text
+        if installed and "ERROR" not in text and "Error:" not in text:
+            status = "installed"
+        elif installed:
+            status = "installed (enable needs a GUI/GPU session)"
+        else:
+            status = "FAILED"
         print(f"{status:<10} {ext_id} {e['version']}  min Blender {e.get('blender_version_min','?')}  -- {why}", flush=True)
 
 

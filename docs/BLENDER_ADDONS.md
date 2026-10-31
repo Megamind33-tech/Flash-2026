@@ -31,8 +31,9 @@ Recommendation: move to **5.2.2 LTS** after the car export test passes. Keep 4.0
 ## 3. Curated add-on set (ready, not installed)
 
 All are in the official catalogue, with SHA-256 checked against the catalogue. The installer is
-`tools/deps/fetch_blender_addons.py`. **It was blocked by the permission classifier when I tried to run it, so nothing
-from this table is installed except Gorani.**
+`tools/deps/fetch_blender_addons.py`. **Status on Blender 5.2.2 (2026-10-31): 11 of 12 installed.**
+- PolyQuilt: installed, but its enable step needs a GUI/GPU session (it draws in the viewport), so it can't be enabled headlessly.
+- PTerrain: dropped. Its archive is Windows-only (`windows-x64`), so it doesn't install on Linux.
 
 | Add-on (id) | Version | Licence | Min Blender | Use in GRIDLINE |
 |---|---|---|---|---|
@@ -42,7 +43,6 @@ from this table is installed except Gorani.**
 | The Better Baker (`thebetterbaker`) | 5.1.1 | GPL-3.0 | 5.1 | PBR baking for facades, props, car paint |
 | Bake Preflight (`bake_preflight`) | 0.1.0 | GPL-3.0 | 4.5 | Catch bake mistakes early |
 | Gorani (`gorani`) | 0.3.7 | GPL-3.0 + BSD-2 | 4.2 | Urban site context, buildings, roads, terrain (gate G7). **Installed** |
-| PTerrain (`pterrain`) | 1.0.5 | GPL-3.0 | 4.2.21 | Real-world terrain for scenic venues |
 | SRTM Terrain Importer (`srtm_terrain_importer`) | 1.0.5 | GPL-3.0 | 4.2 | Elevation for scenic venues |
 | PolyQuilt (`PolyQuilt_Fork`) | 1.46.8 | GPL-3.0 | 4.5 | Retopology for cars and kit |
 | Hardflow (`hardflow`) | 1.22.0 | GPL-3.0 | 4.2 | Hard-surface modelling for cars and kit |
