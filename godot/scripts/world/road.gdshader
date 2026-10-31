@@ -54,10 +54,10 @@ void fragment() {
 	float puddle = 0.0;
 	vec2 ripple = vec2(0.0);
 	if (wet > 0.0) {
-		float field = vnoise(m * vec2(0.42, 0.16)) * 0.65 + vnoise(m * vec2(1.1, 0.7) + 7.3) * 0.35;
-		float gutter = smoothstep(0.55, 0.95, abs(m.x) / road_half);
-		field += gutter * 0.28 - mask.r * 0.3 + (0.5 - h) * 0.12;
-		float thr = mix(0.86, 0.62, wet);
+		float field = vnoise(m * vec2(0.55, 0.22)) * 0.6 + vnoise(m * vec2(1.4, 0.9) + 7.3) * 0.4;
+		float gutter = smoothstep(0.6, 0.95, abs(m.x) / road_half);
+		field += gutter * 0.14 - mask.r * 0.3 + (0.5 - h) * 0.12;
+		float thr = mix(0.80, 0.66, wet);   // ~11 % of the road in rain, ~15 % in a storm
 		puddle = smoothstep(thr, thr + 0.035, field);
 		// raindrop rings: one drop per 0.6 m cell, random phase, ring expanding over its cycle
 		vec2 cell = floor(m / 0.6);

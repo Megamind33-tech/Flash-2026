@@ -238,7 +238,7 @@ func _ready() -> void:
 					# truss webs) - a 3/4 view so depth shows. Gantry: from the road below, the whole span in frame.
 					var f := node.facing()
 					var side := f.cross(Vector3.UP).normalized()
-					var dist := {"led": 6.5, "barrier": 4.0, "urban": 14.0, "gantry": 16.0}.get(node.kind, 8.0)
+					var dist: float = {"led": 6.5, "barrier": 4.0, "urban": 14.0, "gantry": 16.0}.get(node.kind, 8.0)
 					var pos := c + f * dist + side * dist * 0.35
 					pos.y = 1.7 if node.kind != "urban" else maxf(1.7, c.y - 6.0)
 					cam.global_position = pos
