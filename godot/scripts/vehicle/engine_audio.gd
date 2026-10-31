@@ -35,7 +35,7 @@ func _ready() -> void:
 		p.unit_size = 10.0 if player else 6.0
 		p.max_db = 3.0 if player else -2.0
 		p.volume_db = -80.0
-		p.bus = "Master"
+		p.bus = "SFX"
 		p.doppler_tracking = AudioStreamPlayer3D.DOPPLER_TRACKING_PHYSICS_STEP
 		p.attenuation_filter_cutoff_hz = 9000.0 if player else 4500.0
 		add_child(p)
@@ -45,6 +45,7 @@ func _ready() -> void:
 		_boost = AudioStreamPlayer3D.new()
 		_boost.stream = load("res://assets/audio/boost_whoosh.wav")
 		_boost.unit_size = 10.0
+		_boost.bus = "SFX"
 		add_child(_boost)
 
 
@@ -55,6 +56,7 @@ func _loop(path: String, db: float) -> AudioStreamPlayer3D:
 	s.loop_end = int(s.get_length() * s.mix_rate)
 	p.stream = s
 	p.volume_db = db
+	p.bus = "SFX"
 	p.unit_size = 10.0
 	add_child(p)
 	p.play()

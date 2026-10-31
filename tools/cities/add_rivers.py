@@ -58,6 +58,8 @@ def simplify(line, step):
 
 path = os.path.join(DATA, "london.json")
 d = json.load(open(path))
+if "features" in d:   # re-run: drop the river this script added last time (it is always the last water polygon)
+    d["water"].pop()
 raw = json.load(open(LINE))
 line = [tuple(p) for p in raw if math.hypot(*p) < 1900.0]
 line = simplify(line, 25.0)
@@ -82,24 +84,26 @@ print(f"removed {nb - len(d['buildings'])} buildings inside the river")
 d["water"] = [w for w in d["water"] if not inside(centroid(w), river)]
 d["water"].append([round(c, 1) for q in river for c in q])
 
-# Tower Bridge: the river point best lined up with the start straight, 450-1100 m out, spanning the river.
-s0, s1 = circuit[0], circuit[min(6, len(circuit) - 1)]
-fwd = math.atan2(s1[1] - s0[1], s1[0] - s0[0])
+# Tower Bridge: a river point seen down the water from the Embankment. From the nearest circuit point, at least
+# 75 % of the sight line must lie over the river (open water, no buildings), 300-1000 m away.
 best = None
 for i in range(1, len(line) - 1):
     p = line[i]
-    dist = math.dist(p, s0)
-    if not 450.0 < dist < 1100.0:
+    c = min(circuit, key=lambda q: math.dist(q, p))
+    dist = math.dist(p, c)
+    if not 300.0 < dist < 1000.0:
         continue
-    bearing = abs((math.atan2(p[1] - s0[1], p[0] - s0[0]) - fwd + math.pi) % (2 * math.pi) - math.pi)
-    score = bearing + abs(dist - 700.0) / 2000.0
+    over = sum(1 for k in range(1, 21) if inside((c[0] + (p[0] - c[0]) * k / 20, c[1] + (p[1] - c[1]) * k / 20), river)) / 20.0
+    if over < 0.75:
+        continue
+    score = abs(dist - 520.0) - over * 200.0
     if best is None or score < best[0]:
-        best = (score, i, dist, math.degrees(bearing))
-_, i, dist, bearing = best
+        best = (score, i, dist, over)
+_, i, dist, over = best
 a, b = line[i - 1], line[i + 1]
 river_dir = math.atan2(b[1] - a[1], b[0] - a[0])
 tb = line[i]
-print(f"tower bridge at {tb[0]:.0f},{tb[1]:.0f}: {dist:.0f} m from the start, {bearing:.0f} deg off the straight")
+print(f"tower bridge at {tb[0]:.0f},{tb[1]:.0f}: {dist:.0f} m from the nearest circuit point, {over * 100:.0f}% of the view over water")
 d["features"] = [
     {"id": "big_ben", "pos": [28.0, -472.0], "yaw": 0.0, "clear": 14.0},
     {"id": "tower_bridge", "pos": [round(tb[0], 1), round(tb[1], 1)], "yaw": round(river_dir + math.pi / 2, 4), "clear": 0.0},

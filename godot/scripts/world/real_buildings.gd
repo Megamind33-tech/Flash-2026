@@ -11,6 +11,8 @@ extends RefCounted
 const ROOT := "res://assets/buildings/real/"
 const MAX_COUNT := [0, 36, 70, 90]   # per quality tier
 const REACH := 55.0                  # metres from the road edge to the facade
+const TRI_BUDGET := [0, 110000, 200000, 300000]   # real-building triangles per city, per quality tier
+const MAX_REPEAT := 8                # one model at most this many times per city
 const TINT := {"sphinx": Color(0.93, 0.8, 0.6), "great_pyramid": Color(1.18, 0.98, 0.72), "khafre_pyramid": Color(1.18, 0.98, 0.72), "menkaure_pyramid": Color(1.15, 0.95, 0.72)}
 
 static var _index := {}
@@ -113,6 +115,7 @@ static func plan(data: Dictionary, track: TrackPath, quality: int) -> Dictionary
 			continue
 		cands.append([edge, bi, box, d, float(b[0])])
 	cands.sort_custom(func(a, b): return a[0] < b[0])
+	var tris := 0
 	for cand in cands:
 		if out.size() >= MAX_COUNT[clampi(quality, 0, 3)]:
 			break
@@ -137,8 +140,15 @@ static func plan(data: Dictionary, track: TrackPath, quality: int) -> Dictionary
 		var best: Dictionary = {}
 		var best_score := INF
 		for m: Dictionary in models:
+			if int(used.get(m["id"], 0)) >= MAX_REPEAT or tris + int(m["tris"]) > TRI_BUDGET[clampi(quality, 0, 3)]:
+				continue
 			var fw := facade / float(m["width"])
 			if fw < 0.62 or fw > 1.6:
+				continue
+			# Height must suit the block: a 9-storey tower never replaces a 3-storey shop row, and vice versa (the street
+			# would turn into a wall of one model). Blocks with no fitting model keep the facade kit.
+			var hr := float(m["height"]) * fw / maxf(float(cand[4]), 4.0)
+			if hr > 1.9 or hr < 0.5:
 				continue
 			var score := absf(log(fw)) + 0.4 * absf(log(depth / float(m["depth"]))) + 0.35 * absf(log(maxf(float(cand[4]), 4.0) / float(m["height"])))
 			score += 0.45 * float(used.get(m["id"], 0)) + (1.5 if m["id"] == last else 0.0) + rng.randf() * 0.25
@@ -152,6 +162,7 @@ static func plan(data: Dictionary, track: TrackPath, quality: int) -> Dictionary
 		var basis := Basis.looking_at(-Vector3(n.x, 0, n.y), Vector3.UP).scaled(Vector3(sx, sx, sz))
 		out[bi2] = {"id": best["id"], "xform": Transform3D(basis, Vector3(c.x, 0, c.y))}
 		used[best["id"]] = int(used.get(best["id"], 0)) + 1
+		tris += int(best["tris"])
 		last = best["id"]
 	return out
 

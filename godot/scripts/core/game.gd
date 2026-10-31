@@ -29,8 +29,30 @@ func _ready() -> void:
 	_load_economy()
 	load_game()
 	_ensure_input_actions()
+	_bind_settings_addon()
 	apply_settings()
 	_maybe_capture()
+
+
+## Settings + Menus addon (addons/settings_menus, MIT): it owns audio buses, rebinding, accessibility and the
+## per-feature graphics axes; GRIDLINE's own settings (presets, render scale, controls) stay in the save.
+func _bind_settings_addon() -> void:
+	var st := get_node_or_null("/root/Settings")
+	if st == null:
+		return
+	st.rebindable_actions = PackedStringArray(["accelerate", "brake", "steer_left", "steer_right", "boost", "camera", "pause"])
+	st.apply_keybinds()
+	settings()["showFps"] = bool(st.get_value("display.fps_visible", settings().get("showFps", false))) or bool(settings().get("showFps", false))
+	st.setting_changed.connect(func(key: String, value):
+		if key == "display.fps_visible":
+			settings()["showFps"] = bool(value)
+			persist())
+
+
+## Whether a motion effect is on (Accessibility: reduce motion / camera shake toggles).
+func effect_on(effect: String) -> bool:
+	var st := get_node_or_null("/root/Settings")
+	return st == null or st.is_effect_enabled(effect)
 
 
 ## `-- --shot <file.png> <seconds> [--show-controls]`: saves a real rendered frame after N game seconds, then quits.
@@ -229,14 +251,13 @@ func set_render_scale(scale: float) -> void:
 		return
 	var vp := tree.root
 	vp.scaling_3d_scale = clampf(scale, 0.4, 1.0)
-	# FSR 1 upscaling keeps edges sharp below native resolution (Mobile and Forward+ renderers).
-	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR if scale < 0.99 and RenderingServer.get_current_rendering_method() != "gl_compatibility" else Viewport.SCALING_3D_MODE_BILINEAR
+	# FSR 1 upscaling (sharper edges) exists only on Forward+ (the Ultra tier); the Mobile renderer scales bilinearly.
+	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR if scale < 0.99 and RenderingServer.get_current_rendering_method() == "forward_plus" else Viewport.SCALING_3D_MODE_BILINEAR
 
 
 func apply_settings() -> void:
 	var s := settings()
 	Engine.max_fps = int(s.get("fps", 30 if int(s["quality"]) == 0 else 60))
-	AudioServer.set_bus_volume_db(0, linear_to_db(clampf(float(s["volume"]), 0.0, 1.0)))
 	DisplayServer.screen_set_keep_on(true)
 	# Mesh LOD aggressiveness per tier (pixels of error allowed before a coarser LOD is used): the hero cars are
 	# 60k-280k triangles at full detail, so phones must drop LODs much earlier than desktop.

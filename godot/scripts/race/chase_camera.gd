@@ -58,9 +58,9 @@ func _physics_process(delta: float) -> void:
 			desired = hit["position"] + (pivot - desired).normalized() * 0.4
 		global_position = desired if _snap else global_position.lerp(desired, clampf(delta * 9.0, 0.0, 1.0))
 		look_at(target.global_position + Vector3.UP * 1.0 + rot * Vector3(0, 0, 3.0), Vector3.UP)
-	if _shake > 0.0:
+	if _shake > 0.0 and Game.effect_on("camera_shake"):
 		global_position += Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * _shake * 0.25
 		_shake = maxf(0.0, _shake - delta * 1.2)
-	_kick = lerpf(_kick, boost_kick, clampf(delta * 4.0, 0.0, 1.0))
+	_kick = lerpf(_kick, boost_kick if Game.effect_on("motion_blur") else 0.0, clampf(delta * 4.0, 0.0, 1.0))
 	fov = lerpf(fov, 62.0 + 10.0 * clampf(speed / 55.0, 0.0, 1.0) + 9.0 * _kick, clampf(delta * 3.0, 0.0, 1.0))
 	_snap = false

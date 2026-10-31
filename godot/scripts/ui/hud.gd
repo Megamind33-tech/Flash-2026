@@ -20,7 +20,7 @@ var progress_fill: ColorRect
 var big: Label
 var help: Label
 var fps_label: Label
-var pause_panel: Control
+var pause_panel: RacePauseUI
 var results_panel: Control
 var controls: Control
 var _big_timer := 0.0
@@ -47,6 +47,7 @@ func bind(p_race) -> void:
 	hud_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
 	hud_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(hud_layer)
+	GridlineMenus.safe_area(hud_layer)   # keep HUD and touch pads clear of notches and rounded corners
 	for r in race.racers:
 		_colors[r.id] = UiStyle.GOLD if r.is_player else Color(str(Game.team(r.driver.get("team", "")).get("color", "#ffffff")))
 	_build_radar()
@@ -59,7 +60,7 @@ func bind(p_race) -> void:
 	_build_controls()
 	_build_pause()
 	if "--show-pause" in OS.get_cmdline_user_args():   # screenshots: the pause menu over the grid
-		pause_panel.visible = true
+		pause_panel.call_deferred("pause")
 	race.notice.connect(_on_notice)
 	race.results_ready.connect(_show_results)
 	if race.skills:
@@ -410,39 +411,11 @@ func _build_controls() -> void:
 	controls.visible = not Game.session["autopilot"] or "--show-controls" in OS.get_cmdline_user_args()
 
 
+## Pause: the Settings + Menus addon's pause menu extended with race actions (scripts/ui/race_pause.gd).
 func _build_pause() -> void:
-	pause_panel = _overlay()
-	var col := VBoxContainer.new()
-	col.custom_minimum_size = Vector2(760, 0)
-	col.add_theme_constant_override("separation", 0)
-	col.set_anchors_preset(Control.PRESET_CENTER)
-	col.offset_left = -380
-	col.offset_right = 380
-	col.offset_top = -400
-	pause_panel.add_child(col)
-	col.add_child(_subtitle("PAUSE MENU", race.track_name.to_upper()))
-	var items := [["Resume", func(): _set_pause(false), true, false], ["Restart Race", func(): race.restart(), false, false],
-		["Change Camera", func(): race.camera.cycle(), false, false], ["Retire to Menu", func(): race.quit_to_menu(), false, true]]
-	for it in items:
-		var b := UiStyle.list_item(it[0], "", it[2], it[3])
-		b.pressed.connect(it[1])
-		col.add_child(b)
-	UiStyle.graphics_rows(col, _graphics_changed)
-	var desc := UiStyle.label("Resolution and frame rate change now; Graphics detail applies when you restart the race. Retiring forfeits the entry fee.", UiStyle.body(), 26)
-	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.add_theme_stylebox_override("normal", UiStyle.box(UiStyle.BLACK))
-	desc.custom_minimum_size = Vector2(0, 80)
-	col.add_child(desc)
-
-
-func _graphics_changed() -> void:
-	Game.apply_settings()
-	Game.persist()
-	race.reset_dynamic_resolution()
-	var was := pause_panel.visible
-	pause_panel.queue_free()
-	_build_pause()
-	pause_panel.visible = was
+	pause_panel = RacePauseUI.new()
+	pause_panel.race = race
+	add_child(pause_panel)
 
 
 func _overlay() -> Control:
@@ -470,8 +443,10 @@ func _subtitle(left: String, right: String) -> Control:
 func _set_pause(p: bool) -> void:
 	if race.phase == race.Phase.RESULTS:
 		return
-	pause_panel.visible = p
-	race.set_paused(p)
+	if p:
+		pause_panel.pause()
+	else:
+		pause_panel.resume()
 
 
 func _notification(what: int) -> void:
@@ -545,7 +520,8 @@ func _process(delta: float) -> void:
 		var c := ceili(race.countdown_left)
 		if c != _last_count and c > 0:
 			_last_count = c
-			_big(str(c), Color.WHITE, 0.9)
+			# Start-light colours from chukfinley/racing-game's HUD (MIT): 3 red, 2 amber, 1 green.
+			_big(str(c), {3: Color(1, 0.2, 0.2), 2: Color(1, 0.85, 0.1), 1: Color(0.2, 1, 0.3)}.get(c, Color.WHITE), 0.9)
 	if _big_timer > 0.0:
 		_big_timer -= delta
 		big.modulate.a = clampf(_big_timer * 4.0, 0.0, 1.0)
@@ -589,7 +565,8 @@ func _update_board() -> void:
 
 func _show_results() -> void:
 	hud_layer.visible = false
-	pause_panel.visible = false
+	if pause_panel.visible:
+		pause_panel.resume()
 	results_panel = _overlay()
 	results_panel.visible = true
 	var col := VBoxContainer.new()

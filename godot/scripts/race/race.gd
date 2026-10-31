@@ -559,6 +559,7 @@ func _sfx(path: String, db: float) -> void:
 	var p := AudioStreamPlayer.new()
 	p.stream = load(path)
 	p.volume_db = db
+	p.bus = "SFX"
 	add_child(p)
 	p.play()
 	p.finished.connect(p.queue_free)
@@ -579,6 +580,7 @@ func _race_audio() -> void:
 	_crowd.unit_size = 30.0
 	_crowd.max_db = 0.0
 	_crowd.volume_db = -4.0
+	_crowd.bus = "SFX"
 	add_child(_crowd)
 	_crowd.global_position = track.position_at(track.wrapd(-20.0)) + track.right_at(0.0) * (track.half_width + 4.0) + Vector3.UP * 2.0
 	_crowd.play()
@@ -586,7 +588,8 @@ func _race_audio() -> void:
 	var ms: AudioStreamOggVorbis = load("res://assets/audio/music_race.ogg")
 	ms.loop = true
 	_music.stream = ms
-	_music.volume_db = linear_to_db(maxf(0.001, float(Game.settings().get("music", 0.6)))) - 10.0
+	_music.volume_db = -10.0
+	_music.bus = "Music"
 	add_child(_music)
 	_music.play()
 	notice.connect(func(m):

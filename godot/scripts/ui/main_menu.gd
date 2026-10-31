@@ -63,18 +63,21 @@ func _ready() -> void:
 	_build_ui()
 	_build_hub()
 	_show("main")
+	GridlineMenus.safe_area(self)   # notches / punch-holes / rounded corners
 	if DisplayServer.get_name() != "headless":   # menu music (CC0, assets/audio/CREDITS.md)
 		var mp := AudioStreamPlayer.new()
 		mp.name = "Music"
 		var ms: AudioStreamOggVorbis = load("res://assets/audio/music_menu.ogg")
 		ms.loop = true
 		mp.stream = ms
-		mp.volume_db = linear_to_db(maxf(0.001, float(Game.settings().get("music", 0.6)))) - 8.0
+		mp.volume_db = -8.0
+		mp.bus = "Music"
 		add_child(mp)
 		mp.play()
 		_click = AudioStreamPlayer.new()
 		_click.stream = load("res://assets/audio/ui_click.wav")
 		_click.volume_db = -10.0
+		_click.bus = "SFX"
 		add_child(_click)
 	var args := OS.get_cmdline_user_args()   # screenshots/tests: open a page directly (e.g. --page garage)
 	if args.has("--page"):
@@ -313,6 +316,39 @@ func _refresh_status() -> void:
 var _click: AudioStreamPlayer
 
 
+## Settings + Menus addon screens (addons/settings_menus): Options (audio, display + our graphics rows, per-feature
+## graphics, controls rebinding, accessibility) and the scrolling Credits, in GRIDLINE's dark theme.
+func _open_options() -> void:
+	GridlineMenus.open_options(self, func(): _show(page))
+
+
+func _open_credits() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 120
+	add_child(layer)
+	var cr := CreditsUI.new()
+	cr.theme_data = GridlineMenus.menu_theme()
+	cr.theme = GridlineMenus.ui_theme()
+	var lines := ["# GRIDLINE", "A street racing league", "", "# Cars"]
+	for id in CarBuilder.car_ids():
+		var info := CarBuilder.info(id)
+		lines.append("%s — %s (%s)" % [info["name"], info["author"], info["licence"]])
+	lines += ["", "# Buildings and landmarks"]
+	var idx := RealBuildings.index()
+	for k in idx:
+		var e: Dictionary = idx[k]
+		if str(e.get("author", "")) != "":
+			lines.append("%s — %s (%s)" % [e.get("name", k), e["author"], e.get("licence", "")])
+	lines += ["", "# World", "Street layouts and buildings © OpenStreetMap contributors (ODbL)", "Textures and skies: Poly Haven, ambientCG (CC0)",
+		"People and drivers: Microsoft Rocketbox (MIT)", "", "# Sound", "Engine loops, music and crowd: OpenGameArt contributors (CC0)",
+		"", "# Code", "Menus and settings: Settings + Menus by Sean Elovirta (MIT)", "HUD ideas: racing-game by chukfinley (MIT)",
+		"Driving model base: Godot Truck Town demo (MIT)"]
+	cr.credits_text = "\n".join(lines)
+	layer.add_child(cr)
+	GridlineMenus.safe_area(cr)
+	cr.close_requested.connect(layer.queue_free)
+
+
 func _item(text: String, value: String, cb: Callable, selected := false, danger := false) -> void:
 	var b := UiStyle.list_item(text, value, selected, danger)
 	b.pressed.connect(func(): if _click: _click.play())
@@ -503,21 +539,12 @@ func _show(p: String) -> void:
 			_item("Steering", "Tilt" if s["steering"] == "tilt" else "Touch", func(): s["steering"] = "touch" if s["steering"] == "tilt" else "tilt"; _save_settings())
 			_item("Steering Sensitivity", "%.1f" % float(s["sensitivity"]), func(): s["sensitivity"] = 0.6 if float(s["sensitivity"]) >= 1.6 else snappedf(float(s["sensitivity"]) + 0.2, 0.1); _save_settings())
 			UiStyle.graphics_rows(list, _save_settings)
-			var vols := [0.0, 0.25, 0.5, 0.75, 1.0]
-			var mi := 0
-			for k in vols.size():
-				if absf(float(s.get("music", 0.6)) - vols[k]) < absf(float(s.get("music", 0.6)) - vols[mi]):
-					mi = k
-			list.add_child(UiStyle.segmented("Music", ["Off", "25%", "50%", "75%", "100%"], mi, func(i):
-				s["music"] = vols[i]
-				var mp := get_node_or_null("Music") as AudioStreamPlayer
-				if mp:
-					mp.volume_db = linear_to_db(maxf(0.001, vols[i])) - 8.0
-				_save_settings()))
+			_item("Audio · Controls · Accessibility", "OPTIONS", _open_options)
 			_item("Frame Rate Counter", "On" if s["showFps"] else "Off", func(): s["showFps"] = not s["showFps"]; _save_settings())
 			_item("Control Size", "%d%%" % roundi(float(s.get("controlsSize", 1.0)) * 100), func(): s["controlsSize"] = _cycle([0.8, 0.9, 1.0, 1.1, 1.2], float(s.get("controlsSize", 1.0))); _save_settings())
 			_item("Control Opacity", "%d%%" % roundi(float(s.get("controlsOpacity", 0.85)) * 100), func(): s["controlsOpacity"] = _cycle([0.4, 0.6, 0.85, 1.0], float(s.get("controlsOpacity", 0.85))); _save_settings())
 			_item("Credits", "", func(): _go("credits"))
+			_item("Rolling Credits", "", _open_credits)
 			_item("Reset Career", "", func(): _go("confirm"), false, true)
 			_item("Back", "", _back)
 			desc.text = "Graphics: Performance runs lightest (30 FPS, lower resolution, fewer props); Ultra switches renderer at the next launch. Auto resolution lowers the 3D resolution when the frame rate drops."
