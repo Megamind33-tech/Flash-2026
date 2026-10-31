@@ -81,6 +81,23 @@ Contact sheets (author thumbnails): `docs/evidence/sketchfab_contact_1.jpg`, `do
 
 Mostly ASCII-format FBX or OBJ files inside RAR archives that Blender 5.2.2 does not import. Worth a retry with another file from the same archive: *London Kinnaird House* (a real London building), *Snowy Mountain Road Scene*, *City Road Layout Mockup*, *Guard Rail*, *Road Traffic Sign*, *Parking garage*, *Modular Road Bridge*.
 
-## Next step
+## Import status (2026-10-31)
 
-Decimate the keep set to the budgets in `docs/PRODUCTION_PLAN.md` §4 (many scans are 30k–137k triangles; props should be 0.5k–2k, road surface pieces should become decals or baked textures), then import into `godot/assets/props/` with attribution records.
+**20 of the 23 kept models are imported** into `godot/assets/props/` by `tools/assets/import_sketchfab_keep.py`:
+Sketchfab's own GLB conversion (textures embedded), decimated to the budget, scaled to real size, grounded, textures capped
+(512 px for road patches and props, 1024 px for the long kerb, sidewalk and road strips). Road scans without a normal map got
+one baked from the full-detail scan, so the pothole keeps its depth at 3,500 triangles instead of 48,211.
+
+- Licence and change record: `godot/assets/props/LICENSES.md`. In-game credit: Settings → Credits (`credits.json`).
+- Renders of every imported asset: `docs/evidence/props_ingame_assets.jpg`.
+- Verified in Godot: `tests/props_test.gd` (20/20 within 5,000 triangles, grounded, plausible size; 48,965 triangles in
+  total), core tests 45/45, stability PASS, main menu loads, AI race completes, debug APK exports.
+- APK cost: 143.4 MB → 165.3 MB (+21.9 MB, mostly GPU-compressed textures).
+
+Not imported:
+- `railing`: its thin bars collapse under any mobile budget (seen in the render check).
+- `stadium_light`: its ground plane is fused into the same mesh as the floodlight.
+- `railing_set`: low value, untextured.
+
+**Not placed in the world yet.** The props exist as assets; placing them (potholes on worn city roads, kerbs on apexes,
+barriers and cones at works, traffic lights at junctions, bus shelters on pavements) is the next step.

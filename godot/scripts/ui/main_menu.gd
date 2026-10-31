@@ -488,8 +488,15 @@ func _show(p: String) -> void:
 			_info_row("Skies", "Poly Haven · CC0")
 			_info_row("Trees and surfaces", "Poly Haven, ambientCG · CC0")
 			_info_row("Driving model base", "Godot Truck Town demo · MIT")
+			# Street props and road scans (CC BY): title, author, licence and that we modified them.
+			var pf := FileAccess.open("res://assets/props/credits.json", FileAccess.READ)
+			if pf:
+				var props = JSON.parse_string(pf.get_as_text())
+				if props is Array:
+					for entry in props:
+						_info_row(str(entry.get("title", "")), "%s · %s · modified" % [entry.get("author", ""), entry.get("licence", "")])
 			_item("Back", "", _back)
-			desc.text = "Car models from BlendSwap, converted for GRIDLINE (badges removed, renamed, optimised). CC BY-SA models remain CC BY-SA 3.0."
+			desc.text = "Car models from BlendSwap, converted for GRIDLINE (badges removed, renamed, optimised). CC BY-SA models remain CC BY-SA 3.0. Street props and road scans from Sketchfab (CC BY 4.0), decimated, rescaled and re-baked for mobile; sources listed in assets/props/LICENSES.md."
 		"confirm":
 			subtitle.text = "   RESET CAREER?"
 			_item("Yes, reset my career", "", func(): Game.reset_career(); stack.clear(); _show("main"), false, true)
