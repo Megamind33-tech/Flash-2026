@@ -115,6 +115,31 @@ Evaluated, not adopted yet: **dot-ui** (MIT, needs dot-core, "partially tested";
   Quick Race and Garage; the car hero line; the next career event, launched with one "RACE NOW" tap.
 - Fixed: the recovery check no longer treats roads below y = −20 m as falling off the world.
 
+## Quality upgrade directive — progress (0.6.x)
+- **Milestone 1–2, environment:**
+  - Worn-asphalt road shader with puddles.
+  - Parapets and ledges, power lines, braking boards, corner chevrons and marshal posts.
+  - Barrier ads that read correctly on both sides of the track.
+  - Fog and dust densities halved. Rain spray is soft. Night roads get lamp light pools and headlight beams.
+- **Milestone 3, HUD and controls:**
+  - A compact top race strip (POS, LAP, TIME, BEST), a slim leaderboard and a translucent minimap.
+  - A smaller speed, gear and RPM cluster. The camera and pause buttons sit under the leaderboard.
+  - Touch-control size and opacity are set in Settings. A lap-delta call-out appears after each lap.
+- **Milestone 4–5, feel and AI:**
+  - Chase camera with impact shake, speed pull-back and a slight swing into corners.
+  - AI personalities: line bias, corner bravery and braking point vary per driver. AI brakes earlier on low grip,
+    less consistent drivers lose more pace in bad weather, and aggressive drivers defend.
+  - Finishing orders now vary from race to race.
+- **Garage:** shows the real power, grip and aero figures, drive type and weight. Upgrades and paint are clearly
+  marked as not available yet.
+- **Performance instrumentation:** race logs and the FPS overlay report draw calls, triangles, objects and video memory.
+  Device numbers are still **unmeasured** (no Android device here).
+- **Not adopted, with reasons:**
+  - Godot Road Generator and Terrain3D: roads and terrain are generated from OSM and the scenic generator already.
+    Terrain3D's Android support would need device verification.
+  - Material Maker: road and façade materials are in-engine shaders over CC0 textures.
+  - GdUnit4: the existing scene tests already cover race logic.
+
 ## What works — verified in this container
 | Check | Result | How |
 |---|---|---|
