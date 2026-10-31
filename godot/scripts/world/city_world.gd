@@ -42,17 +42,44 @@ static func tex_mat(name: String, tile: float, tint := Color.WHITE, rough := 0.9
 
 
 ## Worn asphalt (patches, cracks, rubber line, tyre marks) that floods into reflective puddles in the rain.
-static func road_mat(style: Dictionary, half_width: float) -> ShaderMaterial:
+## Road material (gate G4): Poly Haven PBR asphalt + a lap mask baked from this track's racing line.
+## Africa and the Middle East use the aged city asphalt; Europe and the scenic roads the newer track surface.
+static func road_mat(style: Dictionary, half_width: float, track: TrackPath = null, road_half := 0.0) -> ShaderMaterial:
 	var m := ShaderMaterial.new()
 	m.shader = load("res://scripts/world/road.gdshader")
-	var r := str(style["road"])
-	m.set_shader_parameter("asphalt", load(CITY + r + "_albedo.jpg"))
-	m.set_shader_parameter("asphalt_nrm", load(CITY + r + "_normal.jpg"))
-	m.set_shader_parameter("tint", Color(str(style["road_tint"])))
+	var set := "track" if str(style["road"]) == "road_dark" else "city"
+	for k in ["albedo", "normal", "rough", "height"]:
+		m.set_shader_parameter(k + "_tex", load("res://assets/road/%s_%s.jpg" % [set, k]))
+	m.set_shader_parameter("tint", Color.WHITE.lerp(Color(str(style["road_tint"])) * 1.25, 0.35))
 	m.set_shader_parameter("wear", float(style.get("wear", style.get("stains", 0.6))))
 	m.set_shader_parameter("wet", float(Weather.PRESET[Weather.kind]["wet"]))
-	m.set_shader_parameter("half_width", half_width)
+	var rh := road_half if road_half > 0.0 else half_width + BARRIER
+	m.set_shader_parameter("road_half", rh)
+	if track:
+		m.set_shader_parameter("lap_length", track.length)
+		m.set_shader_parameter("lap_mask", bake_lap_mask(track, rh))
 	return m
+
+
+## Bakes where cars actually drive and brake: R = rubber laid on the AI racing line (where AI cars
+## really drive), G = brake marks on that line where the AI speed profile drops before a corner.
+## One texel per 32nd of the road width x 2 m of lap.
+static func bake_lap_mask(track: TrackPath, road_half: float) -> ImageTexture:
+	var rows := mini(4096, int(track.length / 2.0))
+	var img := Image.create(32, rows, false, Image.FORMAT_RGB8)
+	for j in rows:
+		var d := track.length * j / rows
+		var line := track.line_offset_at(d)
+		var v0 := track.target_speed_at(d)
+		var v1 := track.target_speed_at(d + 25.0)
+		var braking := clampf((v0 - v1) / maxf(v0, 1.0) * 4.0, 0.0, 1.0)
+		for i in 32:
+			var x := (i + 0.5) / 32.0 * 2.0 * road_half - road_half
+			var on := exp(-pow((x - line) / 1.7, 2.0))
+			var tyres := exp(-pow((absf(x - line) - 0.8) / 0.35, 2.0))   # two wheel tracks either side of the line
+			img.set_pixel(i, j, Color(on, braking * tyres, 0))
+	var tex := ImageTexture.create_from_image(img)
+	return tex
 
 
 static func facade_mat(style: Dictionary, wall: String) -> ShaderMaterial:
@@ -237,7 +264,7 @@ static func _circuit(root: Node3D, style: Dictionary, track: TrackPath) -> void:
 			var w1 := b + rb * s * (hw + BARRIER)
 			faces.append_array([w0, w0 + up * 2.5, w1 + up * 2.5, w0, w1 + up * 2.5, w1])
 	var mesh := ArrayMesh.new()
-	road.commit(mesh, road_mat(style, hw))
+	road.commit(mesh, road_mat(style, hw, track))
 	lines.commit(mesh, _paint(Color(str(style["lines"]))))
 	kerbs.commit(mesh, TrackBuilder.kerb())
 	pave.commit(mesh, tex_mat("paving", 2.5, Color(0.86, 0.85, 0.82), 0.85))
