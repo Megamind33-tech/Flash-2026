@@ -444,6 +444,12 @@ func _show(p: String) -> void:
 				var info := CarBuilder.info(id)
 				var car_id: String = id
 				_item(info["name"], ("%s · %d KG" % [info["class"], int(info["mass"])]) if Game.owns_car(car_id) else "$" + RaceHud._thousands(int(info["price"])), func(): _pick_car(car_id), car_id == Game.player_car())
+			var cs := CarBuilder.info(Game.player_car())
+			# Real figures from CarBuilder.ROSTER and RaceCarBody (mass-scaled forces), not invented ratings.
+			var pw := float(cs["power"])
+			_info_row("Power · Grip · Aero", "%s · %s · %s" % [_bar(pw, 0.9, 1.1), _bar(float(cs["grip"]), 0.95, 1.06), _bar(float(cs["aero"]), 0.8, 1.7)])
+			_info_row("Drive · Weight", "%s · %d KG" % ["AWD" if cs["awd"] else "RWD", int(cs["mass"])])
+			_info_row("Upgrades & paint", "NOT AVAILABLE YET")
 			_item("Back", "", _back)
 			var cur := CarBuilder.info(Game.player_car())
 			desc.text = "%s · %s · %s drive · %d kg. Tap a car to take it to the grid." % [cur["name"], cur["class"], "All-wheel" if cur["awd"] else "Rear-wheel", int(cur["mass"])]
@@ -488,6 +494,11 @@ func _show(p: String) -> void:
 			_item("Cancel", "", _back, true)
 			desc.text = "Money, reputation, records and history will be erased. Settings are kept."
 	counter.text = "%d ITEMS   " % list.get_child_count()
+
+
+func _bar(v: float, lo: float, hi: float) -> String:
+	var n := clampi(roundi((v - lo) / (hi - lo) * 5.0), 0, 5)
+	return "■".repeat(n) + "□".repeat(5 - n)
 
 
 func _cycle(options: Array, cur) -> Variant:

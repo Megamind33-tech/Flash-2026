@@ -16,6 +16,12 @@ var _jitter := 0.0
 var _lane := 0.0
 var _target_lane := 0.0
 var _lane_timer := 0.0
+# Driving personality (from the driver's attributes + seed): every AI takes its own line and risks.
+var line_bias := 0.0        # metres: prefers the inside (+) or outside (-) of the racing line
+var bravery := 1.0          # corner-speed multiplier (only where the profile is below top speed)
+var brake_reach := 0.35     # how far ahead (s) the driver reads the speed profile = braking point
+var wet_skill := 0.5        # 0..1: how much of their pace survives in rain, fog and dust
+var _defend_timer := 0.0
 
 
 func _init(p_racer: Racer, p_track: TrackPath, driver: Dictionary, seed: int) -> void:
@@ -27,6 +33,12 @@ func _init(p_racer: Racer, p_track: TrackPath, driver: Dictionary, seed: int) ->
 		pace = Game.pace_factor(driver)
 		noise = Game.pace_noise(driver)
 		aggression = clampf(driver["aggression"] / 100.0, 0.0, 1.0)
+		wet_skill = clampf(float(driver.get("consistency", 50)) / 100.0, 0.0, 1.0)
+	line_bias = _rng.randf_range(-0.9, 0.9)
+	bravery = 1.0 + (aggression - 0.5) * 0.06 + _rng.randf_range(-0.015, 0.015)
+	brake_reach = lerpf(0.42, 0.30, aggression) + _rng.randf_range(-0.03, 0.03)
+	# Weather: less grip punishes the less consistent drivers more (the profile already follows grip).
+	pace *= lerpf(1.0, 0.94 + 0.06 * wet_skill, clampf((1.0 - Weather.grip) * 3.0, 0.0, 1.0))
 
 
 func drive(delta: float) -> void:
@@ -39,18 +51,22 @@ func drive(delta: float) -> void:
 	var speed := car.linear_velocity.dot(fwd)
 
 	var cap := _traffic(d, speed, delta)
+	_defend(d, speed, delta)
 	_lane = move_toward(_lane, _target_lane, 1.6 * delta)
 
 	var lookahead := clampf(7.0 + maxf(speed, 0.0) * 0.55, 7.0, 30.0)
 	var ahead := d + lookahead
-	var lateral := clampf(track.line_offset_at(ahead) + _lane, -track.half_width + 1.4, track.half_width - 1.4)
+	var lateral := clampf(track.line_offset_at(ahead) + _lane + line_bias, -track.half_width + 1.4, track.half_width - 1.4)
 	var target := track.position_at(ahead) + track.right_at(ahead) * lateral
 	var local := car.global_transform.affine_inverse() * target
 	# Car frame: +Z forward, +X left. Positive angle = target to the right.
 	var angle := atan2(-local.x, maxf(0.1, local.z))
 	car.steer_input = clampf(angle * steer_gain, -1.0, 1.0)
 
-	var profile := minf(track.target_speed_at(d + maxf(speed, 0.0) * 0.35), track.target_speed_at(d + 4.0))
+	var reach := brake_reach / sqrt(maxf(Weather.grip, 0.4))   # brake earlier when grip is low
+	var profile := minf(track.target_speed_at(d + maxf(speed, 0.0) * reach), track.target_speed_at(d + 4.0))
+	if profile < track.max_speed * 0.95:
+		profile *= bravery
 	var target_speed := minf(profile * (pace + _jitter), cap)
 	var err := target_speed - speed
 	if err > 0.0:
@@ -62,6 +78,26 @@ func drive(delta: float) -> void:
 	else:
 		car.throttle = 0.1
 		car.brake_input = 0.0
+
+
+## Defending: when a faster car closes from behind, move toward the inside of the next corner (once, briefly).
+func _defend(d: float, speed: float, delta: float) -> void:
+	_defend_timer -= delta
+	if _defend_timer > 0.0 or aggression < 0.35 or absf(_target_lane) > 0.5:
+		return
+	var space := car.get_world_3d().direct_space_state
+	var from := car.global_position + Vector3.UP * 0.7
+	var q := PhysicsRayQueryParameters3D.create(from, from - car.global_basis.z * 14.0)
+	q.exclude = [car.get_rid()]
+	var hit := space.intersect_ray(q)
+	if hit.is_empty() or not (hit["collider"] is RaceCarBody):
+		return
+	var other: RaceCarBody = hit["collider"]
+	if other.linear_velocity.dot(car.global_basis.z) > speed + 1.0:
+		var inside := signf(track.line_offset_at(d + 60.0))
+		_target_lane = -inside * 1.8
+		_lane_timer = 1.6
+		_defend_timer = 4.0
 
 
 func _traffic(d: float, speed: float, delta: float) -> float:
