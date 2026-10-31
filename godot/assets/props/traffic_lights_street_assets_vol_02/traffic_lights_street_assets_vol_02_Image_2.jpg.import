@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cj5llbdqgdndo"
-path="res://.godot/imported/traffic_lights_street_assets_vol_02_Image_2.jpg-d734831ea4842c91b4aa9846eb5a4ede.ctex"
+path.s3tc="res://.godot/imported/traffic_lights_street_assets_vol_02_Image_2.jpg-d734831ea4842c91b4aa9846eb5a4ede.s3tc.ctex"
+path.etc2="res://.godot/imported/traffic_lights_street_assets_vol_02_Image_2.jpg-d734831ea4842c91b4aa9846eb5a4ede.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "7c12b512548749bd810afd9af72ee8ed"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/props/traffic_lights_street_assets_vol_02/traffic_lights_street_assets_vol_02_Image_2.jpg"
-dest_files=["res://.godot/imported/traffic_lights_street_assets_vol_02_Image_2.jpg-d734831ea4842c91b4aa9846eb5a4ede.ctex"]
+dest_files=["res://.godot/imported/traffic_lights_street_assets_vol_02_Image_2.jpg-d734831ea4842c91b4aa9846eb5a4ede.s3tc.ctex", "res://.godot/imported/traffic_lights_street_assets_vol_02_Image_2.jpg-d734831ea4842c91b4aa9846eb5a4ede.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

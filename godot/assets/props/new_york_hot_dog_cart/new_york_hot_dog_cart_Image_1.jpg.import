@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://jdr76jssg6ya"
-path="res://.godot/imported/new_york_hot_dog_cart_Image_1.jpg-fa70c3aad9427a5fffacd028ef893cd0.ctex"
+path.s3tc="res://.godot/imported/new_york_hot_dog_cart_Image_1.jpg-fa70c3aad9427a5fffacd028ef893cd0.s3tc.ctex"
+path.etc2="res://.godot/imported/new_york_hot_dog_cart_Image_1.jpg-fa70c3aad9427a5fffacd028ef893cd0.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "47a2cbba8528aa660ade123354a6cce1"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/props/new_york_hot_dog_cart/new_york_hot_dog_cart_Image_1.jpg"
-dest_files=["res://.godot/imported/new_york_hot_dog_cart_Image_1.jpg-fa70c3aad9427a5fffacd028ef893cd0.ctex"]
+dest_files=["res://.godot/imported/new_york_hot_dog_cart_Image_1.jpg-fa70c3aad9427a5fffacd028ef893cd0.s3tc.ctex", "res://.godot/imported/new_york_hot_dog_cart_Image_1.jpg-fa70c3aad9427a5fffacd028ef893cd0.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

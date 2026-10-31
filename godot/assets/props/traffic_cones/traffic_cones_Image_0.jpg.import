@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bu31786uobxqx"
-path="res://.godot/imported/traffic_cones_Image_0.jpg-03d83c327e592117a57abacc1a13a99b.ctex"
+path.s3tc="res://.godot/imported/traffic_cones_Image_0.jpg-03d83c327e592117a57abacc1a13a99b.s3tc.ctex"
+path.etc2="res://.godot/imported/traffic_cones_Image_0.jpg-03d83c327e592117a57abacc1a13a99b.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "82cbd1ce5f13b222aa48717e13e05a97"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/props/traffic_cones/traffic_cones_Image_0.jpg"
-dest_files=["res://.godot/imported/traffic_cones_Image_0.jpg-03d83c327e592117a57abacc1a13a99b.ctex"]
+dest_files=["res://.godot/imported/traffic_cones_Image_0.jpg-03d83c327e592117a57abacc1a13a99b.s3tc.ctex", "res://.godot/imported/traffic_cones_Image_0.jpg-03d83c327e592117a57abacc1a13a99b.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ce2hovqx6bp7i"
-path="res://.godot/imported/steel_road_barrier_Image_0.jpg-bbd082ee44c5c59f37b6bd5093ea72bf.ctex"
+path.s3tc="res://.godot/imported/steel_road_barrier_Image_0.jpg-bbd082ee44c5c59f37b6bd5093ea72bf.s3tc.ctex"
+path.etc2="res://.godot/imported/steel_road_barrier_Image_0.jpg-bbd082ee44c5c59f37b6bd5093ea72bf.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "c7b76cd9cee0a0ae413aeeb53067b0dd"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/props/steel_road_barrier/steel_road_barrier_Image_0.jpg"
-dest_files=["res://.godot/imported/steel_road_barrier_Image_0.jpg-bbd082ee44c5c59f37b6bd5093ea72bf.ctex"]
+dest_files=["res://.godot/imported/steel_road_barrier_Image_0.jpg-bbd082ee44c5c59f37b6bd5093ea72bf.s3tc.ctex", "res://.godot/imported/steel_road_barrier_Image_0.jpg-bbd082ee44c5c59f37b6bd5093ea72bf.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

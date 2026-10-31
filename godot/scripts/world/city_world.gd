@@ -133,6 +133,11 @@ static func build(parent: Node3D, data: Dictionary, style: Dictionary, track: Tr
 	_side_roads(root, data, style)
 	var ac := _buildings(root, data, style, rng)
 	_props(root, data, style, track, rng, ac)
+	# Real street props and road scans (assets/props, CC BY): additive, own random seed.
+	# --no-street-props gives the before/after baseline (like --no-ads).
+	if not "--no-street-props" in OS.get_cmdline_user_args():
+		var street := StreetProps.place(root, data, style, track, Game.quality())
+		print("[GRIDLINE] street props %s" % JSON.stringify(street))
 	barrier_ads(root, track, track.half_width + BARRIER, 0.6)
 	race_furniture(root, track, track.half_width + BARRIER)
 	AdPlacementManager.instance = null

@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://clr83f1cawjou"
-path="res://.godot/imported/manhole_cover_on_broken_asphalt_road_Image_0.jpg-e0f2334e7f6162c35f309cdb7ab03e05.ctex"
+path.s3tc="res://.godot/imported/manhole_cover_on_broken_asphalt_road_Image_0.jpg-e0f2334e7f6162c35f309cdb7ab03e05.s3tc.ctex"
+path.etc2="res://.godot/imported/manhole_cover_on_broken_asphalt_road_Image_0.jpg-e0f2334e7f6162c35f309cdb7ab03e05.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "16d42f930b790a15eff65118b38cd7c2"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/props/manhole_cover_on_broken_asphalt_road/manhole_cover_on_broken_asphalt_road_Image_0.jpg"
-dest_files=["res://.godot/imported/manhole_cover_on_broken_asphalt_road_Image_0.jpg-e0f2334e7f6162c35f309cdb7ab03e05.ctex"]
+dest_files=["res://.godot/imported/manhole_cover_on_broken_asphalt_road_Image_0.jpg-e0f2334e7f6162c35f309cdb7ab03e05.s3tc.ctex", "res://.godot/imported/manhole_cover_on_broken_asphalt_road_Image_0.jpg-e0f2334e7f6162c35f309cdb7ab03e05.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

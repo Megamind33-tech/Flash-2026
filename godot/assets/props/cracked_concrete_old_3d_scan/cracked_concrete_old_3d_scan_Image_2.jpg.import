@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d15kolj28gwnq"
-path="res://.godot/imported/cracked_concrete_old_3d_scan_Image_2.jpg-6b466bb3ecdf5147ba4bdcb99c295f63.ctex"
+path.s3tc="res://.godot/imported/cracked_concrete_old_3d_scan_Image_2.jpg-6b466bb3ecdf5147ba4bdcb99c295f63.s3tc.ctex"
+path.etc2="res://.godot/imported/cracked_concrete_old_3d_scan_Image_2.jpg-6b466bb3ecdf5147ba4bdcb99c295f63.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "bd88b4e74257a31eec35fd00f379364a"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/props/cracked_concrete_old_3d_scan/cracked_concrete_old_3d_scan_Image_2.jpg"
-dest_files=["res://.godot/imported/cracked_concrete_old_3d_scan_Image_2.jpg-6b466bb3ecdf5147ba4bdcb99c295f63.ctex"]
+dest_files=["res://.godot/imported/cracked_concrete_old_3d_scan_Image_2.jpg-6b466bb3ecdf5147ba4bdcb99c295f63.s3tc.ctex", "res://.godot/imported/cracked_concrete_old_3d_scan_Image_2.jpg-6b466bb3ecdf5147ba4bdcb99c295f63.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

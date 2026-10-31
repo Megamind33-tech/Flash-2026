@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bctydh103s0d"
-path="res://.godot/imported/game_ready_modular_metal_guardrail_Image_2.jpg-f89fa67d61eb80eea9d435e93870e541.ctex"
+path.s3tc="res://.godot/imported/game_ready_modular_metal_guardrail_Image_2.jpg-f89fa67d61eb80eea9d435e93870e541.s3tc.ctex"
+path.etc2="res://.godot/imported/game_ready_modular_metal_guardrail_Image_2.jpg-f89fa67d61eb80eea9d435e93870e541.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "1b849e55410860974d4fd07cd5f3fe63"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/props/game_ready_modular_metal_guardrail/game_ready_modular_metal_guardrail_Image_2.jpg"
-dest_files=["res://.godot/imported/game_ready_modular_metal_guardrail_Image_2.jpg-f89fa67d61eb80eea9d435e93870e541.ctex"]
+dest_files=["res://.godot/imported/game_ready_modular_metal_guardrail_Image_2.jpg-f89fa67d61eb80eea9d435e93870e541.s3tc.ctex", "res://.godot/imported/game_ready_modular_metal_guardrail_Image_2.jpg-f89fa67d61eb80eea9d435e93870e541.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

@@ -99,5 +99,49 @@ Not imported:
 - `stadium_light`: its ground plane is fused into the same mesh as the floodlight.
 - `railing_set`: low value, untextured.
 
-**Not placed in the world yet.** The props exist as assets; placing them (potholes on worn city roads, kerbs on apexes,
-barriers and cones at works, traffic lights at junctions, bus shelters on pavements) is the next step.
+## World placement (2026-10-31)
+
+`scripts/world/street_props.gd` places the props on all seven city circuits. It's additive: road, kerbs, barriers,
+lamps and trees are unchanged, and it uses its own random seed. `--no-street-props` gives the before/after baseline.
+
+| Where | What | Rule |
+|---|---|---|
+| Road surface | cracked-asphalt and manhole/drain scans | More on older roads (`wear`), ≥ 2.6 m from the racing line, clear of the grid. Drawn as decals (`road_patch.gdshader`): flattened to ¼ relief (normal map carries the depth), faded border, colour matched to each city's asphalt, darkens in rain |
+| Pavement | roadworks: pothole scan with barricade, cones, concrete barriers | 1–3 sites per lap by road wear |
+| Pavement | bus shelters | On straights, open side to the road |
+| Pavement | street cabinets, food carts | Cabinets along the lap; carts near the start/finish |
+| Start/finish | crowd barriers | 80 m behind the jersey barrier on one side |
+| Side-road junctions | traffic lights | Both sides of each OSM side road meeting the circuit (max 24) |
+
+Nothing is placed inside a building footprint or on a street lamp. Per city: 89–117 props, 25–42 road patches.
+
+**Verified**
+- `tests/street_props_test.tscn` (new, in `tools_build.sh`): all seven cities pass. Patches on the asphalt and off the racing
+  line, pavement props on the pavement band at pavement height, none inside a building.
+- Race: Lusaka 2 laps gives the identical result with props (208.9 s, same finishing order), so they don't touch racing.
+  Core tests 45/45, stability PASS, main menu loads.
+- Rendered in-game (Mobile renderer, Mesa lavapipe): `docs/evidence/props_in_world.jpg`.
+- Same view, with vs without props (`--no-street-props`), software renderer:
+
+  | City | Draw calls | Triangles | Video memory |
+  |---|---|---|---|
+  | Lusaka | 194 → 198 | 389,980 → 392,642 | — |
+  | London | 129 → 135 | 352,479 → 357,605 | 170 → 181 MB |
+
+  Props are chunked (300 m) with a view distance, so only nearby ones draw.
+
+**Found and fixed while placing:** visibility range is measured from the node origin, so chunks left at the world origin were
+always culled (now each chunk node sits at its centre). And prop textures were imported uncompressed (`compress/mode=0`):
+props cost +59 MB of video memory in London until switched to VRAM compression (`compress/mode=2`, ETC2/ASTC on Android),
+which brought it to +11 MB.
+
+**Project-wide finding (not changed here):** the existing city textures in `godot/assets/city/` are also imported with
+`compress/mode=0` (headless imports never trigger Godot's "detect 3D" conversion). Switching them to VRAM compression is
+likely the largest single memory saving available on phones. Measure on a device before and after.
+
+**Known limits**
+- Road patches are visual only: no physics bump or grip change yet.
+- From a low driver's-eye camera, flat road damage is subtle (it's foreshortened); it reads clearly from the chase camera.
+- Two patch scans keep a faint lighter rim from the scan's own edge.
+- The kerb, sidewalk, road-strip, guardrail and parapet scans are imported but not placed: using them means replacing
+  existing kerbs, pavements and scenic guardrails, which is a separate decision.

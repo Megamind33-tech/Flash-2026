@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bpytcmw6irdb1"
-path="res://.godot/imported/guardrail_and_terminal_Image_0.jpg-6d11d33478a7ad5c3abf6c73d49107e9.ctex"
+path.s3tc="res://.godot/imported/guardrail_and_terminal_Image_0.jpg-6d11d33478a7ad5c3abf6c73d49107e9.s3tc.ctex"
+path.etc2="res://.godot/imported/guardrail_and_terminal_Image_0.jpg-6d11d33478a7ad5c3abf6c73d49107e9.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "ccc76b532155068c6ce8845cfe600d18"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/props/guardrail_and_terminal/guardrail_and_terminal_Image_0.jpg"
-dest_files=["res://.godot/imported/guardrail_and_terminal_Image_0.jpg-6d11d33478a7ad5c3abf6c73d49107e9.ctex"]
+dest_files=["res://.godot/imported/guardrail_and_terminal_Image_0.jpg-6d11d33478a7ad5c3abf6c73d49107e9.s3tc.ctex", "res://.godot/imported/guardrail_and_terminal_Image_0.jpg-6d11d33478a7ad5c3abf6c73d49107e9.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://02f4jtb4joga"
-path="res://.godot/imported/cracks_in_asfalt_road_free_Image_0.jpg-e069f27c7abbb8acfbf19e27fe8c2cca.ctex"
+path.s3tc="res://.godot/imported/cracks_in_asfalt_road_free_Image_0.jpg-e069f27c7abbb8acfbf19e27fe8c2cca.s3tc.ctex"
+path.etc2="res://.godot/imported/cracks_in_asfalt_road_free_Image_0.jpg-e069f27c7abbb8acfbf19e27fe8c2cca.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "d30d1706dad426729380eb59ff9d8278"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/props/cracks_in_asfalt_road_free/cracks_in_asfalt_road_free_Image_0.jpg"
-dest_files=["res://.godot/imported/cracks_in_asfalt_road_free_Image_0.jpg-e069f27c7abbb8acfbf19e27fe8c2cca.ctex"]
+dest_files=["res://.godot/imported/cracks_in_asfalt_road_free_Image_0.jpg-e069f27c7abbb8acfbf19e27fe8c2cca.s3tc.ctex", "res://.godot/imported/cracks_in_asfalt_road_free_Image_0.jpg-e069f27c7abbb8acfbf19e27fe8c2cca.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

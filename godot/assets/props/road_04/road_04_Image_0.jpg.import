@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://byca4h8qg533w"
-path="res://.godot/imported/road_04_Image_0.jpg-48c4e716fe897736b775320bcdf57be4.ctex"
+path.s3tc="res://.godot/imported/road_04_Image_0.jpg-48c4e716fe897736b775320bcdf57be4.s3tc.ctex"
+path.etc2="res://.godot/imported/road_04_Image_0.jpg-48c4e716fe897736b775320bcdf57be4.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "674c3d4e3654085b59ce05421baef644"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/props/road_04/road_04_Image_0.jpg"
-dest_files=["res://.godot/imported/road_04_Image_0.jpg-48c4e716fe897736b775320bcdf57be4.ctex"]
+dest_files=["res://.godot/imported/road_04_Image_0.jpg-48c4e716fe897736b775320bcdf57be4.s3tc.ctex", "res://.godot/imported/road_04_Image_0.jpg-48c4e716fe897736b775320bcdf57be4.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://64p0s64oix46"
-path="res://.godot/imported/parapet_guardrail_unit_Image_0.jpg-4e8536a7e08f02531c3744e789bbc110.ctex"
+path.s3tc="res://.godot/imported/parapet_guardrail_unit_Image_0.jpg-4e8536a7e08f02531c3744e789bbc110.s3tc.ctex"
+path.etc2="res://.godot/imported/parapet_guardrail_unit_Image_0.jpg-4e8536a7e08f02531c3744e789bbc110.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "d68c0eb66b51f6e99dd0382cf7533cd2"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/props/parapet_guardrail_unit/parapet_guardrail_unit_Image_0.jpg"
-dest_files=["res://.godot/imported/parapet_guardrail_unit_Image_0.jpg-4e8536a7e08f02531c3744e789bbc110.ctex"]
+dest_files=["res://.godot/imported/parapet_guardrail_unit_Image_0.jpg-4e8536a7e08f02531c3744e789bbc110.s3tc.ctex", "res://.godot/imported/parapet_guardrail_unit_Image_0.jpg-4e8536a7e08f02531c3744e789bbc110.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

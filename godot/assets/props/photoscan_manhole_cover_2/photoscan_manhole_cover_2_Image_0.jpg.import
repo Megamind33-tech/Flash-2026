@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b7pupaykef4m0"
-path="res://.godot/imported/photoscan_manhole_cover_2_Image_0.jpg-59bf7399ce025a197937d072aa4a2d57.ctex"
+path.s3tc="res://.godot/imported/photoscan_manhole_cover_2_Image_0.jpg-59bf7399ce025a197937d072aa4a2d57.s3tc.ctex"
+path.etc2="res://.godot/imported/photoscan_manhole_cover_2_Image_0.jpg-59bf7399ce025a197937d072aa4a2d57.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "a24b6f516226b20516a36c842addc998"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/props/photoscan_manhole_cover_2/photoscan_manhole_cover_2_Image_0.jpg"
-dest_files=["res://.godot/imported/photoscan_manhole_cover_2_Image_0.jpg-59bf7399ce025a197937d072aa4a2d57.ctex"]
+dest_files=["res://.godot/imported/photoscan_manhole_cover_2_Image_0.jpg-59bf7399ce025a197937d072aa4a2d57.s3tc.ctex", "res://.godot/imported/photoscan_manhole_cover_2_Image_0.jpg-59bf7399ce025a197937d072aa4a2d57.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

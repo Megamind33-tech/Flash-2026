@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dh5r0ba7e7h8l"
-path="res://.godot/imported/curb_3d_scan_Image_3-Image_1.jpg-a5b49517a57e37865fed3a56acfb6225.ctex"
+path.s3tc="res://.godot/imported/curb_3d_scan_Image_3-Image_1.jpg-a5b49517a57e37865fed3a56acfb6225.s3tc.ctex"
+path.etc2="res://.godot/imported/curb_3d_scan_Image_3-Image_1.jpg-a5b49517a57e37865fed3a56acfb6225.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "fb86675940d51b2a7829d408b287c672"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/props/curb_3d_scan/curb_3d_scan_Image_3-Image_1.jpg"
-dest_files=["res://.godot/imported/curb_3d_scan_Image_3-Image_1.jpg-a5b49517a57e37865fed3a56acfb6225.ctex"]
+dest_files=["res://.godot/imported/curb_3d_scan_Image_3-Image_1.jpg-a5b49517a57e37865fed3a56acfb6225.s3tc.ctex", "res://.godot/imported/curb_3d_scan_Image_3-Image_1.jpg-a5b49517a57e37865fed3a56acfb6225.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

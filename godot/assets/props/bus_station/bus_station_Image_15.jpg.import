@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://blfl3em41lfun"
-path="res://.godot/imported/bus_station_Image_15.jpg-999e3aa0a4cb8deb9895bc62b4b29478.ctex"
+path.s3tc="res://.godot/imported/bus_station_Image_15.jpg-999e3aa0a4cb8deb9895bc62b4b29478.s3tc.ctex"
+path.etc2="res://.godot/imported/bus_station_Image_15.jpg-999e3aa0a4cb8deb9895bc62b4b29478.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "57ae05ebb4518854c76b94e2f14adf96"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/props/bus_station/bus_station_Image_15.jpg"
-dest_files=["res://.godot/imported/bus_station_Image_15.jpg-999e3aa0a4cb8deb9895bc62b4b29478.ctex"]
+dest_files=["res://.godot/imported/bus_station_Image_15.jpg-999e3aa0a4cb8deb9895bc62b4b29478.s3tc.ctex", "res://.godot/imported/bus_station_Image_15.jpg-999e3aa0a4cb8deb9895bc62b4b29478.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

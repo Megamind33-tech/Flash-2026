@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dmds4hwpdngat"
-path="res://.godot/imported/electrical_box_free_Image_0.jpg-99790c80e94a32f0e7665131bdf2d73f.ctex"
+path.s3tc="res://.godot/imported/electrical_box_free_Image_0.jpg-99790c80e94a32f0e7665131bdf2d73f.s3tc.ctex"
+path.etc2="res://.godot/imported/electrical_box_free_Image_0.jpg-99790c80e94a32f0e7665131bdf2d73f.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "0ea995ee88a2f429a1ea12ec05c3208b"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/props/electrical_box_free/electrical_box_free_Image_0.jpg"
-dest_files=["res://.godot/imported/electrical_box_free_Image_0.jpg-99790c80e94a32f0e7665131bdf2d73f.ctex"]
+dest_files=["res://.godot/imported/electrical_box_free_Image_0.jpg-99790c80e94a32f0e7665131bdf2d73f.s3tc.ctex", "res://.godot/imported/electrical_box_free_Image_0.jpg-99790c80e94a32f0e7665131bdf2d73f.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

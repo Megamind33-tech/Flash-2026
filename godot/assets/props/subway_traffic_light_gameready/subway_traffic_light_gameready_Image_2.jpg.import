@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dyx4rw51lx1hg"
-path="res://.godot/imported/subway_traffic_light_gameready_Image_2.jpg-080c3d848d5535a3ac91a1301b564ff8.ctex"
+path.s3tc="res://.godot/imported/subway_traffic_light_gameready_Image_2.jpg-080c3d848d5535a3ac91a1301b564ff8.s3tc.ctex"
+path.etc2="res://.godot/imported/subway_traffic_light_gameready_Image_2.jpg-080c3d848d5535a3ac91a1301b564ff8.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "4f6488daa85699c9081354968541d6b3"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/props/subway_traffic_light_gameready/subway_traffic_light_gameready_Image_2.jpg"
-dest_files=["res://.godot/imported/subway_traffic_light_gameready_Image_2.jpg-080c3d848d5535a3ac91a1301b564ff8.ctex"]
+dest_files=["res://.godot/imported/subway_traffic_light_gameready_Image_2.jpg-080c3d848d5535a3ac91a1301b564ff8.s3tc.ctex", "res://.godot/imported/subway_traffic_light_gameready_Image_2.jpg-080c3d848d5535a3ac91a1301b564ff8.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

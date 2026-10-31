@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dm0em1wfvxksf"
-path="res://.godot/imported/sidewalk_8m_long_hq_Image_0.jpg-bf8e4e742b5e721949b0075a819c7f6b.ctex"
+path.s3tc="res://.godot/imported/sidewalk_8m_long_hq_Image_0.jpg-bf8e4e742b5e721949b0075a819c7f6b.s3tc.ctex"
+path.etc2="res://.godot/imported/sidewalk_8m_long_hq_Image_0.jpg-bf8e4e742b5e721949b0075a819c7f6b.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "0f715778a563424712ad6985cc99eba2"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/props/sidewalk_8m_long_hq/sidewalk_8m_long_hq_Image_0.jpg"
-dest_files=["res://.godot/imported/sidewalk_8m_long_hq_Image_0.jpg-bf8e4e742b5e721949b0075a819c7f6b.ctex"]
+dest_files=["res://.godot/imported/sidewalk_8m_long_hq_Image_0.jpg-bf8e4e742b5e721949b0075a819c7f6b.s3tc.ctex", "res://.godot/imported/sidewalk_8m_long_hq_Image_0.jpg-bf8e4e742b5e721949b0075a819c7f6b.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
