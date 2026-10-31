@@ -539,6 +539,9 @@ func _overlay_opened(o: Control) -> void:
 			status_box.visible = true
 		display_car = ""
 		display_paint = ""
+		if studio:
+			studio.show_fleet([], "")
+			studio.set_accent(UiStyle.ACCENT)
 		_place_showroom_car()
 		_show(page))
 

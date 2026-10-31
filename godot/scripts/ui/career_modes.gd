@@ -45,9 +45,12 @@ func _render() -> void:
 	_clear()
 	var bg := ColorRect.new()
 	# Team owner: the team garage (3D studio, ring in team colours) stays visible behind the HQ screens.
-	bg.color = Color(0.02, 0.02, 0.03, 0.78 if mode == "hub" else (0.74 if mode == "team" else 0.9))
+	bg.color = Color(0.02, 0.02, 0.03, 0.78 if mode == "hub" else (0.58 if mode == "team" else 0.9))
 	if menu and menu.get("studio"):
-		menu.studio.set_accent(Color(str(TeamOwner.state()["color"])) if mode == "team" and TeamOwner.founded() else UiStyle.ACCENT)
+		var team_on := mode == "team" and TeamOwner.founded()
+		menu.studio.set_accent(Color(str(TeamOwner.state()["color"])) if team_on else UiStyle.ACCENT)
+		var fleet: Array = (TeamOwner.state()["fleet"] as Array).map(func(f): return f["car"]) if team_on else []
+		menu.studio.show_fleet(fleet, str(TeamOwner.state()["color"]))
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	var back := DriverCards._btn("‹  BACK", func():
@@ -501,29 +504,51 @@ func _hq_overview(s: Dictionary) -> void:
 	var partner := 0
 	for sp in s["sponsors"]:
 		partner += int(sp["per_event"])
-	var tiles := HBoxContainer.new()
-	tiles.add_theme_constant_override("separation", 14)
-	_body.add_child(tiles)
-	for t in [["BUDGET", "$" + RaceHud._thousands(TeamOwner.money()), UiStyle.MONEY], ["WAGES / WEEK", "-$" + RaceHud._thousands(wages), UiStyle.RED],
-			["PARTNERS / EVENT", "+$" + RaceHud._thousands(partner), UiStyle.MONEY], ["DRIVERS", "%d / 4" % (s["drivers"] as Array).size(), Color.WHITE],
-			["TEAM CARS", str((s["fleet"] as Array).size()), Color.WHITE], ["PARTNERS", "%d / 3" % (s["sponsors"] as Array).size(), Color.WHITE]]:
-		var p := PanelContainer.new()
-		p.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.CHARCOAL, 1, UiStyle.LINE, 8))
-		p.custom_minimum_size = Vector2(236, 118)
-		var v := VBoxContainer.new()
-		v.alignment = BoxContainer.ALIGNMENT_CENTER
-		v.add_theme_constant_override("separation", -6)
-		p.add_child(v)
-		v.add_child(UiStyle.label(t[1], UiStyle.display(), 50, t[2], HORIZONTAL_ALIGNMENT_CENTER, false))
-		v.add_child(UiStyle.label(t[0], UiStyle.cond_bold(), 18, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_CENTER, false))
-		tiles.add_child(p)
+	# Hero row: the next decision (event to enter) and the money picture.
+	var nxt: Dictionary = {}
+	for c in TeamOwner.COMPETITIONS:   # the biggest event the team's reputation qualifies for, and can afford
+		if int(s["reputation"]) >= int(c["rep"]) and int(c["fee"]) * maxi(1, (s["drivers"] as Array).size()) <= TeamOwner.money():
+			nxt = c
+	var hero := HBoxContainer.new()
+	hero.add_theme_constant_override("separation", 16)
+	_body.add_child(hero)
+	var ev := PanelContainer.new()
+	ev.add_theme_stylebox_override("panel", UiStyle.box(Color(team_col.darkened(0.7), 0.92), 2, team_col, 10))
+	ev.custom_minimum_size = Vector2(860, 210)
+	hero.add_child(ev)
+	var evv := VBoxContainer.new()
+	evv.add_theme_constant_override("separation", 2)
+	ev.add_child(evv)
+	evv.add_child(UiStyle.label("  NEXT EVENT  ·  WEEK %d" % int(s["week"]), UiStyle.cond_bold(), 22, team_col.lightened(0.4), HORIZONTAL_ALIGNMENT_LEFT, false))
+	if nxt.is_empty():
+		evv.add_child(UiStyle.label("  Sign a driver and a car to enter events", UiStyle.display(), 52, Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, false))
+		evv.add_child(_small("SCOUT DRIVERS ›", func(): tab = "scouting"; _render()))
+	else:
+		evv.add_child(UiStyle.label("  " + str(nxt["name"]).to_upper(), UiStyle.display(), 64, Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, false))
+		evv.add_child(UiStyle.label("  %s  ·  %s  ·  PURSE $%s  ·  ENTRY $%s PER DRIVER  ·  FIELD %d" % [str(nxt["level"]).to_upper(), Career.city_name(nxt["city"]).to_upper(),
+			RaceHud._thousands(int(nxt["purse"])), RaceHud._thousands(int(nxt["fee"])), int(nxt["field"])], UiStyle.cond_bold(), 22, UiStyle.TEXT, HORIZONTAL_ALIGNMENT_LEFT, false))
+		var go := UiStyle.primary_button("ENTER EVENT", Vector2(320, 64), 40)
+		go.pressed.connect(func(): tab = "competitions"; _render())
+		evv.add_child(go)
+	var fin := PanelContainer.new()
+	fin.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.CHARCOAL, 1, UiStyle.LINE, 10))
+	fin.custom_minimum_size = Vector2(600, 210)
+	hero.add_child(fin)
+	var fv := VBoxContainer.new()
+	fv.add_theme_constant_override("separation", 0)
+	fin.add_child(fv)
+	fv.add_child(UiStyle.label("  TEAM BUDGET", UiStyle.cond_bold(), 22, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false))
+	fv.add_child(UiStyle.label("  $" + RaceHud._thousands(TeamOwner.money()), UiStyle.display(), 72, UiStyle.MONEY, HORIZONTAL_ALIGNMENT_LEFT, false))
+	var net := partner - wages
+	fv.add_child(UiStyle.label("  WAGES -$%s / WEEK   ·   PARTNERS +$%s / EVENT" % [RaceHud._thousands(wages), RaceHud._thousands(partner)], UiStyle.cond_bold(), 22, UiStyle.TEXT, HORIZONTAL_ALIGNMENT_LEFT, false))
+	fv.add_child(UiStyle.label("  NET PER RACING WEEK  %s$%s" % ["+" if net >= 0 else "-", RaceHud._thousands(absi(net))], UiStyle.cond_bold(), 26, UiStyle.MONEY if net >= 0 else UiStyle.RED, HORIZONTAL_ALIGNMENT_LEFT, false))
 	var cols := HBoxContainer.new()
 	cols.add_theme_constant_override("separation", 28)
 	_body.add_child(cols)
 	var left := VBoxContainer.new()
 	left.add_theme_constant_override("separation", 8)
 	cols.add_child(left)
-	left.add_child(UiStyle.label("DRIVER LINE-UP", UiStyle.cond_bold(), 24, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false))
+	left.add_child(UiStyle.label("DRIVER LINE-UP  %d/4  ·  CARS %d  ·  PARTNERS %d/3" % [(s["drivers"] as Array).size(), (s["fleet"] as Array).size(), (s["sponsors"] as Array).size()], UiStyle.cond_bold(), 24, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false))
 	var line := HBoxContainer.new()
 	line.add_theme_constant_override("separation", 12)
 	left.add_child(line)

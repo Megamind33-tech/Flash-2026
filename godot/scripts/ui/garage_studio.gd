@@ -29,6 +29,10 @@ var _drag_from := Vector2.ZERO
 var _dragging := false
 var _ring_mat: StandardMaterial3D
 var _accent_mats: Array = []
+var _covered: Node3D
+var _fleet: Array = []
+var _fleet_key := ""
+const BAYS := [Vector3(7.2, 0.3, 1.0), Vector3(-6.6, 0.3, -1.0), Vector3(-6.6, 0.3, 5.0), Vector3(7.2, 0.3, 7.4)]
 var preset := ""        # set by the dealership's camera buttons; "" = cinematic
 var frame_offset := 0.0 # degrees: shifts the car left (negative) / right in frame for side panels
 var frame_pitch := 0.0  # degrees: negative tilts the view down so the car sits higher in frame
@@ -225,7 +229,7 @@ func _room() -> void:
 	_prop("ladder_sectioned_01", Vector3(-12.6, 0, 4.6), 90.0)
 	_prop("metal_office_desk", Vector3(9.8, 0, 8.6), 180.0)
 	_prop("metal_stool_01", Vector3(9.4, 0, 7.6), 20.0)
-	_prop("covered_car", Vector3(7.2, 0, 1.0), 0.0)
+	_covered = _prop("covered_car", Vector3(7.2, 0, 1.0), 0.0)
 	if q >= 1:   # heavier props only from the Balanced tier up
 		_prop("portable_welding_cart", Vector3(-10.6, 0, -8.6), 120.0)
 		_prop("portable_generator", Vector3(-9.0, 0, -9.8), 30.0)
@@ -384,3 +388,25 @@ func set_accent(c: Color) -> void:
 		_ring_mat.emission = c
 	for m in _accent_mats:
 		(m as StandardMaterial3D).emission = c
+
+
+## Team Owner: park the team's real cars (fleet) in the garage bays, painted in the team colour. Empty list =
+## the normal showroom (covered car in the second bay).
+func show_fleet(cars: Array, paint: String) -> void:
+	var key := "%s|%s" % [str(cars), paint]
+	if key == _fleet_key:
+		return
+	_fleet_key = key
+	for n in _fleet:
+		if is_instance_valid(n):
+			n.queue_free()
+	_fleet.clear()
+	if _covered:
+		_covered.visible = cars.is_empty()
+	for i in mini(cars.size(), BAYS.size()):
+		var car := CarBuilder.build(paint, false, str(cars[i]))
+		car.freeze = true
+		car.process_mode = Node.PROCESS_MODE_DISABLED
+		add_child(car)
+		car.global_transform = Transform3D(Basis(Vector3.UP, deg_to_rad(180.0 if BAYS[i].x > 0 else 0.0)), BAYS[i])
+		_fleet.append(car)

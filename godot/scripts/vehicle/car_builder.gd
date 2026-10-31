@@ -64,7 +64,7 @@ static func material(slot: String, livery: String) -> Material:
 		"paint":
 			# Automotive paint: base coat under a glossy clear coat on every quality tier. White is a solid
 			# (non-metallic) paint; team colours are metallic.
-			var col: Color = PAINT.get(livery, PAINT["player_white"])
+			var col: Color = Color(livery) if livery.begins_with("#") else PAINT.get(livery, PAINT["player_white"])   # "#rrggbb" = team colour
 			var solid := livery == "player_white"
 			m.albedo_color = col if solid else col.darkened(0.08)
 			m.metallic = 0.0 if solid else 0.82
