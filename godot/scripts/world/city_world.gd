@@ -172,6 +172,7 @@ static func build(parent: Node3D, data: Dictionary, style: Dictionary, track: Tr
 		print("[GRIDLINE] street props %s" % JSON.stringify(street))
 	barrier_ads(root, track, track.half_width + BARRIER, 0.6)
 	race_furniture(root, track, track.half_width + BARRIER)
+	_landmark(root, data, track)
 	CityTraffic.build(root, data, track)   # gate G9: parked cars, side-street traffic, flags
 	# Potholes on the worn roads (none on smooth European asphalt below wear 0.5).
 	var wear := float(style.get("wear", style.get("stains", 0.6)))
@@ -780,6 +781,40 @@ static func _power_lines(root: Node3D, track: TrackPath) -> void:
 	mi.mesh = mesh
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	root.add_child(mi)
+
+
+## Gate G7: the city's skyline landmark (tools/buildings/build_landmarks.py), placed where you see it down
+## the start straight: 350-650 m ahead, offset to a side, on a spot clear of real building footprints and of the circuit.
+static func _landmark(root: Node3D, data: Dictionary, track: TrackPath) -> void:
+	var path := "res://assets/landmarks/%s.glb" % data["id"]
+	if not ResourceLoader.exists(path):
+		return
+	var cents := []
+	for b in data.get("buildings", []):
+		var poly := _poly(b[1])
+		var c := Vector2.ZERO
+		for q in poly:
+			c += q
+		cents.append(c / poly.size())
+	var start := track.position_at(0.0)
+	var fwd := track.tangent_at(0.0)
+	var right := track.right_at(0.0)
+	for ahead: float in [450.0, 600.0, 350.0, 750.0]:
+		for lat: float in [140.0, -140.0, 200.0, -200.0, 90.0, -90.0]:
+			var p := start + fwd * ahead + right * lat
+			var pr := track.project(p, [-1])
+			if absf(float(pr[1])) < track.half_width + 45.0:
+				continue
+			if cents.any(func(c): return (c as Vector2).distance_to(Vector2(p.x, p.z)) < 32.0):
+				continue
+			var lm: Node3D = (load(path) as PackedScene).instantiate()
+			lm.name = "Landmark"
+			root.add_child(lm)
+			lm.global_position = Vector3(p.x, 0.0, p.z)
+			lm.rotation.y = atan2(-fwd.x, -fwd.z)
+			for gi in lm.find_children("*", "GeometryInstance3D", true, false):
+				(gi as GeometryInstance3D).visibility_range_end = 4000.0
+			return
 
 
 ## Billboards on the roofs of buildings that face the circuit (every few buildings close to the road).
