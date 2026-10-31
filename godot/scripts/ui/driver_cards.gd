@@ -36,7 +36,7 @@ static func open(p_menu) -> DriverCards:
 ## Every driver the player can meet: the player, the league rivals, and the player's team-owner signings.
 static func all_drivers() -> Array:
 	var out := [player_driver()]
-	for d in Game.save.get("drivers", []):
+	for d in Game.save.get("aiDrivers", Game.default_drivers()):
 		out.append(league_driver(d))
 	for d in TeamOwner.roster():
 		out.append(d)
@@ -205,7 +205,7 @@ func _profile(d: Dictionary) -> void:
 	if _detail:
 		_detail.queue_free()
 	_detail = ColorRect.new()
-	(_detail as ColorRect).color = Color(0.02, 0.02, 0.03, 0.96)
+	(_detail as ColorRect).color = Color(0.02, 0.02, 0.03, 1.0)
 	_detail.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(_detail)
 	var back := _btn("‹  DRIVERS", func(): _detail.queue_free(); _detail = null)
@@ -221,7 +221,7 @@ func _profile(d: Dictionary) -> void:
 	_detail.add_child(col)
 	col.add_child(UiStyle.label(str(d.get("first", "")), UiStyle.cond(), 36, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false))
 	col.add_child(UiStyle.label(str(d.get("last", "")).to_upper(), UiStyle.display(), 110, Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, false))
-	col.add_child(UiStyle.label("#%d  ·  %s  ·  %s" % [d.get("number", 0), d.get("nat", ""), str(d.get("team", "")).to_upper()], UiStyle.cond_bold(), 30, Color(str(d.get("color", "#ffffff"))).lightened(0.3), HORIZONTAL_ALIGNMENT_LEFT, false))
+	col.add_child(UiStyle.label("#%d  ·  %s  ·  %s" % [int(d.get("number", 0)), d.get("nat", ""), str(d.get("team", "")).to_upper()], UiStyle.cond_bold(), 30, Color(str(d.get("color", "#ffffff"))).lightened(0.3), HORIZONTAL_ALIGNMENT_LEFT, false))
 	var stats := HBoxContainer.new()
 	stats.add_theme_constant_override("separation", 48)
 	col.add_child(stats)

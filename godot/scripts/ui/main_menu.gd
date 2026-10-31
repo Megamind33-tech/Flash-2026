@@ -145,9 +145,13 @@ func _process(delta: float) -> void:
 		return
 	var focus := viewport_car.global_position + Vector3.UP * 0.7
 	var rot := Basis(Vector3.UP, deg_to_rad(orbit + 200.0))
-	cam.global_position = focus + rot * Vector3(0, 1.1, -6.4)
+	var dealer := overlay is Dealership
+	# Dealership: further back and the car framed in the space left of the spec panel, above the card strip.
+	cam.global_position = focus + rot * (Vector3(0, 1.5, -8.8) if dealer else Vector3(0, 1.1, -6.4))
 	cam.look_at(focus, Vector3.UP)
-	cam.rotate_object_local(Vector3.UP, deg_to_rad(16.0))
+	cam.rotate_object_local(Vector3.UP, deg_to_rad(-11.0 if dealer else 16.0))
+	if dealer:
+		cam.rotate_object_local(Vector3.RIGHT, deg_to_rad(-6.0))
 
 
 func _build_ui() -> void:
