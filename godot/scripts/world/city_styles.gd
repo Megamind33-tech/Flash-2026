@@ -10,7 +10,7 @@ const ALL := ["lusaka", "kitwe", "kafue_forest", "great_north_highway", "nairobi
 
 const STYLES := {
 	"lusaka": {
-		"tagline": "Cairo Road, Lusaka CBD", "wall": "concrete_patch", "wall2": "plaster_rough",
+		"poles": true, "tagline": "Cairo Road, Lusaka CBD", "wall": "concrete_patch", "wall2": "plaster_rough",
 		"tints": ["#d9cfbd", "#c9b79a", "#e6e2d8"], "frame": "#3a2a1e", "sign": ["#1e6fd9", "#e0332b"],
 		"bay": 3.6, "floor": 3.2, "win": Vector2(0.58, 0.5), "shop": 1.0, "ac": 0.18, "stains": 0.75,
 		"ground": "ground_dirt", "ground_tint": "#b0704a", "road": "road_aged", "road_tint": "#9a958c",
@@ -19,7 +19,7 @@ const STYLES := {
 		"weather": {"clear": 0.45, "cloudy": 0.25, "dust": 0.12, "rain": 0.12, "storm": 0.06},
 	},
 	"kitwe": {
-		"tagline": "Copperbelt, Kitwe city centre", "wall": "plaster_old", "wall2": "concrete_patch",
+		"poles": true, "tagline": "Copperbelt, Kitwe city centre", "wall": "plaster_old", "wall2": "concrete_patch",
 		"tints": ["#cdbfa8", "#b8c4b0", "#d8b48c"], "frame": "#2b2b2b", "sign": ["#2e8b57", "#d0702a"],
 		"bay": 3.8, "floor": 3.1, "win": Vector2(0.55, 0.48), "shop": 1.0, "ac": 0.08, "stains": 0.9,
 		"ground": "ground_dirt", "ground_tint": "#a35a36", "road": "road_aged", "road_tint": "#8f8a80",
@@ -28,7 +28,7 @@ const STYLES := {
 		"weather": {"clear": 0.3, "cloudy": 0.3, "rain": 0.25, "storm": 0.1, "fog": 0.05},
 	},
 	"nairobi": {
-		"tagline": "Moi Avenue & Uhuru Highway, Nairobi", "wall": "concrete_grey", "wall2": "plaster_white",
+		"poles": true, "tagline": "Moi Avenue & Uhuru Highway, Nairobi", "wall": "concrete_grey", "wall2": "plaster_white",
 		"tints": ["#d4d2cc", "#bfc3c4", "#e2dccd"], "frame": "#202326", "sign": ["#0b7a3e", "#c8102e"],
 		"bay": 3.4, "floor": 3.3, "win": Vector2(0.66, 0.56), "shop": 1.0, "ac": 0.05, "stains": 0.55,
 		"ground": "grass", "ground_tint": "#8fa070", "road": "road_dark", "road_tint": "#a09d98",
@@ -37,7 +37,7 @@ const STYLES := {
 		"weather": {"clear": 0.3, "cloudy": 0.35, "rain": 0.2, "storm": 0.08, "fog": 0.07},
 	},
 	"mogadishu": {
-		"tagline": "Hamar Weyne old town, Mogadishu", "wall": "plaster_white", "wall2": "plaster_old",
+		"poles": true, "tagline": "Hamar Weyne old town, Mogadishu", "wall": "plaster_white", "wall2": "plaster_old",
 		"tints": ["#f4f1ea", "#e8eef0", "#efe3cf"], "frame": "#2c5d8a", "sign": ["#2c7fd1", "#f2b705"],
 		"bay": 3.3, "floor": 3.0, "win": Vector2(0.45, 0.52), "shop": 0.8, "ac": 0.12, "stains": 0.6,
 		"ground": "ground_sand", "ground_tint": "#e8d9b8", "road": "road_aged", "road_tint": "#a8a297",
@@ -46,7 +46,7 @@ const STYLES := {
 		"weather": {"clear": 0.6, "cloudy": 0.15, "dust": 0.17, "rain": 0.08},
 	},
 	"cairo": {
-		"tagline": "Downtown & Tahrir, Cairo", "wall": "concrete_beige", "wall2": "plaster_rough",
+		"poles": true, "tagline": "Downtown & Tahrir, Cairo", "wall": "concrete_beige", "wall2": "plaster_rough",
 		"tints": ["#d6c09a", "#c9a978", "#e0cfae"], "frame": "#4a3726", "sign": ["#c8102e", "#1a5fb4"],
 		"bay": 3.4, "floor": 3.1, "win": Vector2(0.5, 0.56), "shop": 1.0, "ac": 0.3, "stains": 0.7,
 		"ground": "ground_sand", "ground_tint": "#d9c49a", "road": "road_aged", "road_tint": "#a39a8a",

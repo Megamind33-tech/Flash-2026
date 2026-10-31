@@ -41,6 +41,20 @@ static func tex_mat(name: String, tile: float, tint := Color.WHITE, rough := 0.9
 	return m
 
 
+## Worn asphalt (patches, cracks, rubber line, tyre marks) that floods into reflective puddles in the rain.
+static func road_mat(style: Dictionary, half_width: float) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = load("res://scripts/world/road.gdshader")
+	var r := str(style["road"])
+	m.set_shader_parameter("asphalt", load(CITY + r + "_albedo.jpg"))
+	m.set_shader_parameter("asphalt_nrm", load(CITY + r + "_normal.jpg"))
+	m.set_shader_parameter("tint", Color(str(style["road_tint"])))
+	m.set_shader_parameter("wear", float(style.get("wear", style.get("stains", 0.6))))
+	m.set_shader_parameter("wet", float(Weather.PRESET[Weather.kind]["wet"]))
+	m.set_shader_parameter("half_width", half_width)
+	return m
+
+
 static func facade_mat(style: Dictionary, wall: String) -> ShaderMaterial:
 	var m := ShaderMaterial.new()
 	m.shader = load("res://scripts/world/facade.gdshader")
@@ -120,6 +134,8 @@ static func build(parent: Node3D, data: Dictionary, style: Dictionary, track: Tr
 	var ac := _buildings(root, data, style, rng)
 	_props(root, data, style, track, rng, ac)
 	barrier_ads(root, track, track.half_width + BARRIER, 0.6)
+	if style.get("poles", false):
+		_power_lines(root, track)
 	_rooftop_boards(root, data, track)
 	return root
 
@@ -206,7 +222,7 @@ static func _circuit(root: Node3D, style: Dictionary, track: TrackPath) -> void:
 			var w1 := b + rb * s * (hw + BARRIER)
 			faces.append_array([w0, w0 + up * 2.5, w1 + up * 2.5, w0, w1 + up * 2.5, w1])
 	var mesh := ArrayMesh.new()
-	road.commit(mesh, tex_mat(str(style["road"]), 7.0, Color(str(style["road_tint"])), 0.82))
+	road.commit(mesh, road_mat(style, hw))
 	lines.commit(mesh, _paint(Color(str(style["lines"]))))
 	kerbs.commit(mesh, TrackBuilder.kerb())
 	pave.commit(mesh, tex_mat("paving", 2.5, Color(0.86, 0.85, 0.82), 0.85))
@@ -481,7 +497,7 @@ static func _buildings(root: Node3D, data: Dictionary, style: Dictionary, rng: R
 		cen /= poly.size()
 		var key := Vector2i(floori(cen.x / CHUNK), floori(cen.y / CHUNK))
 		if not chunks.has(key):
-			chunks[key] = {"w1": Bucket.new(), "w2": Bucket.new(), "tower": Bucket.new(), "roof": Bucket.new()}
+			chunks[key] = {"w1": Bucket.new(), "w2": Bucket.new(), "tower": Bucket.new(), "roof": Bucket.new(), "ledge": Bucket.new()}
 		var ch: Dictionary = chunks[key]
 		var tower := h > 34.0
 		var bk: Bucket = ch["tower"] if tower else (ch["w1"] if rng.randf() < 0.7 else ch["w2"])
@@ -511,6 +527,31 @@ static func _buildings(root: Node3D, data: Dictionary, style: Dictionary, rng: R
 								continue
 							var pos := a + (c - a) * (u / wlen) + Vector3.UP * (f * floor_h + 0.35) + out * 0.2
 							ac.append(Transform3D(Basis.looking_at(-out, Vector3.UP), pos))
+		# Parapet on every roof; floor ledges / balcony slabs on a share of the low-rise blocks.
+		var ledges := not tower and rng.randf() < 0.45 and float(b[0]) < 40.0
+		for i in poly.size():
+			var p0 := poly[i]
+			var p1 := poly[(i + 1) % poly.size()]
+			var wl := p0.distance_to(p1)
+			if wl < 0.5:
+				continue
+			var e := (p1 - p0) / wl
+			var out := Vector3(e.y, 0, -e.x)
+			if Geometry2D.is_point_in_polygon((p0 + p1) * 0.5 + Vector2(out.x, out.z) * 0.3, poly):
+				out = -out
+			var a := Vector3(p0.x, h, p0.y)
+			var c := Vector3(p1.x, h, p1.y)
+			var lb: Bucket = ch["ledge"]
+			lb.quad(a, a + Vector3.UP * 0.9, c + Vector3.UP * 0.9, c, out, Vector2(0, 0), Vector2(0, 0.9), Vector2(wl, 0.9), Vector2(wl, 0))
+			lb.quad(a + Vector3.UP * 0.9, a + Vector3.UP * 0.9 - out * 0.25, c + Vector3.UP * 0.9 - out * 0.25, c + Vector3.UP * 0.9, Vector3.UP, Vector2(0, 0), Vector2(0, 0.25), Vector2(wl, 0.25), Vector2(wl, 0))
+			if ledges and wl > 4.0:
+				for f in range(1, mini(int(h / floor_h), 7)):
+					var y := f * floor_h - 0.05
+					var a2 := Vector3(p0.x, y, p0.y)
+					var c2 := Vector3(p1.x, y, p1.y)
+					var o := out * 0.45
+					lb.quad(a2 + o, a2 + o + Vector3.UP * 0.18, c2 + o + Vector3.UP * 0.18, c2 + o, out, Vector2(0, 0), Vector2(0, 0.18), Vector2(wl, 0.18), Vector2(wl, 0))
+					lb.quad(a2 + Vector3.UP * 0.18, a2 + o + Vector3.UP * 0.18, c2 + o + Vector3.UP * 0.18, c2 + Vector3.UP * 0.18, Vector3.UP, Vector2(0, 0), Vector2(0, 0.45), Vector2(wl, 0.45), Vector2(wl, 0))
 		var idx := Geometry2D.triangulate_polygon(poly)
 		var rb: Bucket = ch["roof"]
 		for k in range(0, idx.size(), 3):
@@ -527,6 +568,7 @@ static func _buildings(root: Node3D, data: Dictionary, style: Dictionary, rng: R
 		tw.emission_texture = load(CITY + "tower_lit_albedo.jpg")
 		tw.emission_energy_multiplier = 0.8
 	var roof := tex_mat("concrete_grey", 5.0, Color(0.55, 0.55, 0.54), 0.95)
+	var ledge_mat := tex_mat(str(style["wall"]), 4.0, Color(str(style["tints"][0])).darkened(0.08), 0.9)
 	for key in chunks:
 		var ch: Dictionary = chunks[key]
 		var mesh := ArrayMesh.new()
@@ -534,12 +576,52 @@ static func _buildings(root: Node3D, data: Dictionary, style: Dictionary, rng: R
 		(ch["w2"] as Bucket).commit(mesh, w2)
 		(ch["tower"] as Bucket).commit(mesh, tw)
 		(ch["roof"] as Bucket).commit(mesh, roof)
+		(ch["ledge"] as Bucket).commit(mesh, ledge_mat)
 		var mi := MeshInstance3D.new()
 		mi.name = "Buildings_%d_%d" % [key.x, key.y]
 		mi.mesh = mesh
 		mi.visibility_range_end = 1400.0
 		root.add_child(mi)
 	return ac
+
+
+## Wooden distribution poles with three sagging cables along one side of the street.
+static func _power_lines(root: Node3D, track: TrackPath) -> void:
+	var poles := []
+	var tops := []
+	var d := 3.0
+	while d < track.length - 20.0:
+		var p := track.position_at(d) + track.right_at(d) * (track.half_width + BARRIER + 3.2)
+		poles.append(Transform3D(Basis(), p + Vector3.UP * 4.6))
+		tops.append(p + Vector3.UP * 8.6)
+		d += 34.0
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 0.11
+	cyl.bottom_radius = 0.15
+	cyl.height = 9.2
+	cyl.radial_segments = 6
+	_multimesh(root, cyl, _paint(Color(0.3, 0.22, 0.15)), poles, "PowerPoles")
+	var wires := Bucket.new()
+	for k in tops.size():
+		var a: Vector3 = tops[k]
+		var b: Vector3 = tops[(k + 1) % tops.size()]
+		var side := (b - a).cross(Vector3.UP).normalized()
+		for w: float in [-0.5, 0.0, 0.5]:
+			var prev := a + side * w
+			for t in range(1, 9):
+				var f := t / 8.0
+				var cur := a.lerp(b, f) + side * w - Vector3.UP * (4.0 * f * (1.0 - f) * 0.9)
+				wires.quad(prev, prev + Vector3.UP * 0.025, cur + Vector3.UP * 0.025, cur, side, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, Vector2.ZERO)
+				prev = cur
+	var mesh := ArrayMesh.new()
+	var wm := _paint(Color(0.05, 0.05, 0.05))
+	wm.cull_mode = BaseMaterial3D.CULL_DISABLED
+	wires.commit(mesh, wm)
+	var mi := MeshInstance3D.new()
+	mi.name = "Cables"
+	mi.mesh = mesh
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(mi)
 
 
 ## Billboards on the roofs of buildings that face the circuit (every few buildings close to the road).

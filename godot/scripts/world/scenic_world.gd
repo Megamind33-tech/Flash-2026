@@ -154,7 +154,7 @@ static func _road(root: Node3D, style: Dictionary, track: TrackPath) -> void:
 			var s2 := -signf(k)
 			CityWorld._strip(kerbs, a, b, ra, rb, s2 * (hw - 1.0), s2 * (hw + 0.4), 0.03, da, db)
 	var mesh := ArrayMesh.new()
-	road.commit(mesh, CityWorld.tex_mat(str(style["road"]), 7.0, Color(str(style["road_tint"])), 0.82))
+	road.commit(mesh, CityWorld.road_mat(style, hw))
 	lines.commit(mesh, CityWorld._paint(Color(str(style["lines"]))))
 	kerbs.commit(mesh, TrackBuilder.kerb())
 	var steel := CityWorld._paint(Color(0.72, 0.74, 0.76))
