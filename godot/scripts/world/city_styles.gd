@@ -6,7 +6,7 @@ extends RefCounted
 
 const ORDER := ["lusaka", "kitwe", "nairobi", "mogadishu", "cairo", "london", "berlin"]
 ## Every venue: street circuits plus the scenic forest / highway / mountain roads.
-const ALL := ["lusaka", "kitwe", "kafue_forest", "great_north_highway", "nairobi", "rift_escarpment", "mogadishu", "cairo", "london", "berlin", "alpine_pass"]
+const ALL := ["lusaka", "kitwe", "kafue_forest", "great_north_highway", "nairobi", "rift_escarpment", "mogadishu", "cairo", "giza_desert", "london", "berlin", "alpine_pass"]
 
 const STYLES := {
 	"lusaka": {

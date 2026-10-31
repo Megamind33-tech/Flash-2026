@@ -28,6 +28,11 @@ var _help_timer := 0.0
 var _slow := 0.0
 var _last_count := -1
 var _colors := {}
+var boost_fill: ColorRect
+var boost_label: Label
+var skill_box: VBoxContainer
+var chain_label: Label
+var _chime: AudioStreamPlayer
 
 
 func bind(p_race) -> void:
@@ -48,6 +53,7 @@ func bind(p_race) -> void:
 	_build_info()
 	_build_board()
 	_build_speedo()
+	_build_skills()
 	_build_messages()
 	_build_buttons()
 	_build_controls()
@@ -56,6 +62,10 @@ func bind(p_race) -> void:
 		pause_panel.visible = true
 	race.notice.connect(_on_notice)
 	race.results_ready.connect(_show_results)
+	if race.skills:
+		race.skills.skill.connect(_on_skill)
+		race.skills.chain_banked.connect(func(pts): _skill_line("CHAIN BANKED", "+%s" % _thousands(pts), UiStyle.MONEY))
+		race.skills.chain_broken.connect(func(): _skill_line("CHAIN BROKEN", "", UiStyle.RED))
 
 
 func _anchor(c: Control, preset: int, pos: Vector2, sz: Vector2) -> void:
@@ -222,6 +232,71 @@ func _build_speedo() -> void:
 		rpm_segs.append(seg)
 
 
+## Boost gauge under the speedo and the skill feed on the right: each skill pops in with its points, the open chain
+## and its multiplier sit above it (Forza Horizon style).
+func _build_skills() -> void:
+	var gauge := Control.new()
+	gauge.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	gauge.offset_left = -170
+	gauge.offset_right = 170
+	gauge.offset_top = -12
+	gauge.offset_bottom = -4
+	gauge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud_layer.add_child(gauge)
+	var back := ColorRect.new()
+	back.color = Color(1, 1, 1, 0.15)
+	back.size = Vector2(340, 8)
+	gauge.add_child(back)
+	boost_fill = ColorRect.new()
+	boost_fill.color = Color(0.3, 0.75, 1.0)
+	boost_fill.size = Vector2(0, 8)
+	gauge.add_child(boost_fill)
+	boost_label = UiStyle.label("BOOST", UiStyle.cond_bold(), 20, Color(0.55, 0.85, 1.0), HORIZONTAL_ALIGNMENT_LEFT)
+	boost_label.position = Vector2(-80, -12)
+	boost_label.size = Vector2(76, 26)
+	gauge.add_child(boost_label)
+	var col := VBoxContainer.new()
+	col.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+	col.offset_left = -560
+	col.offset_right = -40
+	col.offset_top = -170
+	col.offset_bottom = 170
+	col.alignment = BoxContainer.ALIGNMENT_END
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud_layer.add_child(col)
+	chain_label = UiStyle.label("", UiStyle.display(), 54, UiStyle.GOLD, HORIZONTAL_ALIGNMENT_RIGHT)
+	col.add_child(chain_label)
+	skill_box = VBoxContainer.new()
+	skill_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(skill_box)
+	_chime = AudioStreamPlayer.new()
+	_chime.stream = load("res://assets/audio/skill_chime.wav")
+	_chime.volume_db = -8.0
+	add_child(_chime)
+
+
+func _on_skill(name: String, points: int, mult: int) -> void:
+	_skill_line(name, "+%s" % _thousands(points), Color.WHITE)
+	if _chime:
+		_chime.pitch_scale = 1.0 + 0.08 * (mult - 1)
+		_chime.play()
+
+
+func _skill_line(title: String, value: String, color: Color) -> void:
+	var l := UiStyle.label("%s   %s" % [title, value], UiStyle.cond_bold(), 38, color, HORIZONTAL_ALIGNMENT_RIGHT)
+	skill_box.add_child(l)
+	while skill_box.get_child_count() > 4:
+		skill_box.get_child(0).queue_free()
+		skill_box.remove_child(skill_box.get_child(0))
+	var tw := l.create_tween()
+	l.scale = Vector2(1.25, 1.25)
+	l.pivot_offset = Vector2(520, 20)
+	tw.tween_property(l, "scale", Vector2.ONE, 0.18)
+	tw.tween_interval(2.6)
+	tw.tween_property(l, "modulate:a", 0.0, 0.6)
+	tw.tween_callback(l.queue_free)
+
+
 func _build_messages() -> void:
 	big = UiStyle.label("", UiStyle.display(), 150, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
 	big.set_anchors_preset(Control.PRESET_CENTER_TOP)
@@ -326,6 +401,7 @@ func _build_controls() -> void:
 		_pad(left, "steer_right", Vector2(310, -280), Vector2(230, 230), true, "chevron_right", "", Color.WHITE)
 	_pad(right, "brake", Vector2(-520, -300), Vector2(200, 250), false, "", "BRAKE", UiStyle.RED)
 	_pad(right, "accelerate", Vector2(-280, -390), Vector2(220, 340), false, "speed", "GAS", UiStyle.MONEY)
+	_pad(right, "boost", Vector2(-480, -520), Vector2(150, 150), true, "", "NOS", Color(0.3, 0.75, 1.0))
 	# Player-configurable size and transparency (Settings), scaled toward each screen corner.
 	var sc := float(Game.settings().get("controlsSize", 1.0))
 	left.scale = Vector2(sc, sc)
@@ -456,6 +532,13 @@ func _process(delta: float) -> void:
 		var red := i >= RPM_SEGMENTS * 0.86
 		rpm_segs[i].color = (UiStyle.RED if red else Color.WHITE) if i < lit else Color(1, 1, 1, 0.18)
 	rpm_fill.size.x = 122.5 * car.rpm
+	boost_fill.size.x = 340.0 * car.boost_charge
+	boost_fill.color = Color(1.0, 0.85, 0.3) if car.boosting else Color(0.3, 0.75, 1.0)
+	if race.skills:
+		var sk: Skills = race.skills
+		chain_label.text = ("%s  ×%d" % [_thousands(sk.chain), sk.mult]) if sk.chain > 0 else ""
+	if race.camera:
+		race.camera.boost_kick = 1.0 if car.boosting else 0.0
 	progress_fill.size.x = 122.5 * (0.0 if p.laps.progress < 0.0 else fposmod(p.laps.progress, race.track.length) / race.track.length)
 
 	if race.phase == race.Phase.COUNTDOWN:
@@ -614,6 +697,8 @@ func _rewards() -> Control:
 		lines.append(["Prize · " + _ordinal(rw["position"]), "+$%d" % rw["prize"], UiStyle.MONEY])
 		if rw["fastestBonus"] > 0:
 			lines.append(["Fastest lap", "+$%d" % rw["fastestBonus"], UiStyle.MONEY])
+		if int(rw.get("skills", 0)) > 0:
+			lines.append(["Skill chains (%s pts)" % _thousands(race.skills.score), "+$%d" % int(rw["skills"]), UiStyle.MONEY])
 		if race.receipt.get("fee", 0) > 0:
 			lines.append(["Entry fee", "-$%d" % race.receipt["fee"], UiStyle.RED])
 		if race.receipt.get("sponsored", false):

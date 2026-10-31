@@ -10,6 +10,7 @@ func _ready() -> void:
 		var root := Node3D.new()
 		add_child(root)
 		CityWorld._landmark(root, data, track)
+		RealBuildings.build(root, data, {})   # heritage features (London: Big Ben is the landmark)
 		var lm := root.get_node_or_null("Landmark") as Node3D
 		if lm == null:
 			print("LANDMARK %-10s NOT PLACED" % id)

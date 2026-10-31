@@ -20,6 +20,10 @@ var event := {}
 var track: TrackPath
 var racers: Array[Racer] = []
 var ais: Array[AIDriver] = []
+var skills: Skills
+var skill_bonus := 0
+var _music: AudioStreamPlayer
+var _crowd: AudioStreamPlayer3D
 var race_seed := 0
 var player: Racer
 var standings: Array = []
@@ -103,6 +107,8 @@ func _ready() -> void:
 		Game.session["entry_paid"] = true
 		Game.persist()
 	_spawn_grid()
+	skills = Skills.new(player, racers)
+	_race_audio()
 	reset_dynamic_resolution()
 	_setup_format()
 	camera = ChaseCamera.new()
@@ -183,6 +189,26 @@ func _ready() -> void:
 			lc.look_at(lmk.global_position + Vector3.UP * 20.0, Vector3.UP)
 			lc.make_current()
 			camera.set_physics_process(false)
+	var cn := args.find("--cam-node")   # evidence: a named node (Landmark, Feature_tower_bridge, Real_<id>) from the road
+	if cn >= 0 and cn + 1 < args.size():
+		var tgt := find_child(args[cn + 1], true, false) as Node3D
+		if tgt:
+			var aim := tgt.global_position
+			if tgt.get_child_count() > 0 and tgt.get_child(0) is Node3D:
+				aim = (tgt.get_child(0) as Node3D).global_position
+			var dn := float(track.project(aim, [-1])[0])
+			var back := float(args[cn + 2]) if cn + 2 < args.size() and args[cn + 2].is_valid_float() else 25.0
+			var nc := Camera3D.new()
+			add_child(nc)
+			nc.far = 3000.0
+			nc.global_position = track.position_at(track.wrapd(dn - back)) + Vector3.UP * 2.2
+			var height := 8.0
+			for gi in tgt.find_children("*", "MeshInstance3D", true, false):
+				height = maxf(height, ((gi as MeshInstance3D).get_aabb().size.y * (gi as Node3D).global_basis.get_scale().y) * 0.35)
+			nc.look_at(aim + Vector3.UP * height, Vector3.UP)
+			nc.make_current()
+			camera.set_physics_process(false)
+			print("[GRIDLINE] cam-node %s at %s, camera %s" % [args[cn + 1], aim, nc.global_position])
 	var ca := args.find("--cam-ad")   # screenshots: frame the first ad of a kind (led, gantry, urban, barrier)
 	if ca >= 0 and AdPlacementManager.instance:
 		for p in AdPlacementManager.instance.placements.values():
@@ -224,7 +250,7 @@ func _ready() -> void:
 		add_child(hud)
 		hud.bind(self)
 	# The opener ends by making the chase camera current, so skip it when a screenshot fixes the camera.
-	if DisplayServer.get_name() != "headless" and not (args.has("--cam-ad") or args.has("--cam-prop") or args.has("--cam-pothole") or args.has("--cam-people") or args.has("--cam-driver") or args.has("--cam-water") or args.has("--cam-landmark")):
+	if DisplayServer.get_name() != "headless" and not (args.has("--cam-ad") or args.has("--cam-prop") or args.has("--cam-pothole") or args.has("--cam-people") or args.has("--cam-driver") or args.has("--cam-water") or args.has("--cam-landmark") or args.has("--cam-node")):
 		await _intro()
 	await get_tree().create_timer(0.75).timeout
 	phase = Phase.COUNTDOWN
@@ -469,8 +495,12 @@ func _physics_process(delta: float) -> void:
 			car_pos.append(r.car.global_position)
 		People.feed_cars(car_pos)
 	if phase == Phase.COUNTDOWN:
+		var shown := ceili(countdown_left)
 		countdown_left -= delta
+		if ceili(countdown_left) != shown and ceili(countdown_left) in [1, 2, 3]:
+			_sfx("res://assets/audio/countdown_beep.wav", -4.0)
 		if countdown_left <= 0.0:
+			_sfx("res://assets/audio/countdown_go.wav", -2.0)
 			countdown_left = 0.0
 			phase = Phase.RACING
 			for r in racers:
@@ -519,6 +549,52 @@ func _physics_process(delta: float) -> void:
 			ai.drive(delta)
 		if not Game.session["autopilot"] and phase == Phase.RACING:
 			_player_input()
+		if skills and phase == Phase.RACING and not player.laps.finished:
+			skills.update(delta)
+
+
+func _sfx(path: String, db: float) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var p := AudioStreamPlayer.new()
+	p.stream = load(path)
+	p.volume_db = db
+	add_child(p)
+	p.play()
+	p.finished.connect(p.queue_free)
+
+
+## Sound: engines on every car (layered loops with Doppler), the crowd at the grid, race music that switches to
+## the final-lap track. Not in headless test runs.
+func _race_audio() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	for r in racers:
+		if not r.is_player:
+			EngineAudio.attach(r.car, false)
+	_crowd = AudioStreamPlayer3D.new()
+	var cs: AudioStreamOggVorbis = load("res://assets/audio/crowd_loop.ogg")
+	cs.loop = true
+	_crowd.stream = cs
+	_crowd.unit_size = 30.0
+	_crowd.max_db = 0.0
+	_crowd.volume_db = -4.0
+	add_child(_crowd)
+	_crowd.global_position = track.position_at(track.wrapd(-20.0)) + track.right_at(0.0) * (track.half_width + 4.0) + Vector3.UP * 2.0
+	_crowd.play()
+	_music = AudioStreamPlayer.new()
+	var ms: AudioStreamOggVorbis = load("res://assets/audio/music_race.ogg")
+	ms.loop = true
+	_music.stream = ms
+	_music.volume_db = linear_to_db(maxf(0.001, float(Game.settings().get("music", 0.6)))) - 10.0
+	add_child(_music)
+	_music.play()
+	notice.connect(func(m):
+		if m == "FINAL LAP" and _music:
+			var fl: AudioStreamOggVorbis = load("res://assets/audio/music_final_lap.ogg")
+			fl.loop = true
+			_music.stream = fl
+			_music.play())
 
 
 func _player_input() -> void:
@@ -534,6 +610,7 @@ func _player_input() -> void:
 	car.steer_input = clampf(steer, -1.0, 1.0)
 	car.throttle = Input.get_action_strength("accelerate")
 	car.brake_input = Input.get_action_strength("brake")
+	car.boost_held = Input.is_action_pressed("boost")
 
 
 ## Auto resolution: every second, compare the frame rate with the cap. Below 90 % of the cap the 3D resolution
@@ -636,9 +713,21 @@ func _complete() -> void:
 			if medal == 0 and player.laps.best_lap_ms <= int(medals[k]):
 				medal = k + 1
 		notice.emit(["NO MEDAL", "GOLD MEDAL", "SILVER MEDAL", "BRONZE MEDAL"][medal])
+	if skills:
+		skill_bonus = skills.finish() / 40   # 4,000 skill points = $100
+		print("[GRIDLINE] skills score=%d bonus=$%d %s" % [skills.score, skill_bonus, JSON.stringify(skills.counts)])
+	if _crowd:
+		var ap := AudioStreamPlayer.new()
+		ap.stream = load("res://assets/audio/crowd_applause.ogg")
+		ap.volume_db = -6.0
+		add_child(ap)
+		ap.play()
 	if Game.session["affects_career"]:
 		var pos := _result_position()
 		reward = Game.apply_result(event, pos, racers.size(), player.laps.best_lap_ms, fastest_id == "player")
+		if skill_bonus > 0:
+			Game._post(Game.save["career"], skill_bonus, "skills", "Skill chains")
+			reward["skills"] = skill_bonus
 		var pr := Game.progress()
 		if not (pr["done"] as Array).has(event["id"]):
 			(pr["done"] as Array).append(event["id"])

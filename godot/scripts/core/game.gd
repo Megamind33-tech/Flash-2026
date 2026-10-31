@@ -66,7 +66,7 @@ func _ensure_input_actions() -> void:
 	# Touch buttons and an optional Bluetooth gamepad drive these; there are no keyboard bindings in the shipped game.
 	var pads := {
 		"accelerate": [JOY_BUTTON_A], "brake": [JOY_BUTTON_X], "steer_left": [JOY_BUTTON_DPAD_LEFT], "steer_right": [JOY_BUTTON_DPAD_RIGHT],
-		"pause": [JOY_BUTTON_START], "camera": [JOY_BUTTON_Y],
+		"pause": [JOY_BUTTON_START], "camera": [JOY_BUTTON_Y], "boost": [JOY_BUTTON_B, JOY_BUTTON_RIGHT_SHOULDER],
 	}
 	for action in pads:
 		if not InputMap.has_action(action):
@@ -97,7 +97,7 @@ func new_save() -> Dictionary:
 		"version": SAVE_VERSION,
 		"career": {"driverName": "Rookie", "money": 0, "reputation": 0, "racesEntered": 0, "wins": 0, "podiums": 0,
 			"championshipPoints": 0, "ledger": [], "trackRecords": {}},
-		"settings": {"steering": "touch", "sensitivity": 1.0, "quality": 1, "showFps": false, "volume": 0.8, "renderScale": 0.0, "fps": 60},
+		"settings": {"steering": "touch", "sensitivity": 1.0, "quality": 1, "showFps": false, "volume": 0.8, "renderScale": 0.0, "fps": 60, "music": 0.6},
 		"aiDrivers": default_drivers(),
 		"teams": default_teams(),
 		"history": [],

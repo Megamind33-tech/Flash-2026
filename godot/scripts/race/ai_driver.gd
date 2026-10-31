@@ -86,6 +86,8 @@ func drive(delta: float) -> void:
 	if _mistake_left > 0.0:
 		_mistake_left -= delta
 		target_speed *= 0.72
+	if OS.has_environment("AI_DEBUG") and racer.id == OS.get_environment("AI_DEBUG") and Engine.get_physics_frames() % 120 == 0:
+		print("[AIDBG] %s d=%.0f speed=%.1f profile=%.1f cap=%.1f target=%.1f mistake=%.2f lane=%.1f thr=%.2f brk=%.2f" % [racer.id, d, speed, profile, cap, target_speed, _mistake_left, _lane, car.throttle, car.brake_input])
 	var err := target_speed - speed
 	if err > 0.0:
 		car.throttle = clampf(0.35 + err * 0.25, 0.0, 1.0)

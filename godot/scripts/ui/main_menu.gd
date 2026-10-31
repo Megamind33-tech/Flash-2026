@@ -63,6 +63,19 @@ func _ready() -> void:
 	_build_ui()
 	_build_hub()
 	_show("main")
+	if DisplayServer.get_name() != "headless":   # menu music (CC0, assets/audio/CREDITS.md)
+		var mp := AudioStreamPlayer.new()
+		mp.name = "Music"
+		var ms: AudioStreamOggVorbis = load("res://assets/audio/music_menu.ogg")
+		ms.loop = true
+		mp.stream = ms
+		mp.volume_db = linear_to_db(maxf(0.001, float(Game.settings().get("music", 0.6)))) - 8.0
+		add_child(mp)
+		mp.play()
+		_click = AudioStreamPlayer.new()
+		_click.stream = load("res://assets/audio/ui_click.wav")
+		_click.volume_db = -10.0
+		add_child(_click)
 	var args := OS.get_cmdline_user_args()   # screenshots/tests: open a page directly (e.g. --page garage)
 	if args.has("--page"):
 		_go(args[args.find("--page") + 1])
@@ -297,8 +310,12 @@ func _refresh_status() -> void:
 	rep_fill.size.x = 300.0 * float(int(c["reputation"]) % Game.REP_PER_RANK) / Game.REP_PER_RANK
 
 
+var _click: AudioStreamPlayer
+
+
 func _item(text: String, value: String, cb: Callable, selected := false, danger := false) -> void:
 	var b := UiStyle.list_item(text, value, selected, danger)
+	b.pressed.connect(func(): if _click: _click.play())
 	b.pressed.connect(cb)
 	list.add_child(b)
 
@@ -486,6 +503,17 @@ func _show(p: String) -> void:
 			_item("Steering", "Tilt" if s["steering"] == "tilt" else "Touch", func(): s["steering"] = "touch" if s["steering"] == "tilt" else "tilt"; _save_settings())
 			_item("Steering Sensitivity", "%.1f" % float(s["sensitivity"]), func(): s["sensitivity"] = 0.6 if float(s["sensitivity"]) >= 1.6 else snappedf(float(s["sensitivity"]) + 0.2, 0.1); _save_settings())
 			UiStyle.graphics_rows(list, _save_settings)
+			var vols := [0.0, 0.25, 0.5, 0.75, 1.0]
+			var mi := 0
+			for k in vols.size():
+				if absf(float(s.get("music", 0.6)) - vols[k]) < absf(float(s.get("music", 0.6)) - vols[mi]):
+					mi = k
+			list.add_child(UiStyle.segmented("Music", ["Off", "25%", "50%", "75%", "100%"], mi, func(i):
+				s["music"] = vols[i]
+				var mp := get_node_or_null("Music") as AudioStreamPlayer
+				if mp:
+					mp.volume_db = linear_to_db(maxf(0.001, vols[i])) - 8.0
+				_save_settings()))
 			_item("Frame Rate Counter", "On" if s["showFps"] else "Off", func(): s["showFps"] = not s["showFps"]; _save_settings())
 			_item("Control Size", "%d%%" % roundi(float(s.get("controlsSize", 1.0)) * 100), func(): s["controlsSize"] = _cycle([0.8, 0.9, 1.0, 1.1, 1.2], float(s.get("controlsSize", 1.0))); _save_settings())
 			_item("Control Opacity", "%d%%" % roundi(float(s.get("controlsOpacity", 0.85)) * 100), func(): s["controlsOpacity"] = _cycle([0.4, 0.6, 0.85, 1.0], float(s.get("controlsOpacity", 0.85))); _save_settings())
@@ -505,6 +533,13 @@ func _show(p: String) -> void:
 			_info_row("Trees and surfaces", "Poly Haven, ambientCG · CC0")
 			_info_row("Building facades", "Poly Haven modular facade kits · CC0")
 			_info_row("Driving model base", "Godot Truck Town demo · MIT")
+			# Real buildings and landmarks (Sketchfab CC BY / CC0, decimated and re-oriented; heritage models are ours).
+			var idx := RealBuildings.index()
+			for k in idx:
+				var e: Dictionary = idx[k]
+				if str(e.get("author", "")) != "":
+					_info_row(str(e.get("name", k)).left(34), "%s · %s" % [str(e["author"]).left(26), e.get("licence", "")])
+			_info_row("Engine sounds, music, crowd", "OpenGameArt contributors · CC0")
 			# Street props and road scans (CC BY): title, author, licence and that we modified them.
 			var pf := FileAccess.open("res://assets/props/credits.json", FileAccess.READ)
 			if pf:

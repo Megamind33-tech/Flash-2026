@@ -311,3 +311,38 @@ performance/quality graphics, predictable races (Reyes always P1).
   a pace-weighted qualifying draw and the seed changes every race (`--seed N` for repeatable tests). Six seeded races:
   winners Lindqvist, Okafor ×2, Reyes ×2, Brandt.
 Evidence: `docs/evidence/bugfix_round.jpg`.
+
+## 11. Real buildings, London and Egypt landmarks, sound and skill chains (session 018vwXNe)
+Owner feedback: buildings still look procedural and every city looks alike; Egypt needs a route past the
+pyramids and desert; London needs Big Ben and Tower Bridge; the game is rigid, silent and not fun.
+- **Real buildings (`scripts/world/real_buildings.gd`).** 15 third-party building models (Sketchfab, CC BY / CC0)
+  made game-ready by `tools/buildings/export_real_buildings.py` from `tools/buildings/real_catalogue.json`: objects
+  filtered, joined, scaled to real metres, facade (most detailed side) turned to +Z, decimated to ≤ 9k triangles,
+  textures ≤ 1024 px, VRAM-compressed. Each city has its own set: London (Kinnaird House stone block, Victorian hall
+  and corner block, Georgian brick terrace, European stone apartments, glass tower), Cairo/Mogadishu (Mediterranean
+  balcony block, three Arabic sandstone houses, desert house), Berlin (Altbau, Plattenbau, stone apartments),
+  Nairobi/Lusaka/Kitwe (residential and office towers). OSM blocks fronting the circuit (2–55 m from the road edge)
+  get an oriented-rectangle fit and the best-fitting model (width/depth/height, no immediate repeats), facade to the
+  circuit; up to 36 (Balanced) / 70 (Quality) / 90 (Ultra) per city, one MeshInstance each so they cull, LOD and fade
+  individually. The facade kit dresses the rest. `--no-real-buildings` is the baseline. Licences per model in
+  `assets/buildings/real/<id>/LICENSE.txt`, `real/index.json` and the in-game Credits page.
+- **London.** The Thames was missing (OSM multipolygon); `tools/cities/add_rivers.py` adds it from the OSM centreline
+  at its real ~230 m width — the circuit runs along the Embankment, 15 m from the water. Big Ben (CC BY model, 96 m)
+  stands at its true position by Westminster Bridge; Tower Bridge (modelled to real dimensions in
+  `tools/buildings/model_heritage.py`, Poly Haven stone, 1977 blue/white steel) spans the river 684 m from the start
+  (moved up-river from its real site 3.4 km east, outside the map). The old primitive clock tower is retired.
+- **Giza Plateau Road** (`giza_desert`, Pan-African Cup): 5.3 km desert loop over sand dunes; the three pyramids
+  (modelled course by course at real size: Khufu 230 m / 138.5 m, Khafre with its casing cap, Menkaure) and the
+  Sphinx (CC BY scan, tinted sandstone) at their real relative positions, the complex turned so the road passes
+  35–73 m from each; ground levelled under each monument; a village of Arabic and desert houses by the Sphinx.
+- **Sound.** Layered engine audio on every car (`vehicle/engine_audio.gd`: six CC0 loops idle→redline, equal-power
+  crossfade, pitch tracking, load-dependent level, Doppler on AI pass-bys), wind roar with speed, boost whoosh, crowd
+  ambience at the grid and applause at the finish, race music switching to a final-lap track, menu music, countdown
+  beeps, UI clicks, a Music volume row in Settings. Credits in `assets/audio/CREDITS.md`.
+- **Fun.** Skill chains (`race/skills.gd`): drift, near miss, slipstream, clean overtake, airtime, speed trap; skills
+  within 5 s build a chain and multiplier (×5), banked chains charge the boost and pay out as cash
+  (4,000 pts = $100); a hard hit breaks the chain. Boost (NOS button, gamepad B/RB): +55 % drive force and +12 % top
+  speed while held, FOV kick, whoosh. Slipstream cuts aero drag 32 % behind another car.
+- **AI fix.** Cars pinned sideways against a rail (still sliding, so never "stopped") are now recovered; a Giza pile-up
+  crawled at 18 km/h for minutes before.
+Next: free-roam/open-road sprint events between cities, rewind, more city-specific street furniture, dune vegetation.

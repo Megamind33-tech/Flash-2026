@@ -1,0 +1,394 @@
+{
+ "arab_house_a": {
+  "author": "3laa.alrfooh",
+  "cities": [
+   "cairo",
+   "mogadishu",
+   "giza"
+  ],
+  "depth": 11.81,
+  "front": "+x",
+  "height": 9.0,
+  "id": "arab_house_a",
+  "kind": "building",
+  "licence": "CC Attribution",
+  "name": "Arabic+city",
+  "source_tris": 17623,
+  "tris": 6000,
+  "url": "https://sketchfab.com/3d-models/d0a2441fb98f4ed68f7a9f49492815e7",
+  "width": 15.28
+ },
+ "arab_house_b": {
+  "author": "3laa.alrfooh",
+  "cities": [
+   "cairo",
+   "mogadishu",
+   "giza"
+  ],
+  "depth": 32.98,
+  "front": "+y",
+  "height": 9.0,
+  "id": "arab_house_b",
+  "kind": "building",
+  "licence": "CC Attribution",
+  "name": "Arabic+city",
+  "source_tris": 42083,
+  "tris": 6999,
+  "url": "https://sketchfab.com/3d-models/d0a2441fb98f4ed68f7a9f49492815e7",
+  "width": 25.42
+ },
+ "arab_house_c": {
+  "author": "3laa.alrfooh",
+  "cities": [
+   "cairo",
+   "mogadishu",
+   "giza"
+  ],
+  "depth": 26.85,
+  "front": "-y",
+  "height": 9.0,
+  "id": "arab_house_c",
+  "kind": "building",
+  "licence": "CC Attribution",
+  "name": "Arabic+city",
+  "source_tris": 26110,
+  "tris": 6000,
+  "url": "https://sketchfab.com/3d-models/d0a2441fb98f4ed68f7a9f49492815e7",
+  "width": 12.97
+ },
+ "berlin_altbau": {
+  "author": "cabriocatartist",
+  "cities": [
+   "berlin"
+  ],
+  "depth": 4.65,
+  "front": "-y",
+  "height": 20.46,
+  "id": "berlin_altbau",
+  "kind": "building",
+  "licence": "CC Attribution",
+  "name": "Classic Apartment Building 3",
+  "source_tris": 24236,
+  "tris": 9000,
+  "url": "https://sketchfab.com/3d-models/0669f42f4fb3434ea30fc6f02af33ed6",
+  "width": 7.28
+ },
+ "berlin_plattenbau": {
+  "author": "Colin.Greenall",
+  "cities": [
+   "berlin"
+  ],
+  "depth": 10.11,
+  "front": "+x",
+  "height": 17.0,
+  "id": "berlin_plattenbau",
+  "kind": "building",
+  "licence": "CC Attribution",
+  "name": "LOW POLY - SOVIET  APARTMENT BUILDING 8K",
+  "source_tris": 10392,
+  "tris": 6000,
+  "url": "https://sketchfab.com/3d-models/05229ac1d1f94e6c8cacaad91110c602",
+  "width": 24.59
+ },
+ "big_ben": {
+  "author": "noears6",
+  "cities": [
+   "london"
+  ],
+  "depth": 16.98,
+  "front": "+y",
+  "height": 96.0,
+  "id": "big_ben",
+  "kind": "landmark",
+  "licence": "CC Attribution",
+  "name": "Clock Tower (Big Ben)",
+  "source_tris": 38540,
+  "tris": 24000,
+  "url": "https://sketchfab.com/3d-models/9a1c691fac774bcca4e2ba565c4c9d9b",
+  "width": 16.98
+ },
+ "dark_apartment_tower": {
+  "author": "Gustaf.Andersson66",
+  "cities": [
+   "nairobi",
+   "kitwe",
+   "lusaka"
+  ],
+  "depth": 12.27,
+  "front": "-x",
+  "height": 38.03,
+  "id": "dark_apartment_tower",
+  "kind": "building",
+  "licence": "CC Attribution",
+  "name": "Apartemnt",
+  "source_tris": 35622,
+  "tris": 9000,
+  "url": "https://sketchfab.com/3d-models/db9817bc2d9b4d22887c539ab40ca4ea",
+  "width": 16.51
+ },
+ "desert_house": {
+  "author": "Avgust9",
+  "cities": [
+   "cairo",
+   "mogadishu",
+   "giza"
+  ],
+  "depth": 12.74,
+  "front": "-y",
+  "height": 8.5,
+  "id": "desert_house",
+  "kind": "building",
+  "licence": "CC Attribution",
+  "name": "Desert House",
+  "source_tris": 2205,
+  "tris": 2205,
+  "url": "https://sketchfab.com/3d-models/dfd9dd93d3ed4e8eae1b1b4c2659857e",
+  "width": 8.37
+ },
+ "euro_stone_apartment": {
+  "author": "gloriosa",
+  "cities": [
+   "london",
+   "berlin"
+  ],
+  "depth": 16.07,
+  "front": "-y",
+  "height": 23.0,
+  "id": "euro_stone_apartment",
+  "kind": "building",
+  "licence": "CC Attribution",
+  "name": "Apartment building 07",
+  "source_tris": 66884,
+  "tris": 9000,
+  "url": "https://sketchfab.com/3d-models/234942f51b8d4405a7370b56aa182e2f",
+  "width": 17.54
+ },
+ "glass_office_tower": {
+  "author": "99.Miles",
+  "cities": [
+   "nairobi",
+   "lusaka",
+   "london"
+  ],
+  "depth": 56.01,
+  "front": "-y",
+  "height": 105.0,
+  "id": "glass_office_tower",
+  "kind": "building",
+  "licence": "CC Attribution",
+  "name": "Singapore Office Skyscraper [FREE]",
+  "source_tris": 26391,
+  "tris": 9000,
+  "url": "https://sketchfab.com/3d-models/2305f0fe03ba44229a1f768dcb48bd8f",
+  "width": 58.85
+ },
+ "great_pyramid": {
+  "author": "GRIDLINE (modelled from public reference)",
+  "cities": [
+   "giza",
+   "cairo"
+  ],
+  "depth": 229.89,
+  "front": "-y",
+  "height": 138.5,
+  "id": "great_pyramid",
+  "kind": "landmark",
+  "licence": "Project-owned model; textures Poly Haven CC0",
+  "name": "Great Pyramid",
+  "source_tris": 0,
+  "tris": 1154,
+  "url": "https://polyhaven.com",
+  "width": 230.04
+ },
+ "khafre_pyramid": {
+  "author": "GRIDLINE (modelled from public reference)",
+  "cities": [
+   "giza",
+   "cairo"
+  ],
+  "depth": 215.12,
+  "front": "-y",
+  "height": 136.4,
+  "id": "khafre_pyramid",
+  "kind": "landmark",
+  "licence": "Project-owned model; textures Poly Haven CC0",
+  "name": "Khafre Pyramid",
+  "source_tris": 0,
+  "tris": 994,
+  "url": "https://polyhaven.com",
+  "width": 215.19
+ },
+ "london_georgian": {
+  "author": "ThomasRedfern12",
+  "cities": [
+   "london"
+  ],
+  "depth": 10.15,
+  "front": "+x",
+  "height": 13.5,
+  "id": "london_georgian",
+  "kind": "building",
+  "licence": "CC Attribution",
+  "name": "UK Georgian Building",
+  "source_tris": 13483,
+  "tris": 5000,
+  "url": "https://sketchfab.com/3d-models/a907b8739b8d488799ca8ce39833fc70",
+  "width": 6.36
+ },
+ "london_kinnaird": {
+  "author": "99.Miles",
+  "cities": [
+   "london"
+  ],
+  "depth": 42.96,
+  "front": "+x",
+  "height": 34.02,
+  "id": "london_kinnaird",
+  "kind": "building",
+  "licence": "CC Attribution",
+  "name": "[FREE] London, Kinnaird House",
+  "source_tris": 53372,
+  "tris": 9000,
+  "url": "https://sketchfab.com/3d-models/ff13d8c9407f4796886a689a758dc862",
+  "width": 31.8
+ },
+ "london_victorian_corner": {
+  "author": "britdawgmasterfunk",
+  "cities": [
+   "london"
+  ],
+  "depth": 9.7,
+  "front": "-y",
+  "height": 16.0,
+  "id": "london_victorian_corner",
+  "kind": "building",
+  "licence": "CC Attribution",
+  "name": "london_mobile_game_assets_(CC0)",
+  "source_tris": 449,
+  "tris": 449,
+  "url": "https://sketchfab.com/3d-models/815ca9e4e85844d6b702cb65ebc7dac8",
+  "width": 18.99
+ },
+ "london_victorian_hall": {
+  "author": "britdawgmasterfunk",
+  "cities": [
+   "london"
+  ],
+  "depth": 33.41,
+  "front": "+x",
+  "height": 22.0,
+  "id": "london_victorian_hall",
+  "kind": "building",
+  "licence": "CC Attribution",
+  "name": "london_mobile_game_assets_(CC0)",
+  "source_tris": 2466,
+  "tris": 2466,
+  "url": "https://sketchfab.com/3d-models/815ca9e4e85844d6b702cb65ebc7dac8",
+  "width": 19.56
+ },
+ "med_polykatoikia": {
+  "author": "Wikiquik",
+  "cities": [
+   "cairo",
+   "mogadishu"
+  ],
+  "depth": 15.19,
+  "front": "-y",
+  "height": 17.7,
+  "id": "med_polykatoikia",
+  "kind": "building",
+  "licence": "CC Attribution",
+  "name": "\u0395\u03bb\u03bb\u03b7\u03bd\u03b9\u03ba\u03ae \u03c0\u03bf\u03bb\u03c5\u03ba\u03b1\u03c4\u03bf\u03b9\u03ba\u03af\u03b1",
+  "source_tris": 22717,
+  "tris": 9000,
+  "url": "https://sketchfab.com/3d-models/33f73662ea104a08b37d3fd79ae25ef9",
+  "width": 12.67
+ },
+ "menkaure_pyramid": {
+  "author": "GRIDLINE (modelled from public reference)",
+  "cities": [
+   "giza",
+   "cairo"
+  ],
+  "depth": 102.99,
+  "front": "-y",
+  "height": 61.0,
+  "id": "menkaure_pyramid",
+  "kind": "landmark",
+  "licence": "Project-owned model; textures Poly Haven CC0",
+  "name": "Menkaure Pyramid",
+  "source_tris": 0,
+  "tris": 642,
+  "url": "https://polyhaven.com",
+  "width": 103.17
+ },
+ "modern_residential_tower": {
+  "author": "ziguratarchitecturestudio",
+  "cities": [
+   "nairobi",
+   "lusaka"
+  ],
+  "depth": 58.18,
+  "front": "+x",
+  "height": 58.0,
+  "id": "modern_residential_tower",
+  "kind": "building",
+  "licence": "CC Attribution",
+  "name": "modern tower office apartment house home",
+  "source_tris": 26084,
+  "tris": 9000,
+  "url": "https://sketchfab.com/3d-models/a057bf3379b24c23a18a82ec884e4f04",
+  "width": 36.12
+ },
+ "reichstag": {
+  "author": "vonBerlichingen",
+  "cities": [
+   "berlin"
+  ],
+  "depth": 85.5,
+  "front": "+x",
+  "height": 47.0,
+  "id": "reichstag",
+  "kind": "landmark",
+  "licence": "CC Attribution",
+  "name": "Reichstag (low poly)",
+  "source_tris": 1945,
+  "tris": 1945,
+  "url": "https://sketchfab.com/3d-models/850b9cdb12c945569c4d1699dd058339",
+  "width": 64.21
+ },
+ "sphinx": {
+  "author": "Vitbak",
+  "cities": [
+   "giza"
+  ],
+  "depth": 22.12,
+  "front": "+x",
+  "height": 26.03,
+  "id": "sphinx",
+  "kind": "landmark",
+  "licence": "CC Attribution",
+  "name": "The Sphinx",
+  "source_tris": 222197,
+  "tris": 15998,
+  "url": "https://sketchfab.com/3d-models/81599b1dcdd54eb48503b61a1174b6c6",
+  "width": 46.05
+ },
+ "tower_bridge": {
+  "author": "GRIDLINE (modelled from public reference)",
+  "cities": [
+   "london"
+  ],
+  "depth": 48.0,
+  "front": "-y",
+  "height": 73.5,
+  "id": "tower_bridge",
+  "kind": "landmark",
+  "licence": "Project-owned model; textures Poly Haven CC0",
+  "name": "Tower Bridge",
+  "source_tris": 0,
+  "tris": 3080,
+  "url": "https://polyhaven.com",
+  "width": 266.8
+ }
+}

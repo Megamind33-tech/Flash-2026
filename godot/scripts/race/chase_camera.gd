@@ -13,6 +13,8 @@ var _pos_vel := Vector3.ZERO
 var _snap := true
 var _shake := 0.0
 var _bound: RaceCarBody
+var boost_kick := 0.0
+var _kick := 0.0
 
 
 ## Impacts shake the camera briefly (scaled by the hit; decays in ~0.4 s).
@@ -59,5 +61,6 @@ func _physics_process(delta: float) -> void:
 	if _shake > 0.0:
 		global_position += Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * _shake * 0.25
 		_shake = maxf(0.0, _shake - delta * 1.2)
-	fov = lerpf(fov, 62.0 + 10.0 * clampf(speed / 55.0, 0.0, 1.0), clampf(delta * 3.0, 0.0, 1.0))
+	_kick = lerpf(_kick, boost_kick, clampf(delta * 4.0, 0.0, 1.0))
+	fov = lerpf(fov, 62.0 + 10.0 * clampf(speed / 55.0, 0.0, 1.0) + 9.0 * _kick, clampf(delta * 3.0, 0.0, 1.0))
 	_snap = false

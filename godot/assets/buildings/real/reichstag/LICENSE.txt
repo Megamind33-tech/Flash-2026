@@ -1,0 +1,3 @@
+Reichstag (low poly) by vonBerlichingen — CC Attribution
+https://sketchfab.com/3d-models/850b9cdb12c945569c4d1699dd058339
+Modified for GRIDLINE: decimated, rescaled, re-oriented, textures resized.

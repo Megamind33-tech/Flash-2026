@@ -70,7 +70,12 @@ func _track_limits() -> void:
 
 func _recovery(delta: float) -> void:
 	_rolled = _rolled + delta if car.global_basis.y.y < 0.3 else 0.0
-	_stuck = _stuck + delta if car.linear_velocity.length() < 1.5 else 0.0
+	# Stuck: stopped, or pinned sideways/backwards against a rail or another car while still sliding along it (a pile
+	# against the Giza guardrail crawled for minutes at 5 m/s with no forward speed).
+	var heading := car.global_basis.z.dot(track.tangent_at(distance))
+	var fwd_speed := car.linear_velocity.dot(car.global_basis.z)
+	var pinned := heading < 0.55 and fwd_speed < 3.0
+	_stuck = _stuck + delta if car.linear_velocity.length() < 1.5 or pinned else 0.0
 	var lost := absf(lateral) > 40.0 or car.global_position.y < track.position_at(distance).y - 15.0
 	if _rolled > 3.0 or lost or _stuck > (8.0 if is_player else 5.0):
 		recover()

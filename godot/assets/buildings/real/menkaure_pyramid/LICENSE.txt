@@ -1,0 +1,1 @@
+Modelled for GRIDLINE in tools/buildings/model_heritage.py (project-owned). Textures: Poly Haven, CC0.

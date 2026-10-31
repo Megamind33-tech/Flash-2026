@@ -30,6 +30,17 @@ var brake_input := 0.0
 var steer_input := 0.0
 var input_enabled := false
 
+# Boost (N2O): charged by skills (race/skills.gd) and slowly over time; burns while held. Slipstream: set by Skills
+# while tucked in behind another car, it cuts aero drag.
+var boost_charge := 0.35
+var boost_held := false
+var boosting := false
+var draft := 0.0
+const BOOST_BURN := 0.42      # charge per second
+const BOOST_FORCE := 1.55     # engine force multiplier
+const BOOST_TOP := 1.12       # top-speed multiplier
+signal boost_started
+
 var gear := 1
 var rpm := 0.0
 var speed_kmh := 0.0
@@ -87,6 +98,18 @@ func _physics_process(delta: float) -> void:
 	var brk := brake_input if input_enabled else 0.0
 	var str := steer_input if input_enabled else 0.0
 
+	var was_boosting := boosting
+	boosting = boost_held and input_enabled and boost_charge > 0.02 and thr > 0.3
+	if boosting:
+		boost_charge = maxf(0.0, boost_charge - BOOST_BURN * delta)
+		if not was_boosting:
+			boost_started.emit()
+			var ea := get_node_or_null("EngineAudio")
+			if ea:
+				ea.boost()
+	elif input_enabled:
+		boost_charge = minf(1.0, boost_charge + 0.012 * delta)
+
 	# Speed-sensitive steering keeps the car controllable with digital touch steering at high speed.
 	var limit := max_steer * lerpf(1.0, 0.32, clampf(speed / 50.0, 0.0, 1.0))
 	steering = move_toward(steering, -str * limit, steer_speed * delta)
@@ -102,17 +125,17 @@ func _physics_process(delta: float) -> void:
 		engine_force = -engine_force_max * 0.45 * brk
 	else:
 		brake = 0.0 if thr > 0.01 else 1.5   # light engine braking when coasting
-		var f := engine_force_max * thr
+		var f := engine_force_max * thr * (BOOST_FORCE if boosting else 1.0)
 		# Extra force at low speed for a punchy launch (from Truck Town).
 		if speed < 5.0 and thr > 0.01:
 			f *= 1.6
-		if fwd_speed > top_speed:
+		if fwd_speed > top_speed * (BOOST_TOP if boosting else 1.0):
 			f = 0.0
 		engine_force = f
 
 	# Aero: drag limits top speed, downforce adds grip at speed. Downforce only exists while the floor
 	# faces the road: applying it along the car's -Y when tipped or upside down used to *lift* the car.
-	apply_central_force(-v * speed * drag_coefficient)
+	apply_central_force(-v * speed * drag_coefficient * (1.0 - 0.32 * draft))
 	wheels_on_ground = 0
 	for w in _wheels:
 		if w.is_in_contact():

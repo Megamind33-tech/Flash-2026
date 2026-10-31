@@ -1,0 +1,240 @@
+{
+ "_doc": "Real third-party buildings and landmarks (tools/buildings/export_real_buildings.py). height = real height in metres after export; budget = triangle cap; include/exclude = object-name regexes; front = auto (side with the most faces) or one of +x -x +y -y (Blender axes, before export); cities = where RealBuildings may place it. Licences are recorded per entry and shown in the in-game credits.",
+ "buildings": [
+  {
+   "id": "london_kinnaird",
+   "uid": "ff13d8c9407f4796886a689a758dc862",
+   "include": "^Building_",
+   "height": 33.8,
+   "budget": 9000,
+   "front": "auto",
+   "kind": "building",
+   "cities": [
+    "london"
+   ]
+  },
+  {
+   "id": "london_victorian_hall",
+   "uid": "815ca9e4e85844d6b702cb65ebc7dac8",
+   "include": "^Object_28$",
+   "height": 22.0,
+   "budget": 4000,
+   "front": "auto",
+   "kind": "building",
+   "cities": [
+    "london"
+   ]
+  },
+  {
+   "id": "london_victorian_corner",
+   "uid": "815ca9e4e85844d6b702cb65ebc7dac8",
+   "include": "^Object_30$",
+   "height": 16.0,
+   "budget": 2000,
+   "front": "auto",
+   "kind": "building",
+   "cities": [
+    "london"
+   ]
+  },
+  {
+   "id": "london_georgian",
+   "uid": "a907b8739b8d488799ca8ce39833fc70",
+   "include": ".",
+   "height": 13.5,
+   "budget": 5000,
+   "front": "auto",
+   "kind": "building",
+   "cities": [
+    "london"
+   ]
+  },
+  {
+   "id": "euro_stone_apartment",
+   "uid": "234942f51b8d4405a7370b56aa182e2f",
+   "include": "^main_|^ground floor_",
+   "exclude": "indoor",
+   "height": 23.0,
+   "budget": 9000,
+   "front": "auto",
+   "kind": "building",
+   "cities": [
+    "london",
+    "berlin"
+   ]
+  },
+  {
+   "id": "berlin_altbau",
+   "uid": "0669f42f4fb3434ea30fc6f02af33ed6",
+   "include": ".",
+   "exclude": "^Text",
+   "height": 20.4,
+   "budget": 9000,
+   "front": "auto",
+   "kind": "building",
+   "cities": [
+    "berlin"
+   ]
+  },
+  {
+   "id": "berlin_plattenbau",
+   "uid": "05229ac1d1f94e6c8cacaad91110c602",
+   "include": ".",
+   "height": 17.0,
+   "budget": 6000,
+   "front": "auto",
+   "kind": "building",
+   "cities": [
+    "berlin"
+   ]
+  },
+  {
+   "id": "med_polykatoikia",
+   "uid": "33f73662ea104a08b37d3fd79ae25ef9",
+   "include": "\\.00[23]$",
+   "height": 17.7,
+   "budget": 9000,
+   "front": "auto",
+   "kind": "building",
+   "cities": [
+    "cairo",
+    "mogadishu"
+   ]
+  },
+  {
+   "id": "arab_house_a",
+   "uid": "d0a2441fb98f4ed68f7a9f49492815e7",
+   "include": "^BLOCK_I1_",
+   "height": 9.0,
+   "budget": 6000,
+   "front": "auto",
+   "kind": "building",
+   "cities": [
+    "cairo",
+    "mogadishu",
+    "giza"
+   ]
+  },
+  {
+   "id": "arab_house_b",
+   "uid": "d0a2441fb98f4ed68f7a9f49492815e7",
+   "include": "^BLOCK_II1_",
+   "height": 9.0,
+   "budget": 7000,
+   "front": "auto",
+   "kind": "building",
+   "cities": [
+    "cairo",
+    "mogadishu",
+    "giza"
+   ]
+  },
+  {
+   "id": "arab_house_c",
+   "uid": "d0a2441fb98f4ed68f7a9f49492815e7",
+   "include": "^BLOCK_III1_",
+   "height": 9.0,
+   "budget": 6000,
+   "front": "auto",
+   "kind": "building",
+   "cities": [
+    "cairo",
+    "mogadishu",
+    "giza"
+   ]
+  },
+  {
+   "id": "desert_house",
+   "uid": "dfd9dd93d3ed4e8eae1b1b4c2659857e",
+   "include": ".",
+   "height": 8.5,
+   "budget": 2500,
+   "front": "auto",
+   "kind": "building",
+   "cities": [
+    "cairo",
+    "mogadishu",
+    "giza"
+   ]
+  },
+  {
+   "id": "modern_residential_tower",
+   "uid": "a057bf3379b24c23a18a82ec884e4f04",
+   "include": ".",
+   "height": 58.0,
+   "budget": 9000,
+   "front": "auto",
+   "kind": "building",
+   "cities": [
+    "nairobi",
+    "lusaka"
+   ]
+  },
+  {
+   "id": "glass_office_tower",
+   "uid": "2305f0fe03ba44229a1f768dcb48bd8f",
+   "include": ".",
+   "height": 105.0,
+   "budget": 9000,
+   "front": "auto",
+   "kind": "building",
+   "cities": [
+    "nairobi",
+    "lusaka",
+    "london"
+   ]
+  },
+  {
+   "id": "dark_apartment_tower",
+   "uid": "db9817bc2d9b4d22887c539ab40ca4ea",
+   "include": ".",
+   "height": 38.0,
+   "budget": 9000,
+   "front": "auto",
+   "kind": "building",
+   "cities": [
+    "nairobi",
+    "kitwe",
+    "lusaka"
+   ]
+  }
+ ],
+ "landmarks": [
+  {
+   "id": "big_ben",
+   "uid": "9a1c691fac774bcca4e2ba565c4c9d9b",
+   "include": ".",
+   "height": 96.0,
+   "budget": 24000,
+   "front": "auto",
+   "kind": "landmark",
+   "cities": [
+    "london"
+   ]
+  },
+  {
+   "id": "reichstag",
+   "uid": "850b9cdb12c945569c4d1699dd058339",
+   "include": ".",
+   "height": 47.0,
+   "budget": 4000,
+   "front": "auto",
+   "kind": "landmark",
+   "cities": [
+    "berlin"
+   ]
+  },
+  {
+   "id": "sphinx",
+   "uid": "81599b1dcdd54eb48503b61a1174b6c6",
+   "include": "^Object_[23]$",
+   "height": 26.0,
+   "budget": 16000,
+   "front": "auto",
+   "kind": "landmark",
+   "cities": [
+    "giza"
+   ]
+  }
+ ]
+}

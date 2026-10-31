@@ -162,8 +162,17 @@ static func build(parent: Node3D, data: Dictionary, style: Dictionary, track: Tr
 	# behind them get no floor ledges or AC units poking through the new windows.
 	# --no-facade-kit gives the before/after baseline (like --no-ads and --no-street-props).
 	var clad := {} if "--no-facade-kit" in OS.get_cmdline_user_args() else BuildingKit.plan(data, track, Game.quality())
-	var ac := _buildings(root, data, style, rng, clad)
+	# Real buildings (assets/buildings/real, credited) replace the extruded blocks fronting the circuit; the facade kit
+	# keeps the rest of the street. Heritage features (Big Ben, Tower Bridge) clear the footprints they stand on.
+	var real := RealBuildings.plan(data, track, Game.quality())
+	var skip := RealBuildings.cleared(data)
+	for bi in real:
+		skip[bi] = true
+	for bi in skip:
+		clad.erase(bi)
+	var ac := _buildings(root, data, style, rng, clad, skip)
 	_props(root, data, style, track, rng, ac)
+	print("[GRIDLINE] real buildings %s" % JSON.stringify(RealBuildings.build(root, data, real)))
 	print("[GRIDLINE] facade kit %s bays=%d on %d buildings" % [BuildingKit.kit_for(str(data["id"])),
 		BuildingKit.build(root, data, style, clad, Game.quality()), clad.size()])
 	# Real street props and road scans (assets/props, CC BY): additive, own random seed.
@@ -579,7 +588,7 @@ static func _side_roads(root: Node3D, data: Dictionary, style: Dictionary) -> vo
 
 ## Extruded footprints: facade-shader walls (two wall finishes), tower curtain walls, flat roofs.
 ## Returns AC-unit transforms for the low/mid-rise walls.
-static func _buildings(root: Node3D, data: Dictionary, style: Dictionary, rng: RandomNumberGenerator, clad := {}) -> Array:
+static func _buildings(root: Node3D, data: Dictionary, style: Dictionary, rng: RandomNumberGenerator, clad := {}, skip := {}) -> Array:
 	var chunks := {}
 	var ac: Array = []
 	var ac_rolls := 0
@@ -606,6 +615,11 @@ static func _buildings(root: Node3D, data: Dictionary, style: Dictionary, rng: R
 		var ch: Dictionary = chunks[key]
 		var tower := h > 34.0
 		var bk: Bucket = ch["tower"] if tower else (ch["w1"] if rng.randf() < 0.7 else ch["w2"])
+		# A real model stands here (RealBuildings): every random draw still happens so the rest of the city keeps
+		# its layout, but the extruded walls, roof, ledges and AC units go to a throwaway bucket.
+		var ghost := skip.has(bi)
+		if ghost:
+			bk = Bucket.new()
 		var bseed := rng.randf()
 		for i in poly.size():
 			var p0 := poly[i]
@@ -633,7 +647,7 @@ static func _buildings(root: Node3D, data: Dictionary, style: Dictionary, rng: R
 							if u < bay * 0.5 or u > wlen - bay * 0.5:
 								continue
 							ac_rolls += 1
-							if clad_edges.has(i):
+							if clad_edges.has(i) or ghost:
 								continue
 							var pos := a + (c - a) * (u / wlen) + Vector3.UP * (f * floor_h + 0.35) + out * 0.2
 							ac.append(Transform3D(Basis.looking_at(-out, Vector3.UP), pos))
@@ -651,7 +665,7 @@ static func _buildings(root: Node3D, data: Dictionary, style: Dictionary, rng: R
 				out = -out
 			var a := Vector3(p0.x, h, p0.y)
 			var c := Vector3(p1.x, h, p1.y)
-			var lb: Bucket = ch["ledge"]
+			var lb: Bucket = Bucket.new() if ghost else ch["ledge"]
 			lb.quad(a, a + Vector3.UP * 0.9, c + Vector3.UP * 0.9, c, out, Vector2(0, 0), Vector2(0, 0.9), Vector2(wl, 0.9), Vector2(wl, 0))
 			lb.quad(a + Vector3.UP * 0.9, a + Vector3.UP * 0.9 - out * 0.25, c + Vector3.UP * 0.9 - out * 0.25, c + Vector3.UP * 0.9, Vector3.UP, Vector2(0, 0), Vector2(0, 0.25), Vector2(wl, 0.25), Vector2(wl, 0))
 			if ledges and wl > 4.0:
@@ -663,7 +677,7 @@ static func _buildings(root: Node3D, data: Dictionary, style: Dictionary, rng: R
 					lb.quad(a2 + o, a2 + o + Vector3.UP * 0.18, c2 + o + Vector3.UP * 0.18, c2 + o, out, Vector2(0, 0), Vector2(0, 0.18), Vector2(wl, 0.18), Vector2(wl, 0))
 					lb.quad(a2 + Vector3.UP * 0.18, a2 + o + Vector3.UP * 0.18, c2 + o + Vector3.UP * 0.18, c2 + Vector3.UP * 0.18, Vector3.UP, Vector2(0, 0), Vector2(0, 0.45), Vector2(wl, 0.45), Vector2(wl, 0))
 		var idx := Geometry2D.triangulate_polygon(poly)
-		var rb: Bucket = ch["roof"]
+		var rb: Bucket = Bucket.new() if ghost else ch["roof"]
 		for k in range(0, idx.size(), 3):
 			var r0 := Vector3(poly[idx[k]].x, h, poly[idx[k]].y)
 			var r1 := Vector3(poly[idx[k + 1]].x, h, poly[idx[k + 1]].y)
@@ -836,6 +850,8 @@ static func _power_lines(root: Node3D, track: TrackPath) -> void:
 ## Gate G7: the city's skyline landmark (tools/buildings/build_landmarks.py), placed where you see it down
 ## the start straight: 350-650 m ahead, offset to a side, on a spot clear of real building footprints and of the circuit.
 static func _landmark(root: Node3D, data: Dictionary, track: TrackPath) -> void:
+	if not data.get("features", []).is_empty():   # real heritage sites at their true positions (RealBuildings)
+		return
 	var path := "res://assets/landmarks/%s.glb" % data["id"]
 	if not ResourceLoader.exists(path):
 		return

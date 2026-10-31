@@ -4,7 +4,7 @@
 class_name ScenicWorld
 extends RefCounted
 
-const ORDER := ["kafue_forest", "great_north_highway", "rift_escarpment", "alpine_pass"]
+const ORDER := ["kafue_forest", "great_north_highway", "rift_escarpment", "giza_desert", "alpine_pass"]
 const STYLES := {
 	"kafue_forest": {"tagline": "Miombo woodland, Central Province", "haze": "#c9c2a0", "surface_grip": 0.95, "lines": "#f2f2ee",
 		"road": "road_aged", "road_tint": "#9a958c", "grass": "forest_floor", "grass_tint": "#b8b48a", "dirt_tint": "#b0704a",
@@ -15,6 +15,9 @@ const STYLES := {
 	"rift_escarpment": {"tagline": "Great Rift Valley escarpment road", "haze": "#c4c8c6", "surface_grip": 0.96, "lines": "#f5d33a",
 		"road": "road_aged", "road_tint": "#9a978f", "grass": "grass", "grass_tint": "#a7a874", "dirt_tint": "#8a5a3c",
 		"trees": ["jacaranda_tree"], "tree_tint": "#9fb37c", "weather": {"clear": 0.35, "cloudy": 0.3, "rain": 0.15, "fog": 0.15, "storm": 0.05}},
+	"giza_desert": {"tagline": "Desert road past the Pyramids of Giza", "haze": "#e2cfa8", "surface_grip": 0.93, "lines": "#f2efe4",
+		"road": "road_aged", "road_tint": "#a39886", "grass": "ground_sand", "grass_tint": "#ead2a4", "dirt_tint": "#d2a878",
+		"trees": [], "tree_tint": "#b7c48a", "weather": {"clear": 0.6, "dust": 0.3, "cloudy": 0.1}},
 	"alpine_pass": {"tagline": "Black Forest mountain pass", "haze": "#b4bcc4", "surface_grip": 1.0, "lines": "#f7f7f2",
 		"road": "road_dark", "road_tint": "#8a8a88", "grass": "grass", "grass_tint": "#8fae74", "dirt_tint": "#6e5a48",
 		"trees": ["fir_sapling", "pine_sapling_small"], "tree_tint": "#7f9f72", "weather": {"clear": 0.2, "cloudy": 0.35, "rain": 0.2, "fog": 0.2, "storm": 0.05}},
@@ -72,6 +75,9 @@ static func build(parent: Node3D, d: Dictionary, style: Dictionary, track: Track
 	CityWorld.race_furniture(root, track, track.half_width + 1.6)
 	People.spectators(root, track, track.half_width + 1.9, 2.0)
 	CityWorld._gantry(root, track)
+	# Real monuments and buildings at fixed sites (the Giza plateau: pyramids, Sphinx, village houses).
+	if not d.get("features", []).is_empty():
+		print("[GRIDLINE] scenic features %s" % JSON.stringify(RealBuildings.build(root, d, {})))
 	return root
 
 
@@ -185,6 +191,8 @@ static func _road(root: Node3D, style: Dictionary, track: TrackPath) -> void:
 ## Forests: impostor trees in 300 m chunks (each one draw call, culled by distance).
 static func _trees(root: Node3D, d: Dictionary, style: Dictionary) -> void:
 	var kinds: Array = style["trees"]
+	if kinds.is_empty():   # desert: open sand, no forest
+		return
 	var tint := Color.WHITE.lerp(Color(str(style["tree_tint"])), 0.4)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(d["id"]))

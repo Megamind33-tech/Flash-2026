@@ -249,16 +249,7 @@ static func build(livery: String, with_audio: bool, car_id := DEFAULT_CAR) -> Ra
 		car.add_child(wheel)
 
 	if with_audio:
-		var eng := AudioStreamPlayer3D.new()
-		eng.name = "Engine"
-		var stream: AudioStreamWAV = load("res://assets/audio/engine.wav").duplicate()
-		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-		stream.loop_begin = 0
-		stream.loop_end = int(stream.get_length() * stream.mix_rate)
-		eng.stream = stream
-		eng.autoplay = true
-		eng.unit_size = 8.0
-		car.add_child(eng)
+		EngineAudio.attach(car, true)   # layered CC0 engine loops + wind + boost (vehicle/engine_audio.gd)
 		var skid := AudioStreamPlayer3D.new()
 		skid.name = "Skid"
 		var ss: AudioStreamWAV = load("res://assets/audio/tirescreech.wav").duplicate()

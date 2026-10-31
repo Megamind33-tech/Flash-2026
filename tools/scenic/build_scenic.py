@@ -21,6 +21,8 @@ TRACKS = {
                             relief=55, mountains=260, trees=0.35, hw=6.0, grade=0.075, seed=23),
     "alpine_pass": dict(name="Schwarzwald Pass", country="Germany", kind="mountain", R=560, amp=[0.20, 0.15, 0.10, 0.07, 0.045, 0.03],
                         relief=60, mountains=320, trees=1.0, hw=5.8, grade=0.08, seed=37),
+    "giza_desert": dict(name="Giza Plateau Road", country="Egypt", kind="desert", R=760, amp=[0.20, 0.12, 0.08, 0.05, 0.03, 0.02],
+                        relief=9, mountains=38, trees=0.0, hw=7.0, grade=0.04, seed=29, giza=True),
     "great_north_highway": dict(name="Great North Highway", country="Zambia", kind="highway", R=1050, amp=[0.30, 0.05, 0.03, 0.0, 0.0, 0.0],
                                 relief=10, mountains=40, trees=0.25, hw=8.5, grade=0.03, seed=5),
 }
@@ -85,6 +87,53 @@ def build(tid):
     best = min(range(m), key=lambda i: sum(turn[(i + k) % m] for k in range(40)))
     s = (best + 30) % m
     pts, h = pts[s:] + pts[:s], h[s:] + h[:s]
+    # Giza: the plateau's monuments at their real relative positions (metres from Khufu, x east, y north), the
+    # complex turned and shifted until the road runs close past each one without touching it.
+    feats = []
+    hw = cfg["hw"]
+    if cfg.get("giza"):
+        site = [("great_pyramid", 0.0, 0.0, 116.0, 70.0), ("khafre_pyramid", -328.0, -344.0, 108.0, 90.0),
+                ("menkaure_pyramid", -589.0, -743.0, 52.0, 90.0), ("sphinx", 328.0, -433.0, 26.0, 30.0)]
+        def road_d(x, y):
+            return min(math.dist((x, y), p) for p in pts[::5])
+        best = None
+        for rot in range(0, 360, 15):
+            th = math.radians(rot)
+            for ox in range(-960, 961, 80):
+                for oy in range(-960, 961, 80):
+                    score, ok = 0.0, True
+                    for name, sx, sy, half, gap in site:
+                        x = ox + sx * math.cos(th) - sy * math.sin(th)
+                        y = oy + sx * math.sin(th) + sy * math.cos(th)
+                        need = half * 1.42 + hw + 12.0
+                        d = road_d(x, y)
+                        if d < need:
+                            ok = False
+                            break
+                        score += max(0.0, d - need - gap)
+                    if ok and (best is None or score < best[0]):
+                        best = (score, th, ox, oy)
+        _, th, ox, oy = best
+        for name, sx, sy, half, gap in site:
+            x = ox + sx * math.cos(th) - sy * math.sin(th)
+            y = oy + sx * math.sin(th) + sy * math.cos(th)
+            feats.append(dict(id=name, x=x, y=y, half=half, yaw=th))
+        print("giza: complex at (%.0f, %.0f) turned %.0f deg; road passes %s" % (ox, oy, math.degrees(th),
+              ", ".join("%s %.0f m" % (f["id"], road_d(f["x"], f["y"]) - f["half"] * 1.42 - hw) for f in feats)))
+        # Nazlet el-Samman: a village of flat-roofed houses on the road nearest the Sphinx
+        sph = feats[-1]
+        k0 = min(range(m), key=lambda i: math.dist(pts[i], (sph["x"], sph["y"])))
+        kinds = ["desert_house", "arab_house_a", "desert_house", "arab_house_c", "desert_house", "arab_house_b", "desert_house", "arab_house_a"]
+        for n, kind in enumerate(kinds):
+            i = (k0 + 25 + n * 7) % m
+            a, b = pts[i], pts[(i + 1) % m]
+            tx, ty = (b[0] - a[0]) / 6.0, (b[1] - a[1]) / 6.0
+            side = -1 if math.dist((a[0] - ty * 30, a[1] + tx * 30), (sph["x"], sph["y"])) < math.dist((a[0] + ty * 30, a[1] - tx * 30), (sph["x"], sph["y"])) else 1
+            off = hw + 16.0 + (n % 3) * 9.0
+            x, y = a[0] - ty * side * off, a[1] + tx * side * off
+            # face the road: the outward normal points back toward the road
+            fx, fy = ty * side, -tx * side
+            feats.append(dict(id=kind, x=x, y=y, half=10.0, face=(fx, fy)))
     # terrain grid with cut/fill toward the road and mountains rising with distance
     xs, ys = [p[0] for p in pts], [p[1] for p in pts]
     x0, y0 = min(xs) - MARGIN, min(ys) - MARGIN
@@ -121,7 +170,15 @@ def build(tid):
             road = h[k] - 0.35
             bank = min(1.0, max(0.0, (d - (hw + 3.0)) / 70.0))
             bank = bank * bank * (3 - 2 * bank)
-            hgrid.append(round(road + (natural - road) * bank, 2))
+            v = road + (natural - road) * bank
+            for f in feats:   # level ground under each monument, blended over 45 m
+                fd = max(abs(x - f["x"]), abs(y - f["y"]))
+                lim = f["half"] + 8.0
+                if fd < lim + 45.0:
+                    base = terr(f["x"], f["y"]) * cfg["relief"]
+                    t = min(1.0, max(0.0, (fd - lim) / 45.0))
+                    v = base + (v - base) * t * t * (3 - 2 * t)
+            hgrid.append(round(v, 2))
             dist.append(d)
     # trees: forest away from the road, sparse scrub on mountains; never on the road or its verge
     trees = []
@@ -155,6 +212,21 @@ def build(tid):
                 length=round(L, 1), circuit=[round(c, 2) for k in range(0, m, 2) for c in (pts[k][0], pts[k][1], h[k])],
                 terrain=dict(x0=x0, y0=y0, cell=CELL, nx=nx, ny=ny, h=hgrid), trees=trees, billboards=boards,
                 climb=round(max(h) - min(h), 1))
+    if feats:
+        def ground(x, y):
+            i = min(nx - 1, max(0, int(round((x - x0) / CELL))))
+            j = min(ny - 1, max(0, int(round((y - y0) / CELL))))
+            return hgrid[j * nx + i]
+        out = []
+        for f in feats:
+            # Godot frame for scenic tracks: (x, height, -y). A model faces +Z; yaw is what RealBuildings negates.
+            if "face" in f:
+                gx, gz = f["face"][0], -f["face"][1]
+                yaw = -math.atan2(gx, gz)
+            else:
+                yaw = f["yaw"]
+            out.append(dict(id=f["id"], pos=[round(f["x"], 1), round(-f["y"], 1)], y=round(ground(f["x"], f["y"]) - 0.4, 2), yaw=round(yaw, 4)))
+        data["features"] = out
     os.makedirs(OUT, exist_ok=True)
     json.dump(data, open(os.path.join(OUT, tid + ".json"), "w"), separators=(",", ":"))
     img = Image.new("RGB", (nx, ny))
@@ -173,5 +245,6 @@ def build(tid):
 
 
 if __name__ == "__main__":
-    for t in TRACKS:
+    import sys
+    for t in sys.argv[1:] or TRACKS:
         build(t)
