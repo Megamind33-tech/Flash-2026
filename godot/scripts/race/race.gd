@@ -161,7 +161,7 @@ func _ready() -> void:
 		add_child(hud)
 		hud.bind(self)
 	# The opener ends by making the chase camera current, so skip it when a screenshot fixes the camera.
-	if DisplayServer.get_name() != "headless" and not (args.has("--cam-ad") or args.has("--cam-prop")):
+	if DisplayServer.get_name() != "headless" and not (args.has("--cam-ad") or args.has("--cam-prop") or args.has("--cam-pothole")):
 		await _intro()
 	await get_tree().create_timer(0.75).timeout
 	phase = Phase.COUNTDOWN
