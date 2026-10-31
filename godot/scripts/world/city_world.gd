@@ -405,10 +405,15 @@ static func barrier_ads(root: Node3D, track: TrackPath, offset: float, height: f
 				var o := offset - 0.03
 				var p0 := a + ra * s * o + Vector3.UP * 0.12
 				var p1 := b + rb * s * o + Vector3.UP * 0.12
-				var uvs := [Vector2(r.position.x, r.end.y), r.position, Vector2(r.end.x, r.position.y), r.end]
-				if s < 0:   # seen from the other side of the road: mirror u so the text reads correctly
-					uvs = [r.end, Vector2(r.end.x, r.position.y), r.position, Vector2(r.position.x, r.end.y)]
-				bk.quad(p0, p0 + Vector3.UP * height * 1.4, p1 + Vector3.UP * height * 1.4, p1, -ra * s, uvs[0], uvs[1], uvs[2], uvs[3])
+				# Text must run left-to-right for a driver looking at the wall: order the ends along the
+				# viewer's right-hand direction (facing the wall, right = facing x up).
+				var facing := ra * s
+				if (p1 - p0).dot(facing.cross(Vector3.UP)) < 0.0:
+					var tmp := p0
+					p0 = p1
+					p1 = tmp
+				bk.quad(p0, p0 + Vector3.UP * height * 1.4, p1 + Vector3.UP * height * 1.4, p1, -facing,
+					Vector2(r.position.x, r.end.y), r.position, Vector2(r.end.x, r.position.y), r.end)
 			ad += 1
 		d += 6.5
 	var mesh := ArrayMesh.new()

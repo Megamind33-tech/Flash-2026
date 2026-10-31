@@ -255,10 +255,10 @@ func _icon_button(icon: String, cb: Callable) -> Button:
 
 func _build_buttons() -> void:
 	var row := HBoxContainer.new()
-	row.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	row.offset_left = -100
-	row.offset_right = 100
-	row.offset_top = 28
+	row.set_anchors_preset(Control.PRESET_TOP_RIGHT)   # under the leaderboard, clear of the race strip
+	row.offset_left = -200
+	row.offset_right = -28
+	row.offset_top = 210
 	row.add_theme_constant_override("separation", 12)
 	row.add_child(_icon_button("videocam", func(): race.camera.cycle()))
 	row.add_child(_icon_button("pause", func(): _set_pause(true)))
