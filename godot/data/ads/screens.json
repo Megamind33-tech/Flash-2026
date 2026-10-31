@@ -1,0 +1,17 @@
+{
+  "_doc": "In-world digital screens (scripts/ads/ad_screen.gd). Each placement names its creative(s); 'media' is 'video' (Theora .ogv with the .jpg as fallback) or 'image'. 'rotate' cycles creatives every 'seconds'. Edit this file, or drop a copy at user://ads/screens.json, to change what any screen shows without rebuilding a scene. Creatives live in res://assets/ads/screens/ (tools/ads/make_screen_ads.py). All sponsors are fictional demonstration brands.",
+  "default": {"media": "image", "rotate": ["gridline", "kafue_cola", "arden_motors", "volt_rush"], "seconds": 9, "brightness": 1.0},
+  "placements": {
+    "hq_led_wall":        {"media": "video", "rotate": ["kafue_cola", "volt_rush", "arden_motors"], "seconds": 8, "brightness": 1.15},
+    "hq_hung_north":      {"media": "image", "rotate": ["arden_motors", "savanna_air", "gridline"], "seconds": 10},
+    "hq_hung_south":      {"media": "image", "rotate": ["volt_rush", "copperline_tyres", "zedbank"], "seconds": 10},
+    "hq_wall_bay_1":      {"media": "image", "rotate": ["copperline_tyres"]},
+    "hq_wall_bay_2":      {"media": "image", "rotate": ["nile_energy"]},
+    "hq_wall_bay_3":      {"media": "image", "rotate": ["zedbank"]},
+    "hq_wall_office":     {"media": "image", "rotate": ["savanna_air", "gridline"], "seconds": 12},
+    "hq_pit_monitor_*":   {"media": "image", "rotate": ["gridline", "copperline_tyres"], "seconds": 7, "brightness": 0.9},
+    "hq_telemetry_*":     {"media": "image", "rotate": ["gridline"], "brightness": 0.8},
+    "hq_outdoor_west":    {"media": "image", "rotate": ["savanna_air", "kafue_cola"], "seconds": 12, "brightness": 1.3},
+    "hq_outdoor_east":    {"media": "video", "rotate": ["arden_motors"], "brightness": 1.3}
+  }
+}

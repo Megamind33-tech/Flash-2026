@@ -572,45 +572,70 @@ func _update_board() -> void:
 		(w[3] as Label).text = gap
 
 
+## Results in the graphite-and-amber house style (UiStyle CHARCOAL/GRAPHITE/LINE/ACCENT, as the home screen and
+## Team HQ): headline, classification card and rewards card, CONTINUE as the primary action.
 func _show_results() -> void:
 	hud_layer.visible = false
 	if pause_panel.visible:
 		pause_panel.resume()
-	results_panel = _overlay()
-	results_panel.visible = true
+	results_panel = ColorRect.new()
+	(results_panel as ColorRect).color = Color(0.025, 0.027, 0.032, 0.88)
+	results_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.add_child(results_panel)
+	var safe := UiStyle.safe_margins(get_viewport())
 	var col := VBoxContainer.new()
 	col.set_anchors_preset(Control.PRESET_FULL_RECT)
-	col.offset_left = 70
-	col.offset_right = -70
-	col.offset_top = 40
-	col.offset_bottom = -40
-	col.add_theme_constant_override("separation", 0)
+	col.offset_left = 80 + safe.x
+	col.offset_right = -80 - safe.z
+	col.offset_top = 44 + safe.y
+	col.offset_bottom = -40 - safe.w
+	col.add_theme_constant_override("separation", 14)
 	results_panel.add_child(col)
 	var pos: int = race.player.position
-	var title := UiStyle.label("WINNER" if pos == 1 else _ordinal(pos) + " PLACE", UiStyle.display(), 130, UiStyle.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
-	title.add_theme_constant_override("shadow_offset_x", 4)
-	title.add_theme_constant_override("shadow_offset_y", 4)
-	col.add_child(title)
-	var sub := "%s  ·  %s  ·  %d LAPS" % [race.event["name"].to_upper(), race.track_name.to_upper(), race.total_laps]
-	if Game.session["championship"]:
-		sub = "CHAMPIONSHIP ROUND %d/%d  ·  " % [Game.championship()["round"] if not race.season_done else Game.champ_rounds().size(), Game.champ_rounds().size()] + sub
-	col.add_child(UiStyle.label(sub, UiStyle.cond_bold(), 32, UiStyle.TEXT, HORIZONTAL_ALIGNMENT_CENTER))
+	var head := VBoxContainer.new()
+	head.add_theme_constant_override("separation", 2)
+	col.add_child(head)
+	var bar := ColorRect.new()
+	bar.color = UiStyle.ACCENT
+	bar.custom_minimum_size = Vector2(56, 5)
+	bar.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	head.add_child(bar)
+	var title := UiStyle.label("WINNER" if pos == 1 else _ordinal(pos) + " PLACE", UiStyle.display(), 112, UiStyle.ACCENT if pos == 1 else Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, false)
+	head.add_child(title)
+	head.add_child(UiStyle.label(_results_subtitle(), UiStyle.cond_bold(), 30, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false))
 	var body := HBoxContainer.new()
-	body.alignment = BoxContainer.ALIGNMENT_CENTER
 	body.add_theme_constant_override("separation", 24)
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	col.add_child(body)
-	body.add_child(_results_table())
+	var table := _results_table()
+	table.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_child(table)
 	body.add_child(_rewards())
 	var prompts := HBoxContainer.new()
 	prompts.alignment = BoxContainer.ALIGNMENT_END
-	prompts.add_theme_constant_override("separation", 12)
+	prompts.add_theme_constant_override("separation", 16)
 	col.add_child(prompts)
 	if Game.session["championship"] and not race.season_done:
 		prompts.add_child(_prompt("play_arrow", "NEXT ROUND", func(): _next_round()))
 	else:
 		prompts.add_child(_prompt("replay", "RACE AGAIN", func(): race.restart()))
-	prompts.add_child(_prompt("home", "CONTINUE", func(): race.quit_to_menu()))
+	var cont := UiStyle.primary_button("CONTINUE", Vector2(360, 84), 46)
+	cont.pressed.connect(func(): race.quit_to_menu())
+	prompts.add_child(cont)
+
+
+## "SPRINT  ·  LUSAKA, ZAMBIA  ·  2 LAPS". A career event's name carries its own city; when the race actually ran
+## elsewhere (a forced --city, a substituted venue) the header names the format and the venue really raced.
+func _results_subtitle() -> String:
+	var ev: Dictionary = race.event
+	var name := str(ev.get("name", ""))
+	if str(ev.get("city", race.city_id)) != race.city_id:
+		name = str(Career.FORMATS.get(race.format, {}).get("name", race.format.capitalize()))
+	var laps := "%d LAP%s" % [race.total_laps, "" if race.total_laps == 1 else "S"]
+	var sub := "%s  ·  %s  ·  %s" % [name.to_upper(), race.track_name.to_upper(), laps]
+	if Game.session["championship"]:
+		sub = "CHAMPIONSHIP ROUND %d/%d  ·  " % [Game.championship()["round"] if not race.season_done else Game.champ_rounds().size(), Game.champ_rounds().size()] + sub
+	return sub
 
 
 func _cell(text: String, w: float, f: Font, size: int, color: Color, align := HORIZONTAL_ALIGNMENT_LEFT) -> Label:
@@ -624,9 +649,10 @@ func _cell(text: String, w: float, f: Font, size: int, color: Color, align := HO
 func _results_table() -> Control:
 	var t := VBoxContainer.new()
 	t.custom_minimum_size = Vector2(1060, 0)
-	t.add_theme_constant_override("separation", 3)
+	t.add_theme_constant_override("separation", 6)
 	var head := PanelContainer.new()
-	head.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.BLACK_SOLID))
+	head.custom_minimum_size = Vector2(0, 46)
+	head.add_theme_stylebox_override("panel", UiStyle.box(Color(0, 0, 0, 0), 0))
 	var hr := HBoxContainer.new()
 	head.add_child(hr)
 	for c in [["  POS", 90], ["DRIVER", 0], ["TIME", 220], ["BEST LAP  ", 230]]:
@@ -639,29 +665,29 @@ func _results_table() -> Control:
 		var player: bool = r["player"]
 		var p := PanelContainer.new()
 		p.custom_minimum_size = Vector2(0, 70)
-		p.add_theme_stylebox_override("panel", UiStyle.box(Color(1, 1, 1, 0.92) if player else UiStyle.BLACK))
+		p.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.GRAPHITE, 2, UiStyle.ACCENT, 8) if player else UiStyle.box(UiStyle.CHARCOAL, 1, UiStyle.LINE, 8))
 		var row := HBoxContainer.new()
 		p.add_child(row)
-		var c := Color(0.04, 0.04, 0.04) if player else UiStyle.TEXT
+		var c := Color.WHITE if player else UiStyle.TEXT
 		var team := "Privateer" if player else str(Game.team(Game.save["aiDrivers"].filter(func(d): return d["id"] == r["id"])[0]["team"]).get("name", ""))
 		var t_time: float = r["finish_time"] + r["penalty"]
 		var time := (_clock(t_time) if i == 0 else "+%.3f" % (t_time - winner)) if r["finished"] else "DNF %dL" % r["laps"]
-		row.add_child(_cell("  %d" % (i + 1), 90, UiStyle.display(), 40, c))
+		row.add_child(_cell("  %d" % (i + 1), 90, UiStyle.display(), 44, UiStyle.ACCENT if i < 3 else UiStyle.MUTED))
 		row.add_child(_cell("%s   %s" % [r["name"], team], 0, UiStyle.cond(), 32, c))
 		row.add_child(_cell(time, 220, UiStyle.cond(), 32, c, HORIZONTAL_ALIGNMENT_RIGHT))
 		row.add_child(_cell(Racer.format_ms(r["best"]) + "  ", 230, UiStyle.cond(), 32, UiStyle.PURPLE if r["id"] == race.fastest_id else c, HORIZONTAL_ALIGNMENT_RIGHT))
 		t.add_child(p)
 	if Game.session["championship"]:
 		var sh := PanelContainer.new()
-		sh.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.BLACK_SOLID))
+		sh.add_theme_stylebox_override("panel", UiStyle.box(Color(0, 0, 0, 0), 0))
 		sh.add_child(_cell("  CHAMPIONSHIP STANDINGS" + ("  ·  FINAL" if race.season_done else ""), 0, UiStyle.cond_bold(), 24, UiStyle.GOLD))
 		t.add_child(sh)
 		for s in Game.championship_standings():
 			var p := PanelContainer.new()
-			p.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.BLACK))
+			p.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.CHARCOAL, 1, UiStyle.LINE, 8))
 			var row := HBoxContainer.new()
 			p.add_child(row)
-			row.add_child(_cell("  " + Game.display_name(s[0]), 0, UiStyle.cond(), 28, UiStyle.GOLD if s[0] == "player" else UiStyle.TEXT))
+			row.add_child(_cell("  " + Game.display_name(s[0]), 0, UiStyle.cond(), 28, UiStyle.ACCENT if s[0] == "player" else UiStyle.TEXT))
 			row.add_child(_cell("%d PTS  " % s[1], 200, UiStyle.display(), 34, UiStyle.TEXT, HORIZONTAL_ALIGNMENT_RIGHT))
 			t.add_child(p)
 	return t
@@ -670,9 +696,10 @@ func _results_table() -> Control:
 func _rewards() -> Control:
 	var v := VBoxContainer.new()
 	v.custom_minimum_size = Vector2(520, 0)
-	v.add_theme_constant_override("separation", 3)
+	v.add_theme_constant_override("separation", 6)
 	var head := PanelContainer.new()
-	head.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.BLACK_SOLID))
+	head.custom_minimum_size = Vector2(0, 46)
+	head.add_theme_stylebox_override("panel", UiStyle.box(Color(0, 0, 0, 0), 0))
 	head.add_child(_cell("  REWARDS", 0, UiStyle.cond_bold(), 24, UiStyle.MUTED))
 	v.add_child(head)
 	var lines := []
@@ -698,7 +725,7 @@ func _rewards() -> Control:
 	for l in lines:
 		var p := PanelContainer.new()
 		p.custom_minimum_size = Vector2(0, 62)
-		p.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.BLACK))
+		p.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.CHARCOAL, 1, UiStyle.LINE, 8))
 		var row := HBoxContainer.new()
 		p.add_child(row)
 		row.add_child(_cell("  " + l[0], 0, UiStyle.body(), 28, UiStyle.TEXT))
@@ -706,7 +733,7 @@ func _rewards() -> Control:
 		v.add_child(p)
 	var total := PanelContainer.new()
 	total.custom_minimum_size = Vector2(0, 96)
-	total.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.BLACK_SOLID))
+	total.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.GRAPHITE, 2, UiStyle.ACCENT, 8))
 	var tr := HBoxContainer.new()
 	total.add_child(tr)
 	tr.add_child(_cell("  BANK", 0, UiStyle.cond_bold(), 28, UiStyle.MUTED))
@@ -732,9 +759,9 @@ func _prompt(icon: String, text: String, cb: Callable) -> Button:
 	b.focus_mode = Control.FOCUS_NONE
 	b.add_theme_font_override("font", UiStyle.cond_bold())
 	b.add_theme_font_size_override("font_size", 30)
-	b.add_theme_stylebox_override("normal", UiStyle.box(Color(0, 0, 0, 0.8)))
-	b.add_theme_stylebox_override("hover", UiStyle.box(Color(0.1, 0.1, 0.1, 0.9)))
-	b.add_theme_stylebox_override("pressed", UiStyle.box(Color(1, 1, 1, 1)))
+	b.add_theme_stylebox_override("normal", UiStyle.box(UiStyle.CHARCOAL, 1, UiStyle.LINE, 8))
+	b.add_theme_stylebox_override("hover", UiStyle.box(UiStyle.GRAPHITE, 2, UiStyle.ACCENT, 8))
+	b.add_theme_stylebox_override("pressed", UiStyle.box(UiStyle.GRAPHITE, 3, UiStyle.ACCENT, 8))
 	b.add_theme_constant_override("icon_max_width", 40)
 	b.pressed.connect(cb)
 	return b

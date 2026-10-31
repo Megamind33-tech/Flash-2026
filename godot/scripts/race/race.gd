@@ -793,7 +793,7 @@ func _complete() -> void:
 	print("[GRIDLINE] race complete seed=%d event=%s laps=%d player=P%d race_time=%.1fs avg_fps=%.1f worst_frame_ms=%.1f" % [race_seed, event["id"], total_laps, player.position, race_time, avg_fps, _worst_frame * 1000.0])
 	for s in standings:
 		var r: Racer = racers.filter(func(x): return x.id == s["id"])[0]
-		print("[GRIDLINE]   P%d %-16s finished=%s laps=%d progress=%.0f best=%s recoveries=%d rejected=%d" % [r.position, r.display_name, str(s["finished"]), s["laps"], s["progress"], Racer.format_ms(s["best"]), r.recoveries, r.laps.rejected_steps])
+		print("[GRIDLINE]   P%d %-16s finished=%s laps=%d progress=%.0f best=%s recoveries=%d rejected=%d finish=%.4f laps_ms=%s" % [r.position, r.display_name, str(s["finished"]), s["laps"], s["progress"], Racer.format_ms(s["best"]), r.recoveries, r.laps.rejected_steps, r.laps.finish_time, str(r.laps.lap_times)])
 		var st: Array = _stability.get(r.id, [0.0, 0.0, 1.0, 0.0, 0.0])
 		print("[GRIDLINE]      car=%s mass=%.0fkg airborne=%.2fs longest_air=%.2fs min_upright=%.3f max_up_vel=%.2fm/s" % [r.car.car_id, r.car.mass, st[0], st[1], st[2], st[3]])
 	results_ready.emit()

@@ -78,6 +78,7 @@ func _ready() -> void:
 	_build_ui()
 	_build_hub()
 	_show("main")
+	_evidence_flags.call_deferred()
 	if DisplayServer.get_name() != "headless":   # menu music ("Heart in the Drive", owner-supplied; assets/audio/CREDITS.md)
 		var mp := AudioStreamPlayer.new()
 		mp.name = "Music"
@@ -122,6 +123,24 @@ func _ready() -> void:
 			(overlay as CareerModes)._render()
 		if overlay is DriverCards and args.has("--profile"):
 			(overlay as DriverCards)._profile(DriverCards.all_drivers()[int(args[args.find("--profile") + 1])])
+
+
+## Evidence: --hide-ui shows only the 3D scene; --garage-shot <front|side|rear|low|top|wide|bay> fixes the camera.
+func _evidence_flags() -> void:
+	var args := OS.get_cmdline_user_args()
+	if args.has("--hide-ui"):
+		for c in get_children():
+			if c is CanvasItem:
+				(c as CanvasItem).visible = false
+			elif c is CanvasLayer:
+				(c as CanvasLayer).visible = false
+	var gs := args.find("--garage-shot")
+	if gs >= 0 and gs + 1 < args.size() and studio:
+		studio.set_preset(args[gs + 1])
+		studio._idle = 99.0
+		studio.yaw = float(GarageStudio.SHOTS[args[gs + 1]][0])
+		studio.pitch_h = float(GarageStudio.SHOTS[args[gs + 1]][1])
+		studio.dist = float(GarageStudio.SHOTS[args[gs + 1]][2])
 
 
 func _build_showroom() -> void:

@@ -14,6 +14,9 @@ const SHOTS := {
 	"rear": [-178.0, 1.45, 9.2, 30.0],
 	"low": [-48.0, 0.55, 8.4, 32.0],
 	"top": [-90.0, 4.2, 9.8, 32.0],
+	"wide": [-28.0, 3.4, 21.0, 52.0],    # establishing shot: the hall behind the car
+	"bay": [-140.0, 2.2, 15.0, 46.0],    # toward the service bays and the glazed wall
+	"led": [-160.0, 1.6, 12.0, 55.0],    # from the floor across the hall to the LED wall over the bays
 }
 const CINEMATIC := ["front", "side", "rear", "low"]
 
@@ -41,15 +44,26 @@ var frame_pitch := 0.0  # degrees: negative tilts the view down so the car sits 
 func _ready() -> void:
 	_environment()
 	_room()
+	GarageHQ.new(self).build(Game.quality())   # the headquarters hall around the hero bay (scripts/ui/garage_hq.gd)
 	_lights()
 	_plinth()
+	# Reflections: one box-projected probe for the whole hall (glass wall, trusses, skylights) and a sharper one for
+	# the hero bay so the softboxes and the room read on the paint.
+	var hall := ReflectionProbe.new()
+	hall.update_mode = ReflectionProbe.UPDATE_ONCE
+	hall.size = Vector3(80, 14, 48)
+	hall.position = Vector3(-8, 6.5, 0)
+	hall.box_projection = true
+	hall.max_distance = 400.0
+	hall.intensity = 0.9
+	add_child(hall)
 	var probe := ReflectionProbe.new()
 	probe.update_mode = ReflectionProbe.UPDATE_ONCE
-	probe.size = Vector3(26, 7.4, 24)
+	probe.size = Vector3(18, 9, 18)
 	probe.box_projection = true
-	probe.interior = true
-	probe.position = Vector3(0, 1.4, 0)
-	probe.max_distance = 40.0
+	probe.position = Vector3(0, 2.2, 0)
+	probe.max_distance = 300.0
+	probe.blend_distance = 3.0
 	add_child(probe)
 
 
@@ -74,30 +88,35 @@ func _box(size: Vector3, pos: Vector3, mat: Material, shadow := false) -> MeshIn
 
 
 func _environment() -> void:
-	# Image-based lighting from a real garage HDRI (Poly Haven, CC0): believable ambient light and reflections on
-	# paint, glass and chrome. The room geometry hides the panorama itself.
+	# Daylight beyond the curtain wall (Poly Haven CC0 sky, assets/world) is the background and the ambient/reflection
+	# source; the hall's own reflections come from the probes. AgX keeps the daylight windows and the softbox
+	# highlights from clipping while the shadows stay open (no crushed blacks).
 	var env := Environment.new()
 	var sky := Sky.new()
 	var pm := PanoramaSkyMaterial.new()
-	pm.panorama = load("res://assets/garage/hdri/skylit_garage_1k.hdr")
+	pm.panorama = load("res://assets/world/sky_kloofendal_48d_partly_cloudy_1k.hdr")
 	pm.energy_multiplier = 1.0
 	sky.sky_material = pm
 	sky.radiance_size = Sky.RADIANCE_SIZE_128
 	env.sky = sky
 	env.background_mode = Environment.BG_SKY
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.9
+	env.ambient_light_energy = 0.55
+	env.ambient_light_sky_contribution = 0.85
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.tonemap_exposure = 1.0
-	env.tonemap_white = 6.0
+	env.tonemap_mode = Environment.TONE_MAPPER_AGX
+	env.tonemap_exposure = 1.05
 	env.glow_enabled = true
-	env.glow_intensity = 0.4
-	env.glow_bloom = 0.02
-	env.glow_hdr_threshold = 1.4
+	env.glow_intensity = 0.35
+	env.glow_bloom = 0.0
+	env.glow_hdr_threshold = 1.6
+	env.fog_enabled = true                 # aerial perspective over the circuit and skyline, not inside the hall
+	env.fog_light_color = Color(0.78, 0.83, 0.9)
+	env.fog_density = 0.0011
+	env.fog_sky_affect = 0.0
 	env.adjustment_enabled = true
-	env.adjustment_contrast = 1.06
-	env.adjustment_saturation = 1.04
+	env.adjustment_contrast = 1.05
+	env.adjustment_saturation = 1.05
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
@@ -117,7 +136,10 @@ func _tex_mat(base: String, tint: Color, rough: float, uv: float, normal_scale :
 
 
 func _prop(id: String, pos: Vector3, yaw_deg := 0.0, scale := 1.0) -> Node3D:
-	var path := "res://assets/garage/models/%s/%s_1k.gltf" % [id, id]
+	# Game versions (tools/assets/decimate_garage.py) when they exist: the Poly Haven originals are film-quality.
+	var path := "res://assets/garage/models/%s/%s_game.gltf" % [id, id]
+	if not ResourceLoader.exists(path):
+		path = "res://assets/garage/models/%s/%s_1k.gltf" % [id, id]
 	if not ResourceLoader.exists(path):
 		return null
 	var n: Node3D = (load(path) as PackedScene).instantiate()
@@ -136,8 +158,9 @@ func _room() -> void:
 	# floor: polished epoxy over concrete, plus collision so the car sits on its suspension
 	var floor := MeshInstance3D.new()
 	var pm := PlaneMesh.new()
-	pm.size = Vector2(26, 24)
+	pm.size = Vector2(80, 48)
 	floor.mesh = pm
+	floor.position = Vector3(-8, 0, 0)
 	var fm := _tex_mat("concrete_grey", Color(0.42, 0.42, 0.44), 0.32, 0.18, 0.2)
 	fm.metallic_specular = 0.6
 	floor.material_override = fm
@@ -145,9 +168,9 @@ func _room() -> void:
 	var body := StaticBody3D.new()
 	var cs := CollisionShape3D.new()
 	var bs := BoxShape3D.new()
-	bs.size = Vector3(26, 1, 24)
+	bs.size = Vector3(80, 1, 48)
 	cs.shape = bs
-	cs.position = Vector3(0, -0.5, 0)
+	cs.position = Vector3(-8, -0.5, 0)
 	body.add_child(cs)
 	add_child(body)
 	# painted bay outline around the car and a second bay for the covered car
@@ -156,41 +179,10 @@ func _room() -> void:
 		for sx: float in [-1.0, 1.0]:
 			_box(Vector3(0.08, 0.004, 6.6), bay + Vector3(sx * 1.9, 0.002, 0), paint)
 		_box(Vector3(3.88, 0.004, 0.08), bay + Vector3(0, 0.002, -3.3), paint)
-	var hatch := _mat(Color(0.95, 0.62, 0.12), 0.6)   # safety yellow walkway edge
-	_box(Vector3(26, 0.004, 0.12), Vector3(0, 0.002, 5.2), hatch)
-	# walls: painted concrete block (lower) and corrugated cladding (upper)
-	var block := _tex_mat("concrete_grey", Color(0.55, 0.56, 0.58), 0.85, 0.5, 0.8)
-	var upper := _mat(Color(0.2, 0.21, 0.23), 0.55, 0.5)
-	for side: float in [-1.0, 1.0]:
-		_box(Vector3(0.3, 3.0, 24), Vector3(side * 13, 1.5, 0), block, true)
-		_box(Vector3(0.3, 4.2, 24), Vector3(side * 13, 5.1, 0), upper, true)
-	_box(Vector3(26, 3.0, 0.3), Vector3(0, 1.5, 12), block, true)
-	_box(Vector3(26, 4.2, 0.3), Vector3(0, 5.1, 12), upper, true)
-	for k in 26:   # vertical corrugation ribs on the upper cladding
-		for side: float in [-1.0, 1.0]:
-			_box(Vector3(0.08, 4.2, 0.12), Vector3(side * 12.82, 5.1, -11.5 + k * 0.92), _mat(Color(0.26, 0.27, 0.29), 0.45, 0.6))
-	# back wall: two glazed roller doors with daylight beyond, framed in steel
-	var steel := _mat(Color(0.16, 0.165, 0.175), 0.4, 0.8)
-	var glass := StandardMaterial3D.new()
-	glass.albedo_color = Color(0.75, 0.82, 0.9)
-	glass.emission_enabled = true
-	glass.emission = Color(0.78, 0.86, 0.95)
-	glass.emission_energy_multiplier = 2.2
-	for dx: float in [-6.5, 6.5]:
-		_box(Vector3(9.0, 5.2, 0.05), Vector3(dx, 2.6, -11.95), glass)
-		for r in 6:   # door slats / mullions
-			_box(Vector3(9.0, 0.06, 0.12), Vector3(dx, 0.5 + r * 0.95, -11.85), steel)
-		for c in 5:
-			_box(Vector3(0.08, 5.2, 0.12), Vector3(dx - 4.5 + c * 2.25, 2.6, -11.85), steel)
-	_box(Vector3(26, 2.6, 0.3), Vector3(0, 6.4, -12), upper, true)
-	_box(Vector3(4.0, 5.2, 0.3), Vector3(0, 2.6, -12), block, true)
-	# roof: steel trusses and a dark deck
-	_box(Vector3(26, 0.2, 24), Vector3(0, 7.3, 0), _mat(Color(0.12, 0.12, 0.13), 0.8), true)
-	for tz: float in [-8.0, -3.0, 2.0, 7.0]:
-		_box(Vector3(26, 0.35, 0.18), Vector3(0, 6.9, tz), steel)
+	# (the enclosing walls, roller doors and roof are now the headquarters hall: scripts/ui/garage_hq.gd)
 	# team identity wall (right): dark panel, accent stripe, wordmark
 	var panel := _mat(Color(0.06, 0.062, 0.07), 0.35, 0.3)
-	_box(Vector3(0.12, 4.0, 10), Vector3(12.75, 3.0, -2.0), panel)
+	_box(Vector3(0.5, 5.2, 11), Vector3(12.95, 2.6, -2.0), panel, true)   # free-standing feature wall in the hall
 	var stripe := StandardMaterial3D.new()
 	stripe.albedo_color = Color(0.2, 0.1, 0.03)
 	stripe.emission_enabled = true
@@ -240,53 +232,68 @@ func _room() -> void:
 		_prop("tire_pump", Vector3(-10.0, 0, 3.4), 40.0)
 
 
+## Automotive lighting: a suspended light ceiling of three long softboxes over the hero bay (their reflections draw
+## the long highlights along the bodywork), two broad overhead spots doing the actual lighting with soft shadows,
+## a warm rim from behind, daylight through the curtain wall, and a low fill so the far side never goes black.
 func _lights() -> void:
-	# fluorescent fittings (real model) on the trusses, with their light as emissive tubes + a few omnis
-	for x: float in [-6.0, 0.0, 6.0]:
-		for z: float in [-5.5, -0.5, 4.5]:
-			var f := _prop("mounted_fluorescent_lights", Vector3(x, 6.75, z), 0.0, 1.6)
-			if f:
-				f.rotation_degrees.z = 180.0
-	var tube := StandardMaterial3D.new()
-	tube.albedo_color = Color.WHITE
-	tube.emission_enabled = true
-	tube.emission = Color(0.95, 0.97, 1.0)
-	tube.emission_energy_multiplier = 4.0
-	for x: float in [-6.0, 0.0, 6.0]:
-		for z: float in [-5.5, -0.5, 4.5]:
-			_box(Vector3(1.3, 0.03, 0.08), Vector3(x, 6.68, z - 0.18), tube)
-			_box(Vector3(1.3, 0.03, 0.08), Vector3(x, 6.68, z + 0.18), tube)
-	# daylight through the doors (soft shadows) and a key spot on the car
+	var frame := _mat(Color(0.12, 0.12, 0.13), 0.4, 0.8)
+	var soft := StandardMaterial3D.new()
+	soft.albedo_color = Color.WHITE
+	soft.emission_enabled = true
+	soft.emission = Color(0.97, 0.98, 1.0)
+	soft.emission_energy_multiplier = 3.2
+	soft.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	for z: float in [-1.6, 0.0, 1.6]:
+		_box(Vector3(6.4, 0.05, 1.05), Vector3(0, 5.4, z), soft)
+		_box(Vector3(6.6, 0.12, 1.25), Vector3(0, 5.48, z), frame)
+	for x: float in [-3.4, 3.4]:
+		_box(Vector3(0.08, 0.12, 4.6), Vector3(x, 5.5, 0), frame)
+		for z: float in [-2.2, 2.2]:
+			_box(Vector3(0.03, 5.4, 0.03), Vector3(x, 8.25, z), frame)   # suspension cables to the trusses
+	for p: Vector3 in [Vector3(1.2, 5.2, 0.8), Vector3(-1.4, 5.2, -0.9)]:
+		var top := SpotLight3D.new()
+		var shadowed := p.x > 0.0   # one shadow-casting softbox is enough for contact shadows; the second only lights
+		top.position = p
+		top.look_at_from_position(p, CAR_POS + Vector3(0, 0.4, 0), Vector3.FORWARD)
+		top.spot_range = 9.0
+		top.spot_angle = 62.0
+		top.spot_attenuation = 0.6
+		top.light_energy = 3.2
+		top.light_size = 1.2          # broad source: soft shadow edges like a real softbox
+		top.shadow_enabled = shadowed
+		top.shadow_blur = 1.5
+		top.light_color = Color(1.0, 0.98, 0.95)
+		add_child(top)
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-28, 180, 0)   # low daylight through the glazed doors (walls/roof cast shadows)
-	sun.light_energy = 0.9
-	sun.light_color = Color(0.92, 0.95, 1.0)
+	sun.rotation_degrees = Vector3(-30, 168, 0)   # afternoon daylight through the curtain wall, mullion shadows on the floor
+	sun.light_energy = 1.5
+	sun.light_color = Color(1.0, 0.96, 0.9)
 	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 30.0
+	sun.directional_shadow_max_distance = 70.0
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	add_child(sun)
 	var key := SpotLight3D.new()
-	key.position = Vector3(2.5, 6.5, 4.0)
-	key.look_at_from_position(key.position, CAR_POS, Vector3.UP)
+	key.position = Vector3(4.5, 4.2, 5.5)
+	key.look_at_from_position(key.position, CAR_POS + Vector3.UP * 0.5, Vector3.UP)
 	key.spot_range = 16.0
-	key.spot_angle = 45.0
-	key.light_energy = 5.0
-	key.shadow_enabled = true
+	key.spot_angle = 38.0
+	key.light_energy = 2.2
 	key.light_color = Color(1.0, 0.97, 0.92)
 	add_child(key)
 	var rim := SpotLight3D.new()
-	rim.position = Vector3(-1.0, 4.5, -7.0)
+	rim.position = Vector3(-2.0, 3.8, -7.5)
 	rim.look_at_from_position(rim.position, CAR_POS + Vector3.UP * 0.6, Vector3.UP)
 	rim.spot_range = 14.0
-	rim.spot_angle = 45.0
-	rim.light_energy = 3.0
-	rim.light_color = Color(1.0, 0.8, 0.55)
+	rim.spot_angle = 40.0
+	rim.light_energy = 2.4
+	rim.light_color = Color(1.0, 0.82, 0.6)
 	add_child(rim)
-	for p: Vector3 in [Vector3(-8, 5.5, 0), Vector3(8, 5.5, 0)]:
-		var o := OmniLight3D.new()
-		o.position = p
-		o.omni_range = 12.0
-		o.light_energy = 1.2
-		add_child(o)
+	var fill := OmniLight3D.new()
+	fill.position = Vector3(-6.0, 2.5, 3.0)
+	fill.omni_range = 10.0
+	fill.light_energy = 0.6
+	fill.light_color = Color(0.85, 0.9, 1.0)
+	add_child(fill)
 
 
 func _plinth() -> void:

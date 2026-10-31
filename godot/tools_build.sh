@@ -15,6 +15,7 @@ echo "== ride height"; timeout 300 "$G" --headless --path . --fixed-fps 60 res:/
 echo "== props";       timeout 300 "$G" --headless --path . -s res://tests/props_test.gd 2>&1 | grep -E "^PROPS|FAIL"
 echo "== placement";   timeout 600 "$G" --headless --path . res://tests/street_props_test.tscn 2>&1 | grep -E "STREET PROPS|FAIL"
 echo "== modes";      timeout 300 "$G" --headless --path . res://tests/modes_test.tscn 2>&1 | grep -E "^MODES|FAIL"
+echo "== ad registry"; timeout 200 "$G" --headless --path . res://tests/ad_registry_test.tscn 2>&1 | grep -E "^AD REGISTRY|FAIL"
 echo "== menu nav";   timeout 500 "$G" --headless --path . res://tests/menu_nav_test.tscn 2>&1 | grep -E "^MENU NAV|FAIL"
 echo "== buttons";    timeout 300 "$G" --headless --path . res://tests/ui_buttons_test.tscn 2>&1 | grep -E "^BUTTONS|FAIL"
 echo "== landmarks";   timeout 300 "$G" --headless --path . res://tests/landmark_test.tscn 2>&1 | grep -E "LANDMARK|SCRIPT ERROR"

@@ -27,6 +27,7 @@ var _lap_start := 0.0
 var _sector_start := 0.0
 var _sectors_total := 0
 var _initialised := false
+var _last_time := -1.0
 
 
 func _init(length: float, laps: int, sectors: int = 3) -> void:
@@ -61,9 +62,12 @@ func update(distance: float, time: float) -> void:
 	var d := _wrap(distance)
 	var delta := _signed_delta(_last_distance, d)
 	_last_distance = d
+	var prev_time := _last_time if _last_time >= 0.0 else time
+	_last_time = time
 	if absf(delta) > max_step_distance:
 		rejected_steps += 1
 		return
+	var prev_progress := progress
 	progress += delta
 	if progress <= max_progress:
 		return
@@ -72,14 +76,20 @@ func update(distance: float, time: float) -> void:
 	var sectors_now := floori(max_progress / sector_len)
 	while _sectors_total < sectors_now:
 		_sectors_total += 1
+		# Sub-step timing: the line (or sector boundary) was crossed somewhere inside this physics step; interpolate
+		# the moment from the distance covered. Stamping the step's own time made cars that crossed in the same
+		# 1/60 s step tie to the millisecond (identical finish and lap times in close racing).
+		var boundary := _sectors_total * sector_len
+		var frac := clampf((boundary - prev_progress) / maxf(progress - prev_progress, 0.0001), 0.0, 1.0)
+		var t_cross := lerpf(prev_time, time, frac)
 		var sector := (_sectors_total - 1) % sector_count
-		var sector_ms := roundi((time - _sector_start) * 1000.0)
-		_sector_start = time
+		var sector_ms := roundi((t_cross - _sector_start) * 1000.0)
+		_sector_start = t_cross
 		sector_completed.emit(sector, sector_ms)
 		if sector == sector_count - 1:
 			laps_completed += 1
-			var lap_ms := roundi((time - _lap_start) * 1000.0)
-			_lap_start = time
+			var lap_ms := roundi((t_cross - _lap_start) * 1000.0)
+			_lap_start = t_cross
 			last_lap_ms = lap_ms
 			lap_times.append(lap_ms)
 			if best_lap_ms == 0 or lap_ms < best_lap_ms:
@@ -87,7 +97,7 @@ func update(distance: float, time: float) -> void:
 			lap_completed.emit(laps_completed, lap_ms)
 			if laps_completed >= total_laps:
 				finished = true
-				finish_time = time
+				finish_time = t_cross
 				finished_race.emit()
 				return
 

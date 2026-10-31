@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ddbk4i0dsrp1y"
-path="res://.godot/imported/metal_tool_chest_diff_1k.jpg-3e88e3d1333e30cea9256f6fcbeebbc5.ctex"
+path.s3tc="res://.godot/imported/metal_tool_chest_diff_1k.jpg-3e88e3d1333e30cea9256f6fcbeebbc5.s3tc.ctex"
+path.etc2="res://.godot/imported/metal_tool_chest_diff_1k.jpg-3e88e3d1333e30cea9256f6fcbeebbc5.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/garage/models/metal_tool_chest/textures/metal_tool_chest_diff_1k.jpg"
-dest_files=["res://.godot/imported/metal_tool_chest_diff_1k.jpg-3e88e3d1333e30cea9256f6fcbeebbc5.ctex"]
+dest_files=["res://.godot/imported/metal_tool_chest_diff_1k.jpg-3e88e3d1333e30cea9256f6fcbeebbc5.s3tc.ctex", "res://.godot/imported/metal_tool_chest_diff_1k.jpg-3e88e3d1333e30cea9256f6fcbeebbc5.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -23,7 +25,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""
