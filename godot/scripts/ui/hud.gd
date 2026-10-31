@@ -468,7 +468,8 @@ func _process(delta: float) -> void:
 	dots.append([car.global_position, UiStyle.GOLD])
 	map.dots = dots
 	map.queue_redraw()
-	fps_label.text = "%d FPS" % Engine.get_frames_per_second() if Game.settings()["showFps"] else ""
+	fps_label.text = ("%d FPS · %d draws · %dk tris" % [Engine.get_frames_per_second(), Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
+		Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME) / 1000]) if Game.settings()["showFps"] else ""
 
 
 func _update_board() -> void:

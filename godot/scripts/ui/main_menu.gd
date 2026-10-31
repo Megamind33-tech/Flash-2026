@@ -23,7 +23,7 @@ var hub_car: Label
 const ORANGE := Color(1.0, 0.42, 0.0)
 const HUB_CARDS := [["career", "CAREER", "Four tiers · 11 venues"], ["campaigns", "CAMPAIGNS", "Story chapters"],
 	["competitions", "COMPETITIONS", "Daily · City Cups"], ["pvp", "PVP RIVALS", "Ghost duels"],
-	["quick", "QUICK RACE", "Any venue · any weather"], ["garage", "GARAGE", "Buy · choose your car"]]
+	["quick", "QUICK RACE", "11 venues · any weather"], ["garage", "GARAGE", "Buy · choose your car"]]
 var sel_tier := 0
 var sel_campaign: Dictionary = {}
 var quick := {"city": "lusaka", "weather": "clear", "time": "day", "format": "race"}
