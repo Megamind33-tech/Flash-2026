@@ -490,10 +490,10 @@ static func _areas(root: Node3D, data: Dictionary) -> void:
 		if spec[0] == "parks":
 			bk.commit(mesh, tex_mat("grass", 4.0, Color(0.85, 0.92, 0.8), 0.95))
 		else:
-			var w := StandardMaterial3D.new()
-			w.albedo_color = Color(0.09, 0.16, 0.2)
-			w.roughness = 0.06
-			w.metallic = 0.3
+			var w := ShaderMaterial.new()   # gate G6: Gerstner-normal water with Fresnel sky reflection
+			w.shader = load("res://scripts/world/water.gdshader")
+			w.set_shader_parameter("choppy", clampf(0.25 + Weather.wind_accel * 0.6, 0.0, 1.0))
+			w.set_shader_parameter("rain", float(Weather.PRESET[Weather.kind]["rain"]))
 			bk.commit(mesh, w)
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
