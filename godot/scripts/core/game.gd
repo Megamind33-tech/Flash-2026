@@ -186,6 +186,11 @@ func apply_settings() -> void:
 	Engine.max_fps = 30 if int(s["quality"]) == 0 else 60
 	AudioServer.set_bus_volume_db(0, linear_to_db(clampf(float(s["volume"]), 0.0, 1.0)))
 	DisplayServer.screen_set_keep_on(true)
+	# Mesh LOD aggressiveness per tier (pixels of error allowed before a coarser LOD is used): the hero cars are
+	# 60k-280k triangles at full detail, so phones must drop LODs much earlier than desktop.
+	var tree := get_tree()
+	if tree and tree.root:
+		tree.root.mesh_lod_threshold = [12.0, 6.0, 2.0][clampi(int(s["quality"]), 0, 2)]
 
 
 func quality() -> int:
