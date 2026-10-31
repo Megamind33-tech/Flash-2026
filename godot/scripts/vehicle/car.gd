@@ -122,6 +122,7 @@ func _physics_process(delta: float) -> void:
 		apply_central_force(-global_basis.y * downforce * speed * speed * (wheels_on_ground / 4.0))
 	if not legacy_physics:
 		_stabilise(upright, delta)
+		apply_central_force(Weather.wind(delta) * mass)
 
 	# Surface grip: wheels on grass or gravel lose friction.
 	offroad = false
@@ -129,7 +130,7 @@ func _physics_process(delta: float) -> void:
 		var body := w.get_contact_body()
 		var off: bool = body != null and body.is_in_group("offroad")
 		offroad = offroad or off
-		w.wheel_friction_slip = offroad_grip if off else grip
+		w.wheel_friction_slip = (offroad_grip if off else grip) * Weather.grip_at(speed)
 
 	_update_gearbox(fwd_speed, thr)
 	if tail_lights:

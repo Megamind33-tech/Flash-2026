@@ -1,6 +1,6 @@
 ## Headless unit tests for the ported core rules (mirrors Assets/Gridline/Tests/EditMode/CoreLogicTests.cs).
-## Run: godot --headless --path godot --script res://tests/core_tests.gd   (exit code = number of failures)
-extends SceneTree
+## Run: godot --headless --path godot res://tests/core_tests.tscn   (exit code = number of failures)
+extends Node
 
 var failures := 0
 var passed := 0
@@ -14,7 +14,7 @@ func check(cond: bool, name: String) -> void:
 		printerr("FAIL: ", name)
 
 
-func _init() -> void:
+func _ready() -> void:
 	var L := 1000.0
 	# Grid slot behind the line has negative progress.
 	var t := LapTracker.new(L, 3)
@@ -79,5 +79,42 @@ func _init() -> void:
 	for d in range(0, int(track.length), 2):
 		vmin = minf(vmin, track.target_speed_at(d))
 	check(vmin > 9.0, "slowest corner speed %.1f" % vmin)
+	# --- city circuits, weather, career generator, ghosts ---
+	for id in CityStyles.ORDER:
+		var data := CityStyles.data(id)
+		check(not data.is_empty(), "city data loads: " + id)
+		var ct := CityWorld.track_from(data)
+		check(ct.length > 1800.0 and ct.length < 4200.0, "circuit length plausible: %s %.0f m" % [id, ct.length])
+		check(data.get("attribution", "").contains("OpenStreetMap"), "OSM attribution present: " + id)
+	Weather.configure("storm", "night", 0.95, 1)
+	check(Weather.grip < 0.65, "storm cuts grip")
+	check(Weather.grip_at(50.0) < Weather.grip_at(20.0), "aquaplaning: less grip at speed in standing water")
+	check(Weather.wind(0.016).length() > 0.0 and Weather.wind(0.016).length() < 1.2, "storm crosswind gusts but stays small")
+	Weather.configure("clear", "day", 1.0, 1)
+	check(is_equal_approx(Weather.grip_at(60.0), 1.0) and Weather.wind(0.016) == Vector3.ZERO, "clear day: full grip, no wind")
+	var s1 := Career.season_events(0, 3)
+	var s2 := Career.season_events(0, 3)
+	check(s1.size() == 6 and JSON.stringify(s1) == JSON.stringify(s2), "season card is deterministic")
+	check(JSON.stringify(Career.season_events(0, 4)) != JSON.stringify(s1), "next season generates a new card")
+	var cities_ok := true
+	for e in Career.season_events(3, 0):
+		cities_ok = cities_ok and e["city"] in Career.TIERS[3]["cities"]
+	check(cities_ok, "tier cards only use tier cities")
+	check(Career.unlocked_tier(0) == 0 and Career.unlocked_tier(500) == 3, "tier unlocks follow reputation")
+	var dust := 0
+	for k in 400:
+		if CityStyles.roll_weather("cairo", k) == "dust":
+			dust += 1
+	check(dust > 60 and dust < 190, "Cairo dust storms follow local odds (%d/400)" % dust)
+	var lon_rain := 0
+	for k in 400:
+		if CityStyles.roll_weather("london", k) in ["rain", "storm"]:
+			lon_rain += 1
+	check(lon_rain > 90, "London is rainy (%d/400)" % lon_rain)
+	var mt := Career.medal_times(CityWorld.track_from(CityStyles.data("lusaka")))
+	check(mt[0] < mt[1] and mt[1] < mt[2] and mt[0] > 40000, "time attack medals ordered and plausible")
+	var frames := [Ghosts.sample(Transform3D(Basis(), Vector3.ZERO)), Ghosts.sample(Transform3D(Basis(), Vector3(10, 0, 0)))]
+	check(Ghosts.at(frames, Ghosts.RATE * 0.5).origin.is_equal_approx(Vector3(5, 0, 0)), "ghost interpolates between samples")
+	check(Career.campaign_event(Career.CAMPAIGNS[0], 1)["format"] == "duel", "campaign chapters map to events")
 	print("core tests: %d passed, %d failed" % [passed, failures])
-	quit(failures)
+	get_tree().quit(failures)

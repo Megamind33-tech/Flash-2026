@@ -34,6 +34,19 @@ var _standings_timer := 0.0
 var _frames := 0
 var _frame_time := 0.0
 var _worst_frame := 0.0
+var city_id := "lusaka"
+var track_name := ""
+var _env := {}
+var _sprays := []
+var _flash := 0.0
+var format := "race"
+var medals: Array = []          # time attack targets (ms): gold, silver, bronze
+var medal := 0                  # 1 gold, 2 silver, 3 bronze, 0 none
+var ghost_car: RaceCarBody
+var ghost: Dictionary = {}
+var _rec := {}                  # racer id -> frames of the lap in progress
+var _rec_t := 0.0
+var _eliminations := 0
 var _stability := {}   # autotest: per car [airborne seconds, longest airborne spell, min upright dot, max upward m/s]
 
 
@@ -46,28 +59,129 @@ func _ready() -> void:
 		var i := args.find("--autotest")
 		if i + 1 < args.size() and args[i + 1].is_valid_int():
 			Game.session["laps_override"] = int(args[i + 1])
+	for key in ["city", "weather", "time"]:   # tests/screenshots: --city cairo --weather dust --time dusk --format duel
+		var ki := args.find("--" + key)
+		if ki >= 0 and ki + 1 < args.size():
+			Game.session[key] = args[ki + 1]
+	var fi := args.find("--format")
+	if fi >= 0 and fi + 1 < args.size():
+		var tev := Career.make_event("autotest", str(Game.session["city"]), args[fi + 1], str(Game.session["weather"]), str(Game.session["time"]), 1)
+		Game.register_event(tev)
+		Game.session["event"] = tev["id"]
+		Game.session["ai"] = int(tev["ai"])
 	event = Game.event(Game.session["event"])
 	total_laps = int(Game.session.get("laps_override", event["laps"]))
-	track = TrackPath.ashford()
-	_build_environment()
-	TrackBuilder.build(self)
-	WorldDressing.build(self, track, Game.quality() >= 1 or not autotest)
+	city_id = str(Game.session.get("city", "lusaka"))
+	var style := CityStyles.get_style(city_id)
+	Weather.configure(str(Game.session.get("weather", "clear")), str(Game.session.get("time", "day")),
+		float(style["surface_grip"]) if city_id != "ashford" else 1.0, hash(city_id + str(event["id"])))
+	if city_id == "ashford":
+		track = TrackPath.ashford()
+		track_name = TrackPath.ASHFORD_NAME
+		_env = Weather.build_environment(self, style)
+		TrackBuilder.build(self)
+		WorldDressing.build(self, track, Game.quality() >= 1 or not autotest)
+	else:
+		var data := CityStyles.data(city_id)
+		track = CityWorld.track_from(data)
+		track_name = "%s, %s" % [data["name"], data["country"]]
+		_env = Weather.build_environment(self, style)
+		CityWorld.build(self, data, style, track)
+	# AI braking points and corner speeds follow the grip the weather leaves.
+	track.lateral_grip_g *= Weather.grip
+	track.decel *= Weather.grip
+	track._build_speed()
 	if Game.session["affects_career"] and not Game.session["entry_paid"]:
 		receipt = Game.enter_race(event)
 		Game.session["entry_paid"] = true
 		Game.persist()
 	_spawn_grid()
+	_setup_format()
 	camera = ChaseCamera.new()
 	camera.target = player.car
 	camera.far = 1500.0
 	add_child(camera)
 	camera.make_current()
+	Weather.attach_particles(camera)
+	_dress_cars()
 	if not autotest or DisplayServer.get_name() != "headless":
 		hud = RaceHud.new()
 		add_child(hud)
 		hud.bind(self)
 	await get_tree().create_timer(0.75).timeout
 	phase = Phase.COUNTDOWN
+	notice.emit(Weather.label().to_upper())
+
+
+## Format rules: AI pace for the tier, time-attack medals, ghosts for Time Attack / Ghost Duel.
+func _setup_format() -> void:
+	format = str(event.get("format", "race"))
+	for ai in ais:
+		if not ai.racer.is_player:
+			ai.pace *= float(event.get("pace", 1.0))
+	if format in ["time_attack", "ghost_duel"]:
+		medals = Career.medal_times(track)
+		ghost = Ghosts.load_ghost(city_id, "rival" if format == "ghost_duel" else "you")
+		if format == "ghost_duel" and ghost.is_empty():
+			ghost = Ghosts.load_ghost(city_id, "you")
+		if not ghost.is_empty():
+			ghost_car = CarBuilder.build("vantor_gold", false, str(ghost.get("car", CarBuilder.DEFAULT_CAR)))
+			ghost_car.freeze = true
+			ghost_car.collision_layer = 0
+			ghost_car.collision_mask = 0
+			ghost_car.process_mode = Node.PROCESS_MODE_DISABLED
+			ghost_car.name = "Ghost"
+			add_child(ghost_car)
+			ghost_car.global_transform = Ghosts.at(ghost["frames"], 0.0)
+
+
+func _eliminate_last() -> void:
+	var active := racers.filter(func(x): return not x.eliminated and not x.laps.finished)
+	if active.size() <= 1:
+		return
+	active.sort_custom(func(a, b): return a.position < b.position)
+	var out: Racer = active[-1]
+	out.eliminated = true
+	_eliminations += 1
+	out.elim_order = _eliminations
+	out.car.input_enabled = false
+	ais = ais.filter(func(a): return a.racer != out)
+	if not out.is_player:   # pulled off the circuit: no obstacle, no recovery loop
+		out.car.visible = false
+		out.car.freeze = true
+		out.car.collision_layer = 0
+		out.car.collision_mask = 0
+	notice.emit("%s ELIMINATED" % out.display_name.to_upper())
+	if out.is_player:
+		call_deferred("_complete")
+
+
+func _result_position() -> int:
+	if format == "time_attack":
+		return [5, 1, 2, 3][medal]
+	if format == "ghost_duel":
+		return 1 if ghost.is_empty() or (player.laps.best_lap_ms > 0 and player.laps.best_lap_ms < int(ghost["ms"])) else 2
+	return player.position
+
+
+## Wet-road spray on every car; headlights on the player's car when it is dark or the weather closes in.
+func _dress_cars() -> void:
+	for r in racers:
+		var sp := Weather.make_spray()
+		if sp:
+			r.car.add_child(sp)
+			_sprays.append([sp, r.car])
+	if Weather.time_of_day != "day" or Weather.kind in ["storm", "fog", "dust"]:
+		for s in [-0.6, 0.6]:
+			var lamp := SpotLight3D.new()
+			lamp.position = Vector3(s, 0.7, 2.2)
+			lamp.rotation_degrees = Vector3(-6, 180, 0)
+			lamp.spot_range = 70.0
+			lamp.spot_angle = 32.0
+			lamp.light_energy = 6.0
+			lamp.light_color = Color(1.0, 0.95, 0.85)
+			lamp.shadow_enabled = false
+			player.car.add_child(lamp)
 
 
 func _build_environment() -> void:
@@ -172,8 +286,25 @@ func _physics_process(delta: float) -> void:
 			for r in racers:
 				line += " | %s d=%.0f v=%.0f lat=%.1f lap=%d" % [r.id.substr(0, 6), r.laps.progress, r.car.speed_kmh, r.lateral, r.laps.laps_completed]
 			print(line)
+	if phase == Phase.RACING or phase == Phase.FINISHING:
+		_rec_t += delta
+		if _rec_t >= Ghosts.RATE:
+			_rec_t -= Ghosts.RATE
+			for r in racers:
+				if not r.eliminated:
+					(_rec.get_or_add(r.id, []) as Array).append(Ghosts.sample(r.car.global_transform))
+		if ghost_car and not player.laps.finished:
+			ghost_car.global_transform = Ghosts.at(ghost["frames"], player.laps.current_lap_elapsed(race_time))
+	for sp in _sprays:
+		sp[0].emitting = (sp[1] as RaceCarBody).speed_kmh > 45.0
+	if Weather.kind == "storm" and _env.has("sun"):
+		_flash -= delta
+		var sun: DirectionalLight3D = _env["sun"]
+		if _flash <= 0.0 and randf() < delta * 0.08:
+			_flash = 0.18
+		sun.light_energy = 2.5 if _flash > 0.0 else float(Weather.PRESET["storm"]["sun"])
 	for r in racers:
-		r.physics_update(delta, running, race_time)
+		r.physics_update(delta, running and not r.eliminated, race_time)
 		if autotest and running:
 			var st: Array = _stability.get(r.id, [0.0, 0.0, 1.0, 0.0, 0.0])
 			var air: bool = r.car.wheels_on_ground == 0
@@ -221,7 +352,7 @@ func _process(delta: float) -> void:
 		if ais.filter(func(a): return a.racer == player).is_empty():
 			ais.append(AIDriver.new(player, track, {"skill": 60, "experience": 50, "aggression": 20, "consistency": 90}, 7))
 		notice.emit("FINISH")
-	var all_done := racers.all(func(r): return r.laps.finished)
+	var all_done := racers.all(func(r): return r.laps.finished or r.eliminated)
 	if phase == Phase.FINISHING:
 		_finish_timer -= delta
 		if all_done or _finish_timer <= 0.0:
@@ -233,6 +364,11 @@ func _process(delta: float) -> void:
 func _classify() -> Array:
 	var snaps := racers.map(func(r): return r.snapshot())
 	var order := Racer.classify(snaps)
+	if _eliminations > 0:   # knocked-out drivers drop to the back, latest knock-out highest
+		var keep := order.filter(func(o): return not racers.filter(func(x): return x.id == o["id"])[0].eliminated)
+		var out := order.filter(func(o): return racers.filter(func(x): return x.id == o["id"])[0].eliminated)
+		out.sort_custom(func(a, b): return racers.filter(func(x): return x.id == a["id"])[0].elim_order > racers.filter(func(x): return x.id == b["id"])[0].elim_order)
+		order = keep + out
 	for i in order.size():
 		for r in racers:
 			if r.id == order[i]["id"]:
@@ -252,8 +388,26 @@ func _complete() -> void:
 			fastest_id = s["id"]
 	for r in racers:
 		r.car.input_enabled = false
+	if format == "time_attack" and player.laps.best_lap_ms > 0:
+		medal = 0
+		for k in 3:
+			if medal == 0 and player.laps.best_lap_ms <= int(medals[k]):
+				medal = k + 1
+		notice.emit(["NO MEDAL", "GOLD MEDAL", "SILVER MEDAL", "BRONZE MEDAL"][medal])
 	if Game.session["affects_career"]:
-		reward = Game.apply_result(event, player.position, racers.size(), player.laps.best_lap_ms, fastest_id == "player")
+		var pos := _result_position()
+		reward = Game.apply_result(event, pos, racers.size(), player.laps.best_lap_ms, fastest_id == "player")
+		var pr := Game.progress()
+		if not (pr["done"] as Array).has(event["id"]):
+			(pr["done"] as Array).append(event["id"])
+		if event.has("daily"):
+			pr["daily"] = event["daily"]
+		if format == "time_attack" and medal > 0:
+			pr["medals"][event["id"]] = mini(int(pr["medals"].get(event["id"], 9)), medal)
+		if event.has("campaign") and pos <= int(event.get("goal", 1)) and (format != "time_attack" or medal > 0):
+			var c: String = event["campaign"]
+			pr["campaigns"][c] = maxi(int(pr["campaigns"].get(c, 0)), int(event["chapter"]) + 1)
+			notice.emit("CHAPTER COMPLETE")
 		for r in racers:
 			if not r.is_player:
 				Game.record_ai_result(r.id, r.position)
@@ -267,6 +421,7 @@ func _complete() -> void:
 		Game.session["entry_paid"] = false
 		Game.persist()
 	var avg_fps := _frames / maxf(_frame_time, 0.001)
+	print("[GRIDLINE] format=%s city=%s weather=%s/%s grip=%.2f eliminated=%d medal=%d ghost=%s" % [format, city_id, Weather.kind, Weather.time_of_day, Weather.grip, _eliminations, medal, str(not ghost.is_empty())])
 	print("[GRIDLINE] race complete event=%s laps=%d player=P%d race_time=%.1fs avg_fps=%.1f worst_frame_ms=%.1f" % [event["id"], total_laps, player.position, race_time, avg_fps, _worst_frame * 1000.0])
 	for s in standings:
 		var r: Racer = racers.filter(func(x): return x.id == s["id"])[0]
@@ -275,11 +430,18 @@ func _complete() -> void:
 		print("[GRIDLINE]      car=%s mass=%.0fkg airborne=%.2fs longest_air=%.2fs min_upright=%.3f max_up_vel=%.2fm/s" % [r.car.car_id, r.car.mass, st[0], st[1], st[2], st[3]])
 	results_ready.emit()
 	if autotest and not ("--shot" in OS.get_cmdline_user_args()):
-		var ok := racers.filter(func(r): return r.laps.finished).size() >= 3 and player.laps.finished
+		var ok := racers.filter(func(r): return r.laps.finished).size() >= mini(3, racers.size() - _eliminations) and (player.laps.finished or player.eliminated)
 		get_tree().quit(0 if ok else 1)
 
 
 func _on_lap(r: Racer, lap: int, ms: int) -> void:
+	if city_id != "ashford" and _rec.has(r.id):
+		var frames: Array = _rec[r.id]
+		if Ghosts.offer(city_id, "you" if r.is_player else "rival", ms, frames, r.display_name, r.car.car_id) and r.is_player:
+			notice.emit("NEW PERSONAL GHOST")
+	_rec[r.id] = []
+	if format == "elimination" and r.position == 1 and lap < total_laps:
+		_eliminate_last()
 	if not r.is_player:
 		return
 	if lap == total_laps - 1:

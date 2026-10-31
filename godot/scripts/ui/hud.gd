@@ -318,7 +318,7 @@ func _build_pause() -> void:
 	col.offset_right = 380
 	col.offset_top = -230
 	pause_panel.add_child(col)
-	col.add_child(_subtitle("PAUSE MENU", race.track.ASHFORD_NAME.to_upper()))
+	col.add_child(_subtitle("PAUSE MENU", race.track_name.to_upper()))
 	var items := [["Resume", func(): _set_pause(false), true, false], ["Restart Race", func(): race.restart(), false, false],
 		["Change Camera", func(): race.camera.cycle(), false, false], ["Retire to Menu", func(): race.quit_to_menu(), false, true]]
 	for it in items:
@@ -483,9 +483,9 @@ func _show_results() -> void:
 	title.add_theme_constant_override("shadow_offset_x", 4)
 	title.add_theme_constant_override("shadow_offset_y", 4)
 	col.add_child(title)
-	var sub := "%s  ·  %s  ·  %d LAPS" % [race.event["name"].to_upper(), race.track.ASHFORD_NAME.to_upper(), race.total_laps]
+	var sub := "%s  ·  %s  ·  %d LAPS" % [race.event["name"].to_upper(), race.track_name.to_upper(), race.total_laps]
 	if Game.session["championship"]:
-		sub = "CHAMPIONSHIP ROUND %d/%d  ·  " % [Game.championship()["round"] if not race.season_done else Game.CHAMPIONSHIP.size(), Game.CHAMPIONSHIP.size()] + sub
+		sub = "CHAMPIONSHIP ROUND %d/%d  ·  " % [Game.championship()["round"] if not race.season_done else Game.champ_rounds().size(), Game.champ_rounds().size()] + sub
 	col.add_child(UiStyle.label(sub, UiStyle.cond_bold(), 32, UiStyle.TEXT, HORIZONTAL_ALIGNMENT_CENTER))
 	var body := HBoxContainer.new()
 	body.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -632,6 +632,6 @@ func _prompt(icon: String, text: String, cb: Callable) -> Button:
 
 func _next_round() -> void:
 	var round := int(Game.championship()["round"])
-	Game.session["event"] = Game.CHAMPIONSHIP[round]
+	Game.prepare_session(Game.event(Game.champ_rounds()[round]))
 	Game.session["entry_paid"] = false
 	race.restart()

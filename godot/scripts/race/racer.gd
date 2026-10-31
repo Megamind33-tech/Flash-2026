@@ -18,6 +18,8 @@ var position := 0
 var penalty := 0.0
 var warnings := 0
 var recoveries := 0
+var eliminated := false
+var elim_order := 0
 var _hint := [-1]
 var _stuck := 0.0
 var _rolled := 0.0
@@ -70,7 +72,7 @@ func _recovery(delta: float) -> void:
 	_rolled = _rolled + delta if car.global_basis.y.y < 0.3 else 0.0
 	_stuck = _stuck + delta if car.linear_velocity.length() < 1.5 else 0.0
 	var lost := absf(lateral) > 40.0 or car.global_position.y < -20.0
-	if _rolled > 3.0 or lost or (not is_player and _stuck > 5.0):
+	if _rolled > 3.0 or lost or _stuck > (8.0 if is_player else 5.0):
 		recover()
 
 

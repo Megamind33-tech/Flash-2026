@@ -54,6 +54,42 @@ Evaluated, not adopted yet: **dot-ui** (MIT, needs dot-core, "partially tested";
     - New physics: every car is back on its wheels in 0.52 s, with a peak height of 0.41 m.
     - Old settings: every car flipped and stayed upside down.
 
+## World cities, weather and career 0.5.0
+- **7 real street circuits from OpenStreetMap:** Lusaka, Kitwe, Nairobi, Mogadishu, Cairo, London and Berlin.
+  - `tools/cities/build_cities.py` downloads OSM (ODbL) and routes a 2.2–3.2 km loop over the real major roads,
+    never re-using a street.
+  - It rounds corners to at least 14 m radius, rejects layouts that touch themselves, keeps the real building
+    footprints and heights, and fills empty frontage with generated blocks.
+  - Top-down previews are in `tools/cities/previews/`. Attribution is in Settings → Credits and `data/cities/LICENSE.md`.
+- **Each city has its own look** (`scripts/world/city_styles.gd`):
+  - Wall finish: plaster, concrete, brick or glass towers. Each city has its own palette and window rhythm.
+  - Street level: shopfront signs and shutters, AC-unit density, roof water tanks.
+  - Surroundings: soil (red laterite, sand, grass, paving), road surface and grip, tree tint, haze, lane-line colour.
+  - Weather odds: Cairo and Mogadishu get dust storms; London and Berlin get fog and rain.
+  - Rendering: a façade shader (`facade.gdshader`) over CC0 ambientCG textures, with Poly Haven CC0 skies.
+  - The street circuits have concrete barriers, catch fences, pavements, lamps (lit at night), apex kerbs, and a start gantry with grid boxes.
+- **Weather with physical effects** (`scripts/world/weather.gd`):
+  - Six kinds: clear, cloudy, rain, storm, fog and dust. Three times of day: day, dusk and night.
+  - Grip: rain ×0.80, storm ×0.66, dust ×0.88 (sand on the road), fog ×0.95. Each city's road surface adds its own factor.
+  - Aquaplaning: grip drops further above 25 m/s in standing water.
+  - Crosswind gusts in storms and dust (at most 0.9 m/s², never lifting).
+  - AI corner speeds and braking scale with the same grip.
+  - Visuals: rain streaks, wet roads and walls, soft road spray, dust clouds, lightning, depth fog, lit windows and
+    signs at night, and headlights.
+- **Career** (`scripts/core/career.gd`):
+  - Four tiers unlocked by reputation: Copperbelt Street Scene → National Circuit → Pan-African Cup → World Street Series.
+  - Each tier's season card of 6 events is generated: city, format, weather from local odds, and time of day.
+  - Formats: Street Race, Sprint, Endurance, Elimination (last place out each lap), Rival Duel, Time Attack
+    (gold, silver, bronze against the ideal lap) and Ghost Duel.
+  - Cars must be bought from prize money.
+- **Campaigns:** Copperbelt Rising, Road to Cairo and European Debut. Story chapters have goals and unlock in order.
+- **Competitions:** a date-seeded Daily Challenge (fixed car and conditions, double prize) and 3-round City Cups in every
+  city. The cups run on the existing championship engine, now generalised.
+- **PvP Rivals:** ghost duels. Every race records your best lap and the fastest rival lap at each city (`user://ghosts`).
+  Online exchange of ghosts and live multiplayer need a backend (Talo key or own server) and are **not built**.
+- The HyperDrift Racers Lite sample (12 FBX road tiles, royalty-free) was reviewed but is **not used**: the circuits are
+  generated directly from street data.
+
 ## What works — verified in this container
 | Check | Result | How |
 |---|---|---|

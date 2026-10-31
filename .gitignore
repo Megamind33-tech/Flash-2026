@@ -42,3 +42,4 @@ artifacts/
 /godot/export_credentials.cfg
 /builds/
 *.idsig
+/tools/cities/osm_cache/

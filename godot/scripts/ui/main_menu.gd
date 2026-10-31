@@ -15,6 +15,10 @@ var viewport_car: Node3D
 var cam: Camera3D
 var orbit := 0.0
 var showroom: Node3D
+var show_track: TrackPath
+var sel_tier := 0
+var sel_campaign: Dictionary = {}
+var quick := {"city": "lusaka", "weather": "clear", "time": "day", "format": "race"}
 
 
 func _place_showroom_car() -> void:
@@ -23,8 +27,9 @@ func _place_showroom_car() -> void:
 	viewport_car = CarBuilder.build("player_white", false, Game.player_car())
 	# Not frozen: let the car settle on its real suspension (input disabled = parking brake on).
 	showroom.add_child(viewport_car)
-	viewport_car.position = Vector3(30, 0.3, 1.5)
-	viewport_car.rotation.y = PI * 0.5
+	var d := 140.0
+	var p := show_track.position_at(d) + show_track.right_at(d) * 2.0
+	viewport_car.global_transform = Transform3D(Basis.looking_at(-show_track.tangent_at(d), Vector3.UP), p + Vector3.UP * 0.3)
 
 
 func _ready() -> void:
@@ -42,23 +47,13 @@ func _ready() -> void:
 func _build_showroom() -> void:
 	var world := Node3D.new()
 	add_child(world)
-	var env := Environment.new()
-	var sky := Sky.new()
-	sky.sky_material = preload("res://scripts/race/race.gd").make_sky_material()
-	env.background_mode = Environment.BG_SKY
-	env.sky = sky
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.tonemap_mode = Environment.TONE_MAPPER_AGX
-	var we := WorldEnvironment.new()
-	we.environment = env
-	world.add_child(we)
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-35, 150, 0)
-	sun.light_energy = 1.3
-	sun.shadow_enabled = true
-	world.add_child(sun)
-	TrackBuilder.build(world)
-	WorldDressing.build(world, TrackPath.ashford(), Game.quality() >= 1)
+	# Showroom: the player's car parked on the Lusaka street circuit at dusk (real OSM layout).
+	var data := CityStyles.data("lusaka")
+	var style := CityStyles.get_style("lusaka")
+	Weather.configure("clear", "dusk", 1.0, 1)
+	Weather.build_environment(world, style)
+	show_track = CityWorld.track_from(data)
+	CityWorld.build(world, data, style, show_track)
 	showroom = world
 	_place_showroom_car()
 	cam = Camera3D.new()
@@ -199,13 +194,100 @@ func _show(p: String) -> void:
 	var champ := Game.championship()
 	match p:
 		"main":
+			var rep := int(career["reputation"])
+			var ti := Career.unlocked_tier(rep)
 			subtitle.text = "   THE RACING LEAGUE"
-			_item("Quick Race", "", func(): _go("events"), true)
-			_item("Championship", "ROUND %d/%d" % [int(champ["round"]) + 1, Game.CHAMPIONSHIP.size()] if champ["active"] else "NEW SEASON", func(): _go("championship"))
+			_item("Career", Career.tier(ti)["name"].to_upper(), func(): _go("career"), true)
+			_item("Campaigns", "%d STORIES" % Career.CAMPAIGNS.size(), func(): _go("campaigns"))
+			_item("Competitions", "DAILY · CUPS", func(): _go("competitions"))
+			_item("PvP Rivals", "GHOST DUELS", func(): _go("pvp"))
+			_item("Quick Race", "", func(): _go("quick"))
 			_item("Garage", CarBuilder.info(Game.player_car())["name"].to_upper(), func(): _go("garage"))
-			_item("Career", "", func(): _go("career"))
+			_item("Profile", "", func(): _go("profile"))
 			_item("Settings", "", func(): _go("settings"))
-			desc.text = "%s · 2.36 km · 5 cars\nPersonal best %s · Rank %d" % [TrackPath.ASHFORD_NAME, Racer.format_ms(Game.best_lap()), Game.rank()]
+			desc.text = "7 real street circuits from OpenStreetMap · live weather\nReputation %d · Rank %d" % [rep, Game.rank()]
+		"career":
+			subtitle.text = "   CAREER"
+			var rep := int(career["reputation"])
+			for i in Career.TIERS.size():
+				var t: Dictionary = Career.TIERS[i]
+				var ti: int = i
+				if rep >= int(t["rep"]):
+					_item(t["name"], " · ".join(t["cities"].map(func(c): return c.capitalize())), func(): sel_tier = ti; _go("tier"), i == Career.unlocked_tier(rep))
+				else:
+					_info_row(t["name"], "LOCKED · %d REP" % int(t["rep"]))
+			_item("Back", "", _back)
+			desc.text = "Win to earn reputation. Each tier opens new cities, bigger purses and faster rivals."
+		"tier":
+			var t := Career.tier(sel_tier)
+			var pr := Game.progress()
+			var season := int(pr["season"].get(t["id"], 0))
+			subtitle.text = "   %s · SEASON %d" % [t["name"].to_upper(), season + 1]
+			var evs := Career.season_events(sel_tier, season)
+			var all_done := true
+			for e in evs:
+				var ev: Dictionary = e
+				var done: bool = (pr["done"] as Array).has(ev["id"])
+				all_done = all_done and done
+				_item(("✓ " if done else "") + ev["name"], "%s · %s" % [Weather.LABEL[ev["weather"]].to_upper(), ev["time"].to_upper()], func(): _launch(ev))
+			if all_done:
+				_item("Start Next Season", "NEW CARD", func(): pr["season"][t["id"]] = season + 1; Game.persist(); _show("tier"), true)
+			_item("Back", "", _back)
+			desc.text = "A new card is generated every season: cities, formats, weather and time of day all change."
+		"campaigns":
+			subtitle.text = "   CAMPAIGNS"
+			for c in Career.CAMPAIGNS:
+				var camp: Dictionary = c
+				var done := int(Game.progress()["campaigns"].get(camp["id"], 0))
+				_item(camp["name"], "%d/%d" % [mini(done, camp["chapters"].size()), camp["chapters"].size()], func(): sel_campaign = camp; _go("campaign"))
+			_item("Back", "", _back)
+			desc.text = "Story campaigns across Africa and Europe. Meet each chapter's goal to unlock the next."
+		"campaign":
+			subtitle.text = "   " + str(sel_campaign["name"]).to_upper()
+			var done := int(Game.progress()["campaigns"].get(sel_campaign["id"], 0))
+			for k in sel_campaign["chapters"].size():
+				var ev := Career.campaign_event(sel_campaign, k)
+				var goal := "WIN" if int(ev["goal"]) == 1 else "TOP %d" % int(ev["goal"])
+				if ev["format"] == "time_attack":
+					goal = "MEDAL"
+				if k <= done:
+					_item(("✓ " if k < done else "") + "Ch. %d · %s" % [k + 1, Career.FORMATS[ev["format"]]["name"]], goal, func(): _launch(ev), k == done)
+				else:
+					_info_row("Ch. %d · locked" % (k + 1), goal)
+			_item("Back", "", _back)
+			var nxt: int = mini(done, sel_campaign["chapters"].size() - 1)
+			desc.text = str(sel_campaign["chapters"][nxt]["story"]) if done < sel_campaign["chapters"].size() else "Campaign complete."
+		"competitions":
+			subtitle.text = "   COMPETITIONS"
+			var daily := Career.daily_event()
+			var did: bool = Game.progress()["daily"] == daily["daily"]
+			_item("Daily Challenge", "DONE" if did else "x2 PRIZE", func(): _launch(daily), not did)
+			var ti := Career.unlocked_tier(int(career["reputation"]))
+			for c in CityStyles.ORDER:
+				var city: String = c
+				_item("%s Cup" % CityStyles.data(city).get("name", city), "3 ROUNDS", func(): Game.start_championship(Career.city_cup(city, ti), "%s Cup" % CityStyles.data(city).get("name", city)); Game.persist(); _launch(Game.event(Game.champ_rounds()[0]), true))
+			_item("Classic Ashford Championship", "", func(): _go("championship"))
+			_item("Back", "", _back)
+			desc.text = "Today: %s · %s · %s in the %s." % [daily["name"], Weather.LABEL[daily["weather"]], Career.FORMATS[daily["format"]]["name"], CarBuilder.info(daily["car"])["name"]]
+		"pvp":
+			subtitle.text = "   PVP RIVALS"
+			for c in CityStyles.ORDER:
+				var city: String = c
+				var mine := Ghosts.best_ms(city, "you")
+				var rival := Ghosts.load_ghost(city, "rival")
+				var val := "RIVAL %s" % Racer.format_ms(int(rival["ms"])) if not rival.is_empty() else ("YOU %s" % Racer.format_ms(mine) if mine > 0 else "NO GHOST YET")
+				_item("%s Ghost Duel" % CityStyles.data(city).get("name", city), val, func(): _launch(Career.make_event("ghost_" + city, city, "ghost_duel", "clear", "day", 1)))
+			_item("Back", "", _back)
+			desc.text = "Race the fastest lap ever set on each street circuit: rivals' laps are recorded in every race. Online ghost exchange arrives with the server build."
+		"quick":
+			subtitle.text = "   QUICK RACE"
+			_item("City", Career.city_name(quick["city"]).to_upper(), func(): quick["city"] = _cycle(["ashford"] + CityStyles.ORDER, quick["city"]); _show("quick"))
+			_item("Weather", Weather.LABEL[quick["weather"]].to_upper(), func(): quick["weather"] = _cycle(Weather.KINDS, quick["weather"]); _show("quick"))
+			_item("Time of Day", quick["time"].to_upper(), func(): quick["time"] = _cycle(Weather.TIMES, quick["time"]); _show("quick"))
+			_item("Format", Career.FORMATS[quick["format"]]["name"].to_upper(), func(): quick["format"] = _cycle(["race", "sprint", "endurance", "elimination", "duel", "time_attack"], quick["format"]); _show("quick"))
+			_item("Start", "", func(): _launch(Career.make_event("quick", quick["city"], quick["format"], quick["weather"], quick["time"], Career.unlocked_tier(int(career["reputation"])))), true)
+			_item("Back", "", _back)
+			desc.text = "Pick any city, weather and time. Rain and storms cut grip and visibility; dust storms push the car sideways."
 		"events":
 			subtitle.text = "   SELECT EVENT"
 			for e in Game.EVENTS:
@@ -214,15 +296,15 @@ func _show(p: String) -> void:
 			_item("Back", "", _back)
 			desc.text = "Entry fees are paid on the grid. Win prize: $%d (Sprint)." % Game.prize_for(1, Game.EVENTS[0])
 		"championship":
-			subtitle.text = "   ASHFORD CHAMPIONSHIP"
+			subtitle.text = "   " + Game.champ_name().to_upper()
 			if champ["active"]:
-				var next: String = Game.CHAMPIONSHIP[int(champ["round"])]
+				var next: String = Game.champ_rounds()[int(champ["round"])]
 				_item("Next: " + Game.event(next)["name"], "ROUND %d" % (int(champ["round"]) + 1), func(): _start(next, true), true)
 				for s in Game.championship_standings():
 					_info_row(Game.display_name(s[0]), "%d PTS" % s[1])
 				_item("Abandon Season", "", func(): champ["active"] = false; Game.persist(); _show("championship"), false, true)
 			else:
-				_item("Start New Season", "3 ROUNDS", func(): Game.start_championship(); Game.persist(); _start(Game.CHAMPIONSHIP[0], true), true)
+				_item("Start New Season", "3 ROUNDS", func(): Game.start_championship(); Game.persist(); _start(Game.champ_rounds()[0], true), true)
 				_info_row("Titles won", str(champ.get("titles", 0)))
 			_item("Back", "", _back)
 			desc.text = "Three rounds at Ashford: Sprint, Dash, Feature. 25-18-15-12-10 points. Title bonus $10,000."
@@ -231,12 +313,12 @@ func _show(p: String) -> void:
 			for id in CarBuilder.car_ids():
 				var info := CarBuilder.info(id)
 				var car_id: String = id
-				_item(info["name"], "%s · %d KG" % [info["class"], int(info["mass"])], func(): _pick_car(car_id), car_id == Game.player_car())
+				_item(info["name"], ("%s · %d KG" % [info["class"], int(info["mass"])]) if Game.owns_car(car_id) else "$" + RaceHud._thousands(int(info["price"])), func(): _pick_car(car_id), car_id == Game.player_car())
 			_item("Back", "", _back)
 			var cur := CarBuilder.info(Game.player_car())
 			desc.text = "%s · %s · %s drive · %d kg. Tap a car to take it to the grid." % [cur["name"], cur["class"], "All-wheel" if cur["awd"] else "Rear-wheel", int(cur["mass"])]
-		"career":
-			subtitle.text = "   CAREER"
+		"profile":
+			subtitle.text = "   PROFILE"
 			_info_row("Races", str(career["racesEntered"]))
 			_info_row("Wins / Podiums", "%d / %d" % [career["wins"], career["podiums"]])
 			_info_row("Points", str(career["championshipPoints"]))
@@ -263,7 +345,9 @@ func _show(p: String) -> void:
 			for id in CarBuilder.car_ids():
 				var info := CarBuilder.info(id)
 				_info_row("%s model" % info["name"], "%s · %s" % [info["author"], info["licence"]])
-			_info_row("Sky", "Poly Haven · CC0")
+			_info_row("Street layouts & buildings", "© OpenStreetMap contributors · ODbL")
+			_info_row("City textures", "ambientCG · CC0")
+			_info_row("Skies", "Poly Haven · CC0")
 			_info_row("Trees and surfaces", "Poly Haven, ambientCG · CC0")
 			_info_row("Driving model base", "Godot Truck Town demo · MIT")
 			_item("Back", "", _back)
@@ -276,7 +360,24 @@ func _show(p: String) -> void:
 	counter.text = "%d ITEMS   " % list.get_child_count()
 
 
+func _cycle(options: Array, cur) -> Variant:
+	return options[(options.find(cur) + 1) % options.size()]
+
+
+func _launch(ev: Dictionary, championship := false) -> void:
+	Game.prepare_session(ev)
+	Game.session["championship"] = championship
+	Game.session["autopilot"] = false
+	Game.session["affects_career"] = true
+	Game.session["entry_paid"] = false
+	Game.persist()
+	get_tree().change_scene_to_file("res://scenes/race.tscn")
+
+
 func _pick_car(car_id: String) -> void:
+	if not Game.owns_car(car_id) and not Game.buy_car(car_id):
+		desc.text = "Not enough money: %s costs $%s." % [CarBuilder.info(car_id)["name"], RaceHud._thousands(int(CarBuilder.info(car_id)["price"]))]
+		return
 	Game.save["career"]["car"] = car_id
 	Game.persist()
 	_place_showroom_car()
@@ -290,6 +391,7 @@ func _save_settings() -> void:
 
 
 func _start(event_id: String, championship: bool) -> void:
+	Game.prepare_session(Game.event(event_id))
 	Game.session["event"] = event_id
 	Game.session["championship"] = championship
 	Game.session["autopilot"] = false

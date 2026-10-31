@@ -22,7 +22,7 @@ var economy := {
 var save := {}
 
 # Race session (menu -> race)
-var session := {"event": "sprint", "championship": false, "autopilot": false, "affects_career": true, "entry_paid": false, "ai": 4}
+var session := {"city": "lusaka", "weather": "clear", "time": "day", "event": "sprint", "championship": false, "autopilot": false, "affects_career": true, "entry_paid": false, "ai": 4}
 
 
 func _ready() -> void:
@@ -140,7 +140,36 @@ func reset_career() -> void:
 
 # ------------------------------------------------------------------ settings
 
+func track_key() -> String:
+	return str(session.get("city", "ashford"))
+
+
+func owns_car(id: String) -> bool:
+	return id == CarBuilder.DEFAULT_CAR or id in save["career"].get("cars", [])
+
+
+func buy_car(id: String) -> bool:
+	var price := int(CarBuilder.info(id).get("price", 0))
+	if owns_car(id) or int(save["career"]["money"]) < price:
+		return false
+	_post(save["career"], -price, "Car", "Bought " + str(CarBuilder.info(id)["name"]))
+	if not save["career"].has("cars"):
+		save["career"]["cars"] = []
+	save["career"]["cars"].append(id)
+	persist()
+	return true
+
+
+func progress() -> Dictionary:
+	if not save.has("progress"):
+		save["progress"] = {"season": {}, "done": [], "campaigns": {}, "daily": "", "medals": {}}
+	return save["progress"]
+
+
 func player_car() -> String:
+	var forced := str(session.get("car_override", ""))
+	if forced != "" and CarBuilder.ROSTER.has(forced):
+		return forced
 	var id := str(save["career"].get("car", CarBuilder.DEFAULT_CAR))
 	return id if CarBuilder.ROSTER.has(id) else CarBuilder.DEFAULT_CAR
 
@@ -163,6 +192,9 @@ func quality() -> int:
 # ------------------------------------------------------------------ economy / career
 
 func event(id: String) -> Dictionary:
+	var defs: Dictionary = save.get("eventDefs", {})
+	if defs.has(id):
+		return defs[id]
 	for e in EVENTS:
 		if e["id"] == id:
 			return e
@@ -227,15 +259,15 @@ func apply_result(ev: Dictionary, position: int, field: int, best_lap_ms: int, f
 	if position <= 3:
 		career["podiums"] = int(career["podiums"]) + 1
 	var records: Dictionary = career["trackRecords"]
-	var best := int(records.get(TrackPath.ASHFORD_ID, 0))
+	var best := int(records.get(track_key(), 0))
 	if best_lap_ms > 0 and (best == 0 or best_lap_ms < best):
-		records[TrackPath.ASHFORD_ID] = best_lap_ms
+		records[track_key()] = best_lap_ms
 		reward["record"] = true
 	return reward
 
 
 func best_lap() -> int:
-	return int(save["career"]["trackRecords"].get(TrackPath.ASHFORD_ID, 0))
+	return int(save["career"]["trackRecords"].get(track_key(), 0))
 
 
 func rank() -> int:
@@ -291,10 +323,44 @@ func championship() -> Dictionary:
 	return save["championship"]
 
 
-func start_championship() -> void:
+## Registers a generated event (career card, campaign chapter, cup round, daily) so it can be raced and resumed.
+func register_event(ev: Dictionary) -> void:
+	if not save.has("eventDefs"):
+		save["eventDefs"] = {}
+	save["eventDefs"][ev["id"]] = ev
+
+
+## Copies an event's city, conditions, field size and car into the race session.
+func prepare_session(ev: Dictionary) -> void:
+	register_event(ev)
+	session["event"] = ev["id"]
+	session["city"] = str(ev.get("city", "ashford"))
+	session["weather"] = str(ev.get("weather", "clear"))
+	session["time"] = str(ev.get("time", "day"))
+	session["ai"] = int(ev.get("ai", 4))
+	session["car_override"] = str(ev.get("car", ""))
+	session.erase("laps_override")
+
+
+func champ_rounds() -> Array:
+	return championship().get("rounds", CHAMPIONSHIP)
+
+
+func champ_name() -> String:
+	return str(championship().get("name", "Ashford Championship"))
+
+
+func start_championship(rounds: Array = [], name := "Ashford Championship") -> void:
 	var c := championship()
 	c["active"] = true
 	c["round"] = 0
+	c["name"] = name
+	c["rounds"] = []
+	for ev in rounds:
+		register_event(ev)
+		c["rounds"].append(ev["id"])
+	if c["rounds"].is_empty():
+		c["rounds"] = CHAMPIONSHIP.duplicate()
 	c["points"] = {"player": 0}
 	for d in save["aiDrivers"]:
 		c["points"][d["id"]] = 0
@@ -307,13 +373,13 @@ func championship_round_done(order: Array) -> bool:
 		var id: String = order[i]
 		c["points"][id] = int(c["points"].get(id, 0)) + points_for(i + 1)
 	c["round"] = int(c["round"]) + 1
-	if c["round"] >= CHAMPIONSHIP.size():
+	if c["round"] >= champ_rounds().size():
 		c["active"] = false
 		c["seasons"] = int(c.get("seasons", 0)) + 1
 		var standings := championship_standings()
 		if standings.size() > 0 and standings[0][0] == "player":
 			c["titles"] = int(c.get("titles", 0)) + 1
-			_post(save["career"], 10000, "Prize", "Ashford Championship title bonus")
+			_post(save["career"], 10000, "Prize", champ_name() + " title bonus")
 		return true
 	return false
 
