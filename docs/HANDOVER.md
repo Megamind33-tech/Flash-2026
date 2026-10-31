@@ -1,5 +1,45 @@
 # Handover — GRIDLINE (Godot port)
 
+> **Latest (session 018vwXNe, merged into the default branch and `main`):**
+> - **Real buildings** per city (`scripts/world/real_buildings.gd`, `tools/buildings/export_real_buildings.py` +
+>   `real_catalogue.json`): Sketchfab CC BY/CC0 models fitted to OSM footprints fronting the circuit, height-matched,
+>   max 8 repeats, triangle budget 110k/200k/300k per tier. Licences in `assets/buildings/real/*/LICENSE.txt`.
+> - **London**: Thames (`tools/cities/add_rivers.py`, re-runnable), Big Ben at its true site, Tower Bridge modelled
+>   (`tools/buildings/model_heritage.py`) on a river spot with an open sight line. **Giza Plateau Road**
+>   (`giza_desert`): pyramids, Sphinx, village; in the Pan-African Cup.
+> - **Sound**: layered engine audio on all cars, wind, boost, crowd, music (Music/SFX buses), countdown beeps.
+> - **Fun**: skill chains (`race/skills.gd`) + NOS boost + slipstream; AI pinned-against-rail recovery.
+> - **Menus**: Settings + Menus addon (`addons/settings_menus`, MIT, 2 mobile patches in its CHANGELOG) — Options
+>   (audio, display + our graphics rows, per-feature graphics via `core/visuals_manager.gd`, controls rebinding,
+>   accessibility), race pause (`ui/race_pause.gd`), rolling credits; theme in `ui/gridline_menus.gd`;
+>   countdown colours from chukfinley/racing-game (MIT). Notices: `docs/THIRD_PARTY_UI.md`.
+> - **Tests**: `tests/ride_height_test`, `tests/menu_nav_test` (both in `tools_build.sh`). Full `tools_build.sh` passes
+>   on the merged tree; the debug APK builds (391 MB — trim before release: real-building textures, music).
+> - **Evidence**: `docs/evidence/landmarks_round.jpg`, `bugfix_round.jpg`, `handover2_fixes.jpg`.
+> - **Container notes**: rendered screenshots need `--audio-driver Dummy` (no sound device; the renderer stalls
+>   otherwise). Sketchfab token used from the owner's earlier message — **revoke it**. Overpass mirror
+>   `overpass.kumi.systems` works when `overpass-api.de` drops.
+> - **Open**: more low-rise real buildings for Lusaka/Kitwe (none fit yet); Thames bridges are not drivable; AI deadlock
+>   fix is recovery-based, not avoidance; device testing (G1/G13) still impossible here.
+
+> **Latest (session 018WCsTK, premium visual upgrade):** `main` now holds all work. Done since the last note:
+> real-time 3D team garage showroom (`scripts/ui/garage_studio.gd`: Poly Haven CC0 HDRI lighting + workshop props,
+> `tools/assets/fetch_garage.py`, credits in `godot/assets/garage/CREDITS.md`); new home screen; dealership with camera
+> presets, paint shop (saved per car, used in races) and stat comparison; motorsport HUD (timing tower, compact rev
+> dial); F1-style driver cards with nationality-matched Rocketbox portraits; three career modes (driver / team owner /
+> live clubs, `core/team_owner.gd`, `core/clubs.gd`, `ui/career_modes.gd`) with a Team HQ that parks the team's real
+> cars in the garage; Settings > Developer mode hides test labels/funds in the release UI (`Game.TEST_UNLOCK_ALL` still
+> opens all modes). Tests: `tests/modes_test`, `tests/ui_buttons_test` (both in `tools_build.sh`), plus the older ones.
+> Evidence: `docs/evidence/premium/` (before/after). Plan log: `docs/PRODUCTION_PLAN.md` §12.
+> **Next, per the owner's "complete visual quality intervention" brief:** M5 Kitwe showcase circuit (facade variety,
+> barriers/catch fencing, marshal posts, grandstands, local character); M6 driving camera / sense of speed / results
+> screen restyle; M7 Android performance (device testing still impossible here — every phone figure is unverified);
+> re-render the menu-to-race walkthrough (`--walkthrough --demo-career --autotest 1` with `--write-movie`).
+> Known gaps: drivers signed before the portrait change share one face; garage props are 6k-29k triangles each
+> (LODs from import; heavy ones only from the Balanced tier); FSR upscaling is Forward+ only; menu song is
+> Suno-made and needs the owner's commercial-rights confirmation.
+
+
 > **Bug round (session 018vwXNe):** sinking cars, wind shove, idle crowd, missing graphics buttons, lag and
 > predictable AI were addressed; see `docs/PRODUCTION_PLAN.md` §10. Races now use a fresh seed each time; pass
 > `--seed N` for repeatable runs.

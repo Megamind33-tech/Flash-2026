@@ -36,7 +36,7 @@ func _process(delta: float) -> void:
 			if t > 1.0:
 				menu = get_tree().current_scene
 				check(menu != null and menu.has_method("_go"), "main menu loaded")
-				for p in ["career", "campaigns", "competitions", "pvp", "quick", "garage", "settings", "credits", "profile"]:
+				for p in ["career", "campaigns", "competitions", "pvp", "quick", "settings", "credits", "profile"]:   # garage = Dealership overlay (ui_buttons_test)
 					menu._go(p)
 					check(menu.page == p and menu.list.get_child_count() > 0, "page %s (%d items)" % [p, menu.list.get_child_count()])
 					menu._back()

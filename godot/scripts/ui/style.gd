@@ -12,6 +12,12 @@ const MONEY := Color(0.45, 0.8, 0.45)
 const BLUE := Color(0.36, 0.63, 0.9)
 const RED := Color(0.88, 0.2, 0.2)
 const PURPLE := Color(0.7, 0.44, 1.0)
+## Premium theme tokens: charcoal/graphite surfaces, one warm accent, used by the home, dealership and modes.
+const CHARCOAL := Color(0.07, 0.072, 0.08, 0.92)
+const GRAPHITE := Color(0.12, 0.125, 0.135, 0.9)
+const LINE := Color(1, 1, 1, 0.1)
+const ACCENT := Color(0.96, 0.55, 0.16)
+const INK := Color(0.05, 0.05, 0.06)
 
 static var _fonts := {}
 
@@ -160,3 +166,59 @@ static func ramp_texture() -> GradientTexture2D:
 	t.width = 256
 	t.height = 4
 	return t
+
+
+## Big primary call-to-action (one per screen): warm accent fill, dark display text.
+static func primary_button(text: String, sz: Vector2, font_size := 58) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = sz
+	b.add_theme_font_override("font", display())
+	b.add_theme_font_size_override("font_size", font_size)
+	b.add_theme_color_override("font_color", INK)
+	b.add_theme_color_override("font_hover_color", INK)
+	b.add_theme_color_override("font_pressed_color", INK)
+	b.add_theme_stylebox_override("normal", box(ACCENT, 0, Color.TRANSPARENT, 8))
+	b.add_theme_stylebox_override("hover", box(ACCENT.lightened(0.12), 0, Color.TRANSPARENT, 8))
+	b.add_theme_stylebox_override("pressed", box(ACCENT.darkened(0.15), 0, Color.TRANSPARENT, 8))
+	b.add_theme_stylebox_override("focus", box(ACCENT, 0, Color.TRANSPARENT, 8))
+	return b
+
+
+## Secondary tile: graphite surface, big title + subtitle, accent edge on hover/press.
+static func tile_button(title: String, sub: String, sz: Vector2) -> Button:
+	var b := Button.new()
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = sz
+	b.add_theme_stylebox_override("normal", box(CHARCOAL, 1, LINE, 8))
+	b.add_theme_stylebox_override("hover", box(GRAPHITE, 2, ACCENT, 8))
+	b.add_theme_stylebox_override("pressed", box(GRAPHITE, 3, ACCENT, 8))
+	b.add_theme_stylebox_override("focus", box(CHARCOAL, 1, LINE, 8))
+	var bar := ColorRect.new()
+	bar.color = ACCENT
+	bar.position = Vector2(24, 26)
+	bar.size = Vector2(34, 4)
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(bar)
+	var t := label(title, display(), 48, Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, false)
+	t.position = Vector2(24, 38)
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(t)
+	var s2 := label(sub, cond(), 22, MUTED, HORIZONTAL_ALIGNMENT_LEFT, false)
+	s2.position = Vector2(25, 96)
+	s2.size = Vector2(sz.x - 40, 30)
+	s2.clip_text = true
+	s2.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(s2)
+	return b
+
+
+## Android safe area (cut-outs, rounded corners) as margins in the 1920x1080 canvas.
+static func safe_margins(vp: Viewport) -> Vector4:
+	var win := DisplayServer.window_get_size()
+	var safe := DisplayServer.get_display_safe_area()
+	if win.x <= 0 or safe.size.x <= 0 or safe.size.x >= win.x:
+		return Vector4.ZERO
+	var k := vp.get_visible_rect().size.x / float(win.x)
+	return Vector4(safe.position.x * k, safe.position.y * k, (win.x - safe.end.x) * k, (win.y - safe.end.y) * k)

@@ -1,7 +1,9 @@
 // Road surface (plan gate G4): Poly Haven CC0 PBR asphalt (albedo, GL normal, roughness, height).
 // - Roughness follows the real height map: worn high spots are smoother and lighter.
-// - Rain: water collects in the genuine low spots of the height map, at a large scale, so puddles sit in
-//   real dips, go mirror-smooth and flatten the normal.
+// - Rain: puddles are smooth, road-elongated blobs (two octaves of value noise) that gather toward the
+//   gutters and avoid the rubbered racing line; their ragged rims come from the asphalt height map. Inside a
+//   puddle the surface is a dark, mirror-smooth, flat film with expanding raindrop ripple rings, so it reads
+//   as standing water against the merely damp road around it.
 // - Racing-line rubber and brake marks come from a per-track mask baked from the AI racing line and the
 //   braking zones of the speed profile (CityWorld.bake_lap_mask), not from noise.
 // UV: x = metres across the road (0 = centreline), y = metres along the lap.
@@ -20,6 +22,17 @@ uniform float lap_length = 3000.0;
 uniform float wear = 0.6;
 uniform float wet = 0.0;
 
+float hash(vec2 p) {
+	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+float vnoise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+
 void fragment() {
 	vec2 m = UV;
 	vec2 t = m / tile;
@@ -36,15 +49,34 @@ void fragment() {
 	vec4 mask = texture(lap_mask, vec2(clamp(m.x / (2.0 * road_half) + 0.5, 0.0, 1.0), m.y / lap_length));
 	base *= 1.0 - 0.22 * mask.r * wear - 0.35 * mask.g;
 	rough = mix(rough, rough * 0.8, mask.r);
-	// rain: darken everything, water fills the real low spots
-	float low = 1.0 - texture(height_tex, m / 23.0).r;
-	float puddle = wet * smoothstep(0.48, 0.56, low) * (1.0 - mask.r * 0.5);
-	vec3 col = base * mix(1.0, 0.4, wet);
-	rough = mix(rough, max(rough * 0.6, 0.35), wet);   // wet but still rough: puddles must read as mirrors against it
-	rough = mix(rough, 0.02, puddle);
-	col = mix(col, col * 0.45, puddle);
+	// rain: the whole road darkens and goes satin; puddles stand in shallow dips toward the gutters
+	vec3 nm = texture(normal_tex, t).rgb;
+	float puddle = 0.0;
+	vec2 ripple = vec2(0.0);
+	if (wet > 0.0) {
+		float field = vnoise(m * vec2(0.55, 0.22)) * 0.6 + vnoise(m * vec2(1.4, 0.9) + 7.3) * 0.4;
+		float gutter = smoothstep(0.6, 0.95, abs(m.x) / road_half);
+		field += gutter * 0.14 - mask.r * 0.3 + (0.5 - h) * 0.12;
+		float thr = mix(0.80, 0.66, wet);   // ~11 % of the road in rain, ~15 % in a storm
+		puddle = smoothstep(thr, thr + 0.035, field);
+		// raindrop rings: one drop per 0.6 m cell, random phase, ring expanding over its cycle
+		vec2 cell = floor(m / 0.6);
+		vec2 f = fract(m / 0.6) - 0.5;
+		float ph = fract(TIME * 0.9 + hash(cell));
+		vec2 off = vec2(hash(cell + 3.1), hash(cell + 5.7)) - 0.5;
+		vec2 d = f - off * 0.5;
+		float r = length(d);
+		float ring = sin((r - ph * 0.45) * 60.0) * smoothstep(0.09, 0.0, abs(r - ph * 0.45)) * (1.0 - ph);
+		ripple = d / max(r, 1e-3) * ring * 0.35 * puddle * wet;
+	}
+	vec3 col = base * mix(1.0, 0.45, wet);
+	rough = mix(rough, max(rough * 0.6, 0.35), wet);   // damp but still rough, so puddles read as mirrors against it
+	rough = mix(rough, 0.03, puddle);
+	col = mix(col, base * 0.12, puddle);
 	ALBEDO = col;
 	ROUGHNESS = rough;
-	SPECULAR = mix(0.5, 0.95, puddle);
-	NORMAL_MAP = mix(texture(normal_tex, t).rgb, vec3(0.5, 0.5, 1.0), puddle * 0.95 + wet * 0.25);
+	SPECULAR = mix(0.5, 0.6, puddle);
+	nm = mix(nm, vec3(0.5, 0.5, 1.0), clamp(puddle * 0.97 + wet * 0.25, 0.0, 1.0));
+	nm.xy += ripple;
+	NORMAL_MAP = nm;
 }

@@ -69,6 +69,7 @@ func configure(spec: Dictionary) -> void:
 	drag_coefficient = DRAG_PER_KG * mass
 	downforce = DOWNFORCE_PER_KG * mass * float(spec["aero"])
 	grip = 1.35 * float(spec["grip"])
+	top_speed = float(spec.get("vmax", 58.0))   # m/s, per car (CarCatalogue shows it in km/h)
 	gravity_scale = GRAVITY_SCALE
 	angular_damp = 0.6
 

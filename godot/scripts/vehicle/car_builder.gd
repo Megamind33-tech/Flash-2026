@@ -9,22 +9,29 @@ const DEFAULT_CAR := "arden_v8"
 ## Fictional names only — the source models resemble real cars; no manufacturer names or badges are used.
 ## mass kg · power/grip/aero multipliers (1.0 = baseline) · rear-wheel or all-wheel drive.
 const ROSTER := {
-	"arden_v8": {"price": 0, "name": "Arden V8 Coupé", "class": "GT", "mass": 1570.0, "power": 1.00, "grip": 1.00, "aero": 1.0, "awd": true,
+	"arden_v8": {"vmax": 60.0, "price": 0, "name": "Arden V8 Coupé", "class": "GT", "mass": 1570.0, "power": 1.00, "grip": 1.00, "aero": 1.0, "awd": true,
 		"author": "Neubi (BlendSwap #17183)", "licence": "CC0"},
-	"arden_gt3": {"price": 32000, "name": "Arden GT3 R", "class": "GT3", "mass": 1310.0, "power": 0.97, "grip": 1.04, "aero": 1.6, "awd": false,
+	"arden_gt3": {"vmax": 62.5, "price": 32000, "name": "Arden GT3 R", "class": "GT3", "mass": 1310.0, "power": 0.97, "grip": 1.04, "aero": 1.6, "awd": false,
 		"author": "BlendSwap #91200 author", "licence": "CC0"},
-	"ravenna_hybrid": {"price": 60000, "name": "Ravenna Hybrid", "class": "Hypercar", "mass": 1480.0, "power": 1.05, "grip": 1.00, "aero": 1.2, "awd": false,
+	"ravenna_hybrid": {"vmax": 64.0, "price": 60000, "name": "Ravenna Ibrido", "class": "Hypercar", "mass": 1480.0, "power": 1.05, "grip": 1.00, "aero": 1.2, "awd": false,
 		"author": "zenox3d (BlendSwap #74782)", "licence": "CC BY-SA 3.0"},
-	"solano_concept": {"price": 18000, "name": "Solano Concept", "class": "GT", "mass": 1530.0, "power": 1.02, "grip": 0.99, "aero": 1.0, "awd": false,
+	"solano_concept": {"vmax": 60.5, "price": 18000, "name": "Solano Concepto S", "class": "GT", "mass": 1530.0, "power": 1.02, "grip": 0.99, "aero": 1.0, "awd": false,
 		"author": "zenox3d (BlendSwap #74332)", "licence": "CC BY-SA 3.0"},
-	"elektra_egt": {"price": 45000, "name": "Elektra E-GT", "class": "EV", "mass": 2050.0, "power": 1.03, "grip": 0.98, "aero": 0.9, "awd": true,
+	"elektra_egt": {"vmax": 59.0, "price": 45000, "name": "Elektra E-GT", "class": "EV", "mass": 2050.0, "power": 1.03, "grip": 0.98, "aero": 0.9, "awd": true,
 		"author": "Lee Rosario (BlendSwap #86736)", "licence": "CC BY 3.0"},
 }
 ## Team cars (each AI team races one model; the player picks theirs in the Garage).
 const TEAM_CARS := {"halden": "ravenna_hybrid", "corsair": "arden_gt3", "vantor": "solano_concept", "northline": "elektra_egt"}
 ## Paint colour per livery (team colours from Game.default teams).
 const PAINT := {"player_white": Color("#E9EBEE"), "halden_blue": Color("#1F4E8C"), "corsair_red": Color("#B3261E"),
-	"vantor_gold": Color("#E0A100"), "northline_green": Color("#2E7D32")}
+	"vantor_gold": Color("#E0A100"), "northline_green": Color("#2E7D32"),
+	# player paint shop (dealership): metallic finishes
+	"graphite": Color("#3A3D42"), "midnight": Color("#14161B"), "rosso": Color("#9E1B1B"), "ocean": Color("#1C5E9C"),
+	"amber": Color("#D9771F"), "racing_green": Color("#1F4A33"), "silver": Color("#A9ADB3"), "copper": Color("#8C4A2F")}
+## Paint shop: [key, display name, price]. Your colour shows in the garage and in every race.
+const PAINT_SHOP := [["player_white", "Arctic White", 0], ["silver", "Liquid Silver", 1500], ["graphite", "Graphite Metallic", 1500],
+	["midnight", "Midnight Black", 1500], ["rosso", "Rosso Corsa", 2500], ["amber", "Amber Pearl", 2500], ["ocean", "Ocean Blue", 2500],
+	["racing_green", "Racing Green", 2500], ["copper", "Copper Flake", 3500]]
 const REST := 0.12
 const STIFFNESS := 75.0
 ## Static spring compression under the car's own weight (measured: 0.105 m at stiffness 55, and it scales with
@@ -57,7 +64,7 @@ static func material(slot: String, livery: String) -> Material:
 		"paint":
 			# Automotive paint: base coat under a glossy clear coat on every quality tier. White is a solid
 			# (non-metallic) paint; team colours are metallic.
-			var col: Color = PAINT.get(livery, PAINT["player_white"])
+			var col: Color = Color(livery) if livery.begins_with("#") else PAINT.get(livery, PAINT["player_white"])   # "#rrggbb" = team colour
 			var solid := livery == "player_white"
 			m.albedo_color = col if solid else col.darkened(0.08)
 			m.metallic = 0.0 if solid else 0.82

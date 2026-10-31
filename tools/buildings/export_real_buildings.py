@@ -120,7 +120,7 @@ def export(entry):
 
 index_path = os.path.join(OUT, "index.json")
 index = json.load(open(index_path)) if os.path.exists(index_path) else {}
-for e in CAT["buildings"] + CAT["landmarks"]:
+for e in CAT["buildings"] + CAT["landmarks"] + CAT.get("props", []):
     if ONLY and e["id"] not in ONLY:
         continue
     try:

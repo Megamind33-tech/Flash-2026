@@ -20,10 +20,17 @@ var nav: Control
 var hub: Control
 var hub_next: Label
 var hub_car: Label
+var hub_make: Label
+var hub_specs: HBoxContainer
+var hub_player: Label
+var hub_money: Label
+var hub_level: ColorRect
 const ORANGE := Color(1.0, 0.42, 0.0)
-const HUB_CARDS := [["career", "CAREER", "Four tiers · 11 venues"], ["campaigns", "CAMPAIGNS", "Story chapters"],
+const HUB_CARDS := [["modes", "CAREER", "Driver · Owner · Clubs"], ["campaigns", "CAMPAIGNS", "Story chapters"],
 	["competitions", "COMPETITIONS", "Daily · City Cups"], ["pvp", "PVP RIVALS", "Ghost duels"],
-	["quick", "QUICK RACE", "11 venues · any weather"], ["garage", "GARAGE", "Buy · choose your car"]]
+	["quick", "QUICK RACE", "11 venues · any weather"], ["garage", "DEALERSHIP", "Buy · sell · garage"],
+	["drivers", "DRIVERS", "Cards · profiles"]]
+const CARD_ART := {"modes": "res://assets/ui/cards/career.jpg", "drivers": "res://assets/ui/portraits/Male_Adult_05.png"}
 var sel_tier := 0
 var sel_campaign: Dictionary = {}
 var quick := {"city": "lusaka", "weather": "clear", "time": "day", "format": "race"}
@@ -32,14 +39,22 @@ var quick := {"city": "lusaka", "weather": "clear", "time": "day", "format": "ra
 func _place_showroom_car() -> void:
 	if viewport_car:
 		viewport_car.queue_free()
+		viewport_car = null
+	if not is_inside_tree() or showroom == null:
+		return
 	var args := OS.get_cmdline_user_args()   # screenshots: --show-car <id> [--livery <livery>]
-	var car_id: String = args[args.find("--show-car") + 1] if args.has("--show-car") else Game.player_car()
-	var livery: String = args[args.find("--livery") + 1] if args.has("--livery") else "player_white"
+	var car_id: String = args[args.find("--show-car") + 1] if args.has("--show-car") else (display_car if display_car != "" else Game.player_car())
+	var livery: String = args[args.find("--livery") + 1] if args.has("--livery") else (display_paint if display_paint != "" else Game.paint_for(car_id))
 	viewport_car = CarBuilder.build(livery, false, car_id)
 	# Not frozen: let the car settle on its real suspension (input disabled = parking brake on).
 	showroom.add_child(viewport_car)
+	var p: Vector3
+	if studio:
+		viewport_car.global_transform = studio.car_transform()
+		p = viewport_car.global_position
+		return
 	var d := 140.0
-	var p := show_track.position_at(d) + show_track.right_at(d) * 2.0
+	p = show_track.position_at(d) + show_track.right_at(d) * 2.0
 	viewport_car.global_transform = Transform3D(Basis.looking_at(-show_track.tangent_at(d), Vector3.UP), p + Vector3.UP * 0.3)
 	# Local reflections for the paint and glass (barriers, ads, road, buildings), captured once: without it the
 	# clear coat only mirrors the sky and the car looks flat.
@@ -63,8 +78,7 @@ func _ready() -> void:
 	_build_ui()
 	_build_hub()
 	_show("main")
-	GridlineMenus.safe_area(self)   # notches / punch-holes / rounded corners
-	if DisplayServer.get_name() != "headless":   # menu music (CC0, assets/audio/CREDITS.md)
+	if DisplayServer.get_name() != "headless":   # menu music ("Heart in the Drive", owner-supplied; assets/audio/CREDITS.md)
 		var mp := AudioStreamPlayer.new()
 		mp.name = "Music"
 		var ms: AudioStreamOggVorbis = load("res://assets/audio/music_menu.ogg")
@@ -80,35 +94,75 @@ func _ready() -> void:
 		_click.bus = "SFX"
 		add_child(_click)
 	var args := OS.get_cmdline_user_args()   # screenshots/tests: open a page directly (e.g. --page garage)
+	if args.has("--demo-career") and not bool(Game.save["career"].get("demoGranted", false)):   # screenshots, once per save
+		Game.save["career"]["demoGranted"] = true
+		Game.grant_test_funds(250000)
+		Game.add_xp(2600)
+		if not TeamOwner.founded():
+			TeamOwner.found("Kafue Motorsport", "#B3261E")
+			var sc := TeamOwner.scouts()
+			TeamOwner.sign(sc[0])
+			TeamOwner.sign(sc[2])
+			TeamOwner.buy_car("solano_concept")
+			TeamOwner.buy_car("arden_gt3")
+			var ds: Array = TeamOwner.state()["drivers"]
+			TeamOwner.assign(ds[0]["id"], TeamOwner.state()["fleet"][0]["uid"])
+			TeamOwner.assign(ds[1]["id"], TeamOwner.state()["fleet"][1]["uid"])
+			TeamOwner.accept(TeamOwner.offers()[0])
+			TeamOwner.run(TeamOwner.COMPETITIONS[0], [ds[0]["id"], ds[1]["id"]])
+		if Clubs.my_club().is_empty():
+			Clubs.request("copperbelt")
+			Clubs.record_result("club_local", 2, 8)
+	if args.has("--walkthrough"):
+		_walkthrough()
 	if args.has("--page"):
 		_go(args[args.find("--page") + 1])
+		if overlay is CareerModes and args.has("--tab"):
+			(overlay as CareerModes).tab = args[args.find("--tab") + 1].replace("_", " ")
+			(overlay as CareerModes)._render()
+		if overlay is DriverCards and args.has("--profile"):
+			(overlay as DriverCards)._profile(DriverCards.all_drivers()[int(args[args.find("--profile") + 1])])
 
 
 func _build_showroom() -> void:
 	var world := Node3D.new()
 	add_child(world)
-	# Showroom: the player's car parked on the Lusaka street circuit at dusk (real OSM layout).
-	var data := CityStyles.data("lusaka")
-	var style := CityStyles.get_style("lusaka")
-	Weather.configure("clear", "dusk", 1.0, 1)
-	Weather.build_environment(world, style)
-	show_track = CityWorld.track_from(data)
-	CityWorld.build(world, data, style, show_track)
 	showroom = world
+	if OS.get_cmdline_user_args().has("--city-showroom"):   # the old street showroom (Lusaka at dusk)
+		var data := CityStyles.data("lusaka")
+		var style := CityStyles.get_style("lusaka")
+		Weather.configure("clear", "dusk", 1.0, 1)
+		Weather.build_environment(world, style)
+		show_track = CityWorld.track_from(data)
+		CityWorld.build(world, data, style, show_track)
+	else:
+		studio = GarageStudio.new()   # real-time hero garage (fast to load, the car is the hero)
+		world.add_child(studio)
 	_place_showroom_car()
 	cam = Camera3D.new()
-	cam.fov = 40.0
+	cam.fov = 34.0
 	world.add_child(cam)
 	cam.make_current()
 
 
 func _process(delta: float) -> void:
 	orbit += delta * 6.0
+	if viewport_car == null or not is_instance_valid(viewport_car):
+		return
 	var focus := viewport_car.global_position + Vector3.UP * 0.7
+	if studio:
+		studio.frame_offset = -9.0 if overlay is Dealership else (3.0 if page == "main" else 0.0)
+		studio.frame_pitch = -4.5 if overlay is Dealership else 0.0
+		studio.drive_camera(cam, delta, viewport_car.global_position + Vector3.UP * 0.55)
+		return
 	var rot := Basis(Vector3.UP, deg_to_rad(orbit + 200.0))
-	cam.global_position = focus + rot * Vector3(0, 1.1, -6.4)
+	var dealer := overlay is Dealership
+	# Dealership: further back and the car framed in the space left of the spec panel, above the card strip.
+	cam.global_position = focus + rot * (Vector3(0, 1.5, -8.8) if dealer else Vector3(0, 1.1, -6.4))
 	cam.look_at(focus, Vector3.UP)
-	cam.rotate_object_local(Vector3.UP, deg_to_rad(16.0))
+	cam.rotate_object_local(Vector3.UP, deg_to_rad(-11.0 if dealer else 16.0))
+	if dealer:
+		cam.rotate_object_local(Vector3.RIGHT, deg_to_rad(-6.0))
 
 
 func _build_ui() -> void:
@@ -156,6 +210,7 @@ func _build_ui() -> void:
 	nui.add_child(dbox)
 
 	var status := VBoxContainer.new()
+	status_box = status
 	status.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	status.offset_left = -560
 	status.offset_right = -48
@@ -200,75 +255,201 @@ func _build_hub() -> void:
 	hub.set_anchors_preset(Control.PRESET_FULL_RECT)
 	hub.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(hub)
-	var shade := TextureRect.new()   # bottom gradient for legibility
+	var safe := UiStyle.safe_margins(get_viewport())
+	var L := 72.0 + safe.x
+	var shade := TextureRect.new()   # left-to-right graphite fade so the text column reads over the garage
 	var g := Gradient.new()
-	g.set_color(0, Color(0, 0, 0, 0))
-	g.set_color(1, Color(0, 0, 0, 0.85))
+	g.set_color(0, Color(0.02, 0.02, 0.025, 0.92))
+	g.set_color(1, Color(0.02, 0.02, 0.025, 0.0))
 	var gt := GradientTexture2D.new()
 	gt.gradient = g
-	gt.fill_from = Vector2(0.5, 0.0)
-	gt.fill_to = Vector2(0.5, 1.0)
+	gt.fill_from = Vector2(0, 0.5)
+	gt.fill_to = Vector2(1, 0.5)
 	shade.texture = gt
-	shade.position = Vector2(0, 520)
-	shade.size = Vector2(1920, 560)
-	shade.stretch_mode = TextureRect.STRETCH_SCALE
+	shade.position = Vector2(0, 0)
+	shade.size = Vector2(1150, 1080)
 	shade.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	shade.stretch_mode = TextureRect.STRETCH_SCALE
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hub.add_child(shade)
-	var logo := UiStyle.label("GRIDLINE", UiStyle.display(), 120, Color.WHITE)
-	logo.position = Vector2(64, 30)
+	# wordmark
+	var logo := UiStyle.label("GRIDLINE", UiStyle.display(), 92, Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, false)
+	logo.position = Vector2(L, 40 + safe.y)
 	hub.add_child(logo)
-	var tag := UiStyle.label("THE RACING LEAGUE", UiStyle.cond_bold(), 30, ORANGE)
-	tag.position = Vector2(70, 150)
+	var bar := ColorRect.new()
+	bar.color = UiStyle.ACCENT
+	bar.position = Vector2(L + 4, 136 + safe.y)
+	bar.size = Vector2(48, 4)
+	hub.add_child(bar)
+	var tag := UiStyle.label("THE RACING LEAGUE", UiStyle.cond_bold(), 24, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false)
+	tag.position = Vector2(L + 62, 124 + safe.y)
 	hub.add_child(tag)
-	hub_car = UiStyle.label("", UiStyle.display(), 64, Color.WHITE)
-	hub_car.position = Vector2(64, 330)
+	# the hero car
+	hub_make = UiStyle.label("", UiStyle.cond_bold(), 30, UiStyle.ACCENT, HORIZONTAL_ALIGNMENT_LEFT, false)
+	hub_make.position = Vector2(L, 300)
+	hub.add_child(hub_make)
+	hub_car = UiStyle.label("", UiStyle.display(), 120, Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, false)
+	hub_car.position = Vector2(L - 4, 330)
 	hub.add_child(hub_car)
-	hub_next = UiStyle.label("", UiStyle.cond(), 28, UiStyle.MUTED)
-	hub_next.position = Vector2(68, 410)
-	hub.add_child(hub_next)
-	var go := Button.new()
-	go.text = "  RACE NOW  "
-	go.add_theme_font_override("font", UiStyle.display())
-	go.add_theme_font_size_override("font_size", 44)
-	for st in ["normal", "hover", "pressed", "focus"]:
-		go.add_theme_stylebox_override(st, UiStyle.box(ORANGE if st != "pressed" else ORANGE.darkened(0.2), 0, Color.TRANSPARENT, 6))
-	go.add_theme_color_override("font_color", Color.BLACK)
-	go.position = Vector2(64, 460)
+	hub_specs = HBoxContainer.new()
+	hub_specs.position = Vector2(L, 462)
+	hub_specs.add_theme_constant_override("separation", 34)
+	hub.add_child(hub_specs)
+	# primary action + next event
+	var go := UiStyle.primary_button("RACE NOW", Vector2(560, 112), 64)
+	go.position = Vector2(L, 560)
 	go.pressed.connect(_race_next)
 	hub.add_child(go)
-	var x := 64.0
-	for c in HUB_CARDS:
-		var card := _hub_card(c[0], c[1], c[2])
-		card.position = Vector2(x, 1080 - 64 - 360)
-		hub.add_child(card)
-		x += 300.0
-	for corner in [["PROFILE", "profile", 1500.0], ["SETTINGS", "settings", 1700.0]]:
+	hub_next = UiStyle.label("", UiStyle.cond(), 26, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false)
+	hub_next.position = Vector2(L + 2, 680)
+	hub.add_child(hub_next)
+	# three big modes
+	var x := L
+	for t in [["modes", "CAREER", "Driver · seasons · campaigns"], ["team_owner", "TEAM OWNER", "Run your racing company"], ["dealership", "DEALERSHIP", "Buy · sell · your garage"]]:
+		var tb := UiStyle.tile_button(t[1], t[2], Vector2(330, 150))
+		tb.position = Vector2(x, 840 - safe.w)
+		var pg: String = t[0]
+		tb.pressed.connect(func(): _click_play(); _go(pg))
+		hub.add_child(tb)
+		x += 350.0
+	# player chip (top right)
+	var chip := PanelContainer.new()
+	chip.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.CHARCOAL, 1, UiStyle.LINE, 10))
+	chip.position = Vector2(1920 - 72 - 470 - safe.z, 40 + safe.y)
+	chip.custom_minimum_size = Vector2(470, 120)
+	hub.add_child(chip)
+	var cr := HBoxContainer.new()
+	cr.add_theme_constant_override("separation", 16)
+	chip.add_child(cr)
+	var face := TextureRect.new()
+	var fp := "res://assets/ui/portraits/%s.png" % str(Game.save["career"].get("avatar", "Male_Adult_12"))
+	if ResourceLoader.exists(fp):
+		face.texture = load(fp)
+	face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	face.custom_minimum_size = Vector2(110, 118)
+	cr.add_child(face)
+	var cv := VBoxContainer.new()
+	cv.alignment = BoxContainer.ALIGNMENT_CENTER
+	cv.add_theme_constant_override("separation", 0)
+	cv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cr.add_child(cv)
+	hub_player = UiStyle.label("", UiStyle.cond_bold(), 28, Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, false)
+	cv.add_child(hub_player)
+	hub_money = UiStyle.label("", UiStyle.display(), 46, UiStyle.MONEY, HORIZONTAL_ALIGNMENT_LEFT, false)
+	cv.add_child(hub_money)
+	var lvbg := ColorRect.new()
+	lvbg.color = Color(1, 1, 1, 0.12)
+	lvbg.custom_minimum_size = Vector2(300, 6)
+	cv.add_child(lvbg)
+	hub_level = ColorRect.new()
+	hub_level.color = UiStyle.ACCENT
+	hub_level.size = Vector2(0, 6)
+	lvbg.add_child(hub_level)
+	var prof := Button.new()   # tapping the chip opens the profile
+	prof.flat = true
+	prof.focus_mode = Control.FOCUS_NONE
+	prof.set_anchors_preset(Control.PRESET_FULL_RECT)
+	prof.pressed.connect(func(): _go("profile"))
+	chip.add_child(prof)
+	# secondary menu (right)
+	var sidep := PanelContainer.new()
+	sidep.add_theme_stylebox_override("panel", UiStyle.box(Color(0.05, 0.05, 0.06, 0.72), 1, UiStyle.LINE, 10))
+	sidep.position = Vector2(1920 - 72 - 330 - safe.z, 470)
+	hub.add_child(sidep)
+	var side := VBoxContainer.new()
+	side.custom_minimum_size = Vector2(330, 0)
+	side.add_theme_constant_override("separation", 0)
+	sidep.add_child(side)
+	for it in [["campaigns", "Campaigns"], ["competitions", "Competitions"], ["pvp", "PvP Rivals"], ["quick", "Quick Race"], ["drivers", "Drivers"], ["clubs", "Live Career"], ["settings", "Settings"]]:
 		var b := Button.new()
-		b.text = corner[0]
-		b.flat = true
+		b.text = it[1].to_upper() + "   ›"
+		b.alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		b.focus_mode = Control.FOCUS_NONE
+		b.custom_minimum_size = Vector2(330, 58)
 		b.add_theme_font_override("font", UiStyle.cond_bold())
-		b.add_theme_font_size_override("font_size", 28)
-		b.add_theme_color_override("font_color", UiStyle.MUTED)
-		b.position = Vector2(corner[2], 1080 - 64 - 360 - 60)
-		var page: String = corner[1]
-		b.pressed.connect(func(): _go(page))
-		hub.add_child(b)
+		b.add_theme_font_size_override("font_size", 30)
+		b.add_theme_color_override("font_color", Color(1, 1, 1, 0.82))
+		b.add_theme_color_override("font_hover_color", UiStyle.ACCENT)
+		b.add_theme_color_override("font_pressed_color", UiStyle.ACCENT)
+		for st in ["normal", "hover", "pressed", "focus"]:
+			b.add_theme_stylebox_override(st, UiStyle.box(Color(0, 0, 0, 0.0 if st == "normal" else 0.35), 0, Color.TRANSPARENT, 6))
+		var pg2: String = it[0]
+		b.pressed.connect(func(): _click_play(); _go(pg2))
+		side.add_child(b)
+	var hint := UiStyle.label("DRAG TO ROTATE", UiStyle.cond_bold(), 20, Color(1, 1, 1, 0.35), HORIZONTAL_ALIGNMENT_CENTER, false)
+	hint.position = Vector2(1180, 1080 - 56 - safe.w)
+	hint.size = Vector2(300, 30)
+	hub.add_child(hint)
+
+
+## Recorded walkthrough (--walkthrough, used with --write-movie): hub -> dealership (switch car, paint preview) ->
+## Team Owner HQ -> RACE NOW into a real race (AI drives, --autotest 1) -> results. Drives the real buttons' code paths.
+func _walkthrough() -> void:
+	var t := get_tree()
+	await t.create_timer(3.0).timeout
+	_go("garage")
+	await t.create_timer(2.0).timeout
+	var d := overlay as Dealership
+	if d:
+		d.tab = "showroom"
+		d.sel = "ravenna_hybrid"
+		d._refresh()
+		await t.create_timer(2.0).timeout
+		d._pick_paint("ocean")
+		await t.create_timer(2.0).timeout
+		d.queue_free()
+	await t.create_timer(1.0).timeout
+	_go("team_owner")
+	await t.create_timer(3.0).timeout
+	if overlay:
+		overlay.queue_free()
+	await t.create_timer(1.0).timeout
+	_race_next()
+
+
+func _click_play() -> void:
+	if _click:
+		_click.play()
+
+
+func _hub_refresh() -> void:
+	var car_id := Game.player_car()
+	var sp := CarCatalogue.spec(car_id)
+	hub_make.text = "%s  ·  %s" % [str(sp["make"]).to_upper(), str(sp["type"]).to_upper()]
+	hub_car.text = str(sp["model"]).to_upper()
+	for c in hub_specs.get_children():
+		c.queue_free()
+	var tile := UiStyle.label(" %s %d " % [sp["tier"], sp["rating"]], UiStyle.font("BarlowCondensed-ExtraBold"), 30, UiStyle.INK, HORIZONTAL_ALIGNMENT_CENTER, false)
+	tile.add_theme_stylebox_override("normal", UiStyle.box(CarCatalogue.tier_color(sp["tier"]), 0, Color.TRANSPARENT, 4))
+	hub_specs.add_child(tile)
+	for k in [["%d HP" % sp["power_hp"], "POWER"], ["%.1f S" % sp["t100"], "0-100 KM/H"], ["%d KM/H" % sp["top_kmh"], "TOP SPEED"], [str(sp["drive"]), "DRIVE"]]:
+		var v := VBoxContainer.new()
+		v.add_theme_constant_override("separation", -6)
+		v.add_child(UiStyle.label(k[0], UiStyle.font("BarlowCondensed-ExtraBold"), 34, Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, false))
+		v.add_child(UiStyle.label(k[1], UiStyle.cond(), 18, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false))
+		hub_specs.add_child(v)
+	var c: Dictionary = Game.save["career"]
+	hub_player.text = "%s  ·  LEVEL %d" % [str(c["driverName"]).to_upper(), Game.level()]
+	hub_money.text = "$" + RaceHud._thousands(int(c["money"]))
+	hub_level.size.x = 300.0 * Game.level_progress()
 
 
 func _hub_card(page: String, title: String, sub: String) -> Control:
 	var card := Button.new()
-	card.custom_minimum_size = Vector2(280, 360)
-	card.size = Vector2(280, 360)
+	card.custom_minimum_size = Vector2(246, 360)
+	card.size = Vector2(246, 360)
 	card.clip_contents = true
 	for st in ["normal", "focus"]:
 		card.add_theme_stylebox_override(st, UiStyle.box(Color(0.06, 0.065, 0.075, 0.82), 1, Color(1, 1, 1, 0.12), 14))
 	card.add_theme_stylebox_override("hover", UiStyle.box(Color(0.1, 0.1, 0.11, 0.9), 3, ORANGE, 14))
 	card.add_theme_stylebox_override("pressed", UiStyle.box(Color(0.12, 0.08, 0.04, 0.95), 3, ORANGE, 14))
 	var img := TextureRect.new()
-	img.texture = load("res://assets/ui/cards/%s.jpg" % page)
+	var art: String = CARD_ART.get(page, "res://assets/ui/cards/%s.jpg" % page)
+	if ResourceLoader.exists(art):
+		img.texture = load(art)
 	img.position = Vector2(1, 1)
-	img.size = Vector2(278, 220)
+	img.size = Vector2(244, 220)
 	img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	img.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -279,11 +460,11 @@ func _hub_card(page: String, title: String, sub: String) -> Control:
 	bar.size = Vector2(36, 5)
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_child(bar)
-	var t := UiStyle.label(title, UiStyle.display(), 46, Color.WHITE)
+	var t := UiStyle.label(title, UiStyle.display(), 42, Color.WHITE)
 	t.position = Vector2(20, 248)
 	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_child(t)
-	var st2 := UiStyle.label(sub, UiStyle.cond(), 24, UiStyle.MUTED)
+	var st2 := UiStyle.label(sub, UiStyle.cond(), 22, UiStyle.MUTED)
 	st2.position = Vector2(21, 304)
 	st2.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_child(st2)
@@ -364,8 +545,68 @@ func _info_row(text: String, value: String) -> void:
 
 
 func _go(p: String) -> void:
+	if p in ["garage", "dealership", "sell"]:
+		_open_dealership({"garage": "garage", "dealership": "showroom", "sell": "sell"}[p])
+		return
+	if p in ["drivers", "team_owner", "clubs", "modes"] and has_method("_open_" + p):
+		call("_open_" + p)
+		return
 	stack.append(page)
 	_show(p)
+
+
+var studio: GarageStudio
+var display_paint := ""   # dealership paint preview
+var display_car := ""
+var overlay: Control
+var status_box: Control
+
+
+## Full-screen sub-screens (dealership, driver cards, career modes) replace the list menu and the hub.
+func _overlay_opened(o: Control) -> void:
+	overlay = o
+	hub.visible = false
+	nav.visible = false
+	status_box.visible = false
+	o.tree_exited.connect(func():
+		overlay = null
+		if is_instance_valid(status_box):
+			status_box.visible = true
+		display_car = ""
+		display_paint = ""
+		if studio:
+			studio.show_fleet([], "")
+			studio.set_accent(UiStyle.ACCENT)
+		_place_showroom_car()
+		_show(page))
+
+
+func _open_modes() -> void:
+	_overlay_opened(CareerModes.open(self, "hub"))
+
+
+func _open_team_owner() -> void:
+	_overlay_opened(CareerModes.open(self, "team"))
+
+
+func _open_clubs() -> void:
+	_overlay_opened(CareerModes.open(self, "clubs"))
+
+
+func _open_drivers() -> void:
+	_overlay_opened(DriverCards.open(self))
+
+
+func _open_dealership(start_tab: String) -> void:
+	_overlay_opened(Dealership.open(self, start_tab))
+
+
+func show_car(id: String, paint := "") -> void:
+	if id == display_car and paint == display_paint:
+		return
+	display_car = id
+	display_paint = paint
+	_place_showroom_car()
 
 
 func _back() -> void:
@@ -379,11 +620,13 @@ func _show(p: String) -> void:
 	if hub:
 		hub.visible = p == "main"
 		nav.visible = p != "main"
+		if status_box:
+			status_box.visible = p != "main" and overlay == null
 		if p == "main":
 			var info := CarBuilder.info(Game.player_car())
-			hub_car.text = str(info["name"]).to_upper()
+			_hub_refresh()
 			var nx := _next_event()
-			hub_next.text = "NEXT  ·  %s  ·  %s  ·  %s %s" % [Career.city_name(nx["city"]).to_upper(), Career.FORMATS[nx["format"]]["name"].to_upper(), Weather.LABEL[nx["weather"]].to_upper(), nx["time"].to_upper()]
+			hub_next.text = "NEXT EVENT  ·  %s  ·  %s  ·  %s %s" % [Career.city_name(nx["city"]).to_upper(), Career.FORMATS[nx["format"]]["name"].to_upper(), Weather.LABEL[nx["weather"]].to_upper(), nx["time"].to_upper()]
 	for c in list.get_children():
 		list.remove_child(c)   # detach now so the item counter only sees the new page
 		c.queue_free()
@@ -395,12 +638,14 @@ func _show(p: String) -> void:
 			var rep := int(career["reputation"])
 			var ti := Career.unlocked_tier(rep)
 			subtitle.text = "   THE RACING LEAGUE"
-			_item("Career", Career.tier(ti)["name"].to_upper(), func(): _go("career"), true)
+			_item("Career", "DRIVER · OWNER · CLUBS", func(): _go("modes"), true)
+			_item("Driver Career", Career.tier(ti)["name"].to_upper(), func(): _go("career"))
 			_item("Campaigns", "%d STORIES" % Career.CAMPAIGNS.size(), func(): _go("campaigns"))
 			_item("Competitions", "DAILY · CUPS", func(): _go("competitions"))
 			_item("PvP Rivals", "GHOST DUELS", func(): _go("pvp"))
 			_item("Quick Race", "", func(): _go("quick"))
-			_item("Garage", CarBuilder.info(Game.player_car())["name"].to_upper(), func(): _go("garage"))
+			_item("Dealership", CarBuilder.info(Game.player_car())["name"].to_upper(), func(): _go("garage"))
+			_item("Drivers", "CARDS", func(): _go("drivers"))
 			_item("Profile", "", func(): _go("profile"))
 			_item("Settings", "", func(): _go("settings"))
 			desc.text = "7 real street circuits from OpenStreetMap · live weather\nReputation %d · Rank %d" % [rep, Game.rank()]
@@ -523,6 +768,22 @@ func _show(p: String) -> void:
 			desc.text = "%s · %s · %s drive · %d kg. Tap a car to take it to the grid." % [cur["name"], cur["class"], "All-wheel" if cur["awd"] else "Rear-wheel", int(cur["mass"])]
 		"profile":
 			subtitle.text = "   PROFILE"
+			_info_row("Level", "%d  ·  %s XP" % [Game.level(), RaceHud._thousands(Game.xp())])
+			var faces: Array = DriverCards.FACES["africa_m"] + DriverCards.FACES["africa_f"] + DriverCards.FACES["north_m"] + DriverCards.FACES["north_f"] + DriverCards.FACES["europe_m"] + DriverCards.FACES["europe_f"]
+			var cur := str(career.get("avatar", "Male_Adult_12"))
+			_item("Driver face", "%d / %d" % [faces.find(cur) + 1, faces.size()], func():
+				career["avatar"] = faces[(faces.find(cur) + 1) % faces.size()]
+				Game.persist()
+				_show("profile"))
+			var nats := ["ZMB", "KEN", "EGY", "SOM", "NGA", "ZAF", "GBR", "DEU"]
+			var nat := str(career.get("nat", "ZMB"))
+			_item("Nationality", nat, func():
+				career["nat"] = nats[(nats.find(nat) + 1) % nats.size()]
+				Game.persist()
+				_show("profile"))
+			if Game.developer():
+				_item("Add $100,000 test funds", "DEVELOPER", func(): Game.grant_test_funds(); _show("profile"))
+				_item("Add 1,000 XP", "DEVELOPER", func(): Game.add_xp(1000); Game.persist(); _show("profile"))
 			_info_row("Races", str(career["racesEntered"]))
 			_info_row("Wins / Podiums", "%d / %d" % [career["wins"], career["podiums"]])
 			_info_row("Points", str(career["championshipPoints"]))
@@ -540,6 +801,10 @@ func _show(p: String) -> void:
 			_item("Steering Sensitivity", "%.1f" % float(s["sensitivity"]), func(): s["sensitivity"] = 0.6 if float(s["sensitivity"]) >= 1.6 else snappedf(float(s["sensitivity"]) + 0.2, 0.1); _save_settings())
 			UiStyle.graphics_rows(list, _save_settings)
 			_item("Audio · Controls · Accessibility", "OPTIONS", _open_options)
+			_item("Developer mode", "ON" if Game.developer() else "OFF", func():
+				s["developer"] = not bool(s.get("developer", false))
+				_save_settings()
+				_show("settings"))
 			_item("Frame Rate Counter", "On" if s["showFps"] else "Off", func(): s["showFps"] = not s["showFps"]; _save_settings())
 			_item("Control Size", "%d%%" % roundi(float(s.get("controlsSize", 1.0)) * 100), func(): s["controlsSize"] = _cycle([0.8, 0.9, 1.0, 1.1, 1.2], float(s.get("controlsSize", 1.0))); _save_settings())
 			_item("Control Opacity", "%d%%" % roundi(float(s.get("controlsOpacity", 0.85)) * 100), func(): s["controlsOpacity"] = _cycle([0.4, 0.6, 0.85, 1.0], float(s.get("controlsOpacity", 0.85))); _save_settings())
@@ -628,6 +893,11 @@ func _start(event_id: String, championship: bool) -> void:
 	Game.session["entry_paid"] = false
 	Game.session.erase("laps_override")
 	get_tree().change_scene_to_file("res://scenes/race.tscn")
+
+
+func _unhandled_input(ev: InputEvent) -> void:
+	if studio and (overlay == null or overlay is Dealership):
+		studio.handle_input(ev)
 
 
 func _notification(what: int) -> void:

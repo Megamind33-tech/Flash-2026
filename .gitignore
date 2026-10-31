@@ -45,3 +45,5 @@ artifacts/
 /tools/cities/osm_cache/
 /tools/assets/originals/
 /tools/people/_tex/
+/tools/people/_tex_portrait/
+/godot/assets/people/portrait_src/

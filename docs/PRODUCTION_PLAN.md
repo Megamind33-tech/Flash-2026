@@ -346,3 +346,40 @@ pyramids and desert; London needs Big Ben and Tower Bridge; the game is rigid, s
 - **AI fix.** Cars pinned sideways against a rail (still sliding, so never "stopped") are now recovered; a Giza pile-up
   crawled at 18 km/h for minutes before.
 Next: free-roam/open-road sprint events between cities, rewind, more city-specific street furniture, dune vegetation.
+
+## 12. Motorsport UI, dealership, driver cards and three career modes (session 018WCsTK)
+Owner feedback: HUD, menu and UI do not look like serious motorsport; garage/dealership too simple; wants full car
+detail and history, F1-style driver cards, the owner's song as menu music, and three career modes (driver; team
+owner who scouts/trains AI drivers, buys/sells cars, signs partners and enters competitions; live clubs joined by
+request or invitation, switchable, or owned) gated by level but open for testing.
+- **HUD** (`ui/hud.gd`, `ui/rev_dial.gd`): F1-style timing tower (position tile, team colour, 3-letter code, gap to
+  leader, player row lit), P-position + lap header, lap/last/best timing strip (best in purple when fastest of the
+  race), circular rev dial (270-degree rpm arc, red line, gear, digital speed, boost ring), minimap and buttons
+  top-right.
+- **Dealership** (`ui/dealership.gd`, `vehicle/car_catalogue.gd`): SHOWROOM / MY GARAGE / SELL tabs over the 3D
+  showroom; spec sheet (class letter + rating 100-999, five performance bars, engine, power, torque, top speed,
+  0-100, weight, drivetrain, layout, gearbox) and a HISTORY page; car cards sortable by price, model, rating,
+  manufacturer. Makes, models and histories are fictional. 0-100 is measured in-game (drive_test); each car now has
+  its own top speed (`vmax`, 212-230 km/h). Selling pays 65 % of list.
+- **Driver cards** (`ui/driver_cards.gd`): team-colour cards with number, portrait, first name over bold surname,
+  flag, team, points/wins/podiums/rating; profile page with attributes and bio. Portraits and car thumbnails are
+  rendered in Godot by `tools/render_cards.gd`; portraits use full-detail Rocketbox busts (PORTRAIT=1 in
+  `tools/people/build_people.py`) because the 2k-triangle crowd meshes lose the lips.
+- **Career modes** (`ui/career_modes.gd`): hub with three mode cards.
+  - Team owner (`core/team_owner.gd`): found a company, six scouts a week, sign up to four drivers, weekly
+    training (closes 8-18 % of the gap to potential), team cars (buy, assign, sell), up to three partnerships
+    (per-event pay + win bonus), competitions Local -> International (simulated from overall rating + car rating
+    + race-day form), weekly wages.
+  - Live career (`core/clubs.gd`): 8 clubs (open or invite-only, level requirements), requests, invitations
+    (strong results bring them), one move per week, own club with weekly applications, club races the player
+    drives (team-mates simulated), club standings, weekly challenges. **Offline preview: no online service yet,
+    other clubs/players are simulated and the UI says so.**
+  - XP and levels (`Game.level()`): gates team owner (5), clubs (3), own club (10). `Game.TEST_UNLOCK_ALL = true`
+    for test builds; Profile has "Add $100,000 test funds" and "Add 1,000 XP".
+- **Menu music:** "Heart in the Drive" (owner-supplied, made with Suno). Commercial release needs the Suno plan
+  that grants commercial rights; owner to confirm (`assets/audio/CREDITS.md`).
+- Dropped the swimwear avatar (Sports_Female_01) from crowds and drivers.
+- `tests/modes_test` (in `tools_build.sh`): MODES PASS failures=0.
+- Note: the Mobile renderer ignores FSR 1 (Forward+ only); the render-scale setting still applies with bilinear
+  upscaling.
+Next (phase 2): world PBR and lighting.

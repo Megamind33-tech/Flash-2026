@@ -236,5 +236,47 @@
     "giza"
    ]
   }
+ ],
+ "props": [
+  {
+   "id": "hq_scissor_lift",
+   "uid": "c64bf7abd37f46c2b26323a59a7aaca9",
+   "include": ".",
+   "height": 1.85,
+   "budget": 6000,
+   "front": "auto",
+   "kind": "prop",
+   "cities": []
+  },
+  {
+   "id": "hq_trophy",
+   "uid": "e1f3a66552364b94af673fc9b88aec63",
+   "include": ".",
+   "height": 0.62,
+   "budget": 2500,
+   "front": "auto",
+   "kind": "prop",
+   "cities": []
+  },
+  {
+   "id": "hq_office_desk",
+   "uid": "9403093258264563a89d708b906f1b47",
+   "include": ".",
+   "height": 1.25,
+   "budget": 2244,
+   "front": "auto",
+   "kind": "prop",
+   "cities": []
+  },
+  {
+   "id": "hq_server_rack",
+   "uid": "5320622f6c0741b7aed399bfa2965dc4",
+   "include": ".",
+   "height": 2.0,
+   "budget": 4000,
+   "front": "auto",
+   "kind": "prop",
+   "cities": []
+  }
  ]
 }
