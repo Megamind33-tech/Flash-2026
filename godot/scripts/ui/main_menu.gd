@@ -32,12 +32,27 @@ var quick := {"city": "lusaka", "weather": "clear", "time": "day", "format": "ra
 func _place_showroom_car() -> void:
 	if viewport_car:
 		viewport_car.queue_free()
-	viewport_car = CarBuilder.build("player_white", false, Game.player_car())
+	var args := OS.get_cmdline_user_args()   # screenshots: --show-car <id> [--livery <livery>]
+	var car_id: String = args[args.find("--show-car") + 1] if args.has("--show-car") else Game.player_car()
+	var livery: String = args[args.find("--livery") + 1] if args.has("--livery") else "player_white"
+	viewport_car = CarBuilder.build(livery, false, car_id)
 	# Not frozen: let the car settle on its real suspension (input disabled = parking brake on).
 	showroom.add_child(viewport_car)
 	var d := 140.0
 	var p := show_track.position_at(d) + show_track.right_at(d) * 2.0
 	viewport_car.global_transform = Transform3D(Basis.looking_at(-show_track.tangent_at(d), Vector3.UP), p + Vector3.UP * 0.3)
+	# Local reflections for the paint and glass (barriers, ads, road, buildings), captured once: without it the
+	# clear coat only mirrors the sky and the car looks flat.
+	if not showroom.has_node("ShowroomProbe"):
+		var probe := ReflectionProbe.new()
+		probe.name = "ShowroomProbe"
+		probe.update_mode = ReflectionProbe.UPDATE_ONCE
+		probe.size = Vector3(40, 16, 40)
+		probe.box_projection = true
+		probe.max_distance = 300.0
+		probe.cull_mask = 1                  # the world, not the car itself
+		showroom.add_child(probe)
+		probe.global_position = p + Vector3.UP * 1.2
 
 
 func _ready() -> void:
