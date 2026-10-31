@@ -47,6 +47,9 @@ func _maybe_capture() -> void:
 	var img := get_viewport().get_texture().get_image()
 	img.save_png(path)
 	print("[GRIDLINE] screenshot ", path, " ", img.get_size())
+	print("[GRIDLINE] perf-at-shot fps=%d draw_calls=%d primitives=%d objects=%d video_mem_mb=%.0f (software renderer, not a phone)" % [Engine.get_frames_per_second(),
+		Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME),
+		Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME), Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0])
 	get_tree().quit()
 
 

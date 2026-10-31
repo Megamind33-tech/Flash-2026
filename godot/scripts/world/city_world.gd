@@ -135,6 +135,10 @@ static func build(parent: Node3D, data: Dictionary, style: Dictionary, track: Tr
 	_props(root, data, style, track, rng, ac)
 	barrier_ads(root, track, track.half_width + BARRIER, 0.6)
 	race_furniture(root, track, track.half_width + BARRIER)
+	AdPlacementManager.instance = null
+	# Advertising system: validated on Lusaka first (see docs); --no-ads gives the before/after baseline.
+	if str(data["id"]) in ["lusaka"] and not "--no-ads" in OS.get_cmdline_user_args():
+		AdPlacementManager.populate(root, track, data, str(data["id"]), track.half_width + BARRIER)
 	if style.get("poles", false):
 		_power_lines(root, track)
 	_rooftop_boards(root, data, track)

@@ -140,6 +140,31 @@ Evaluated, not adopted yet: **dot-ui** (MIT, needs dot-core, "partially tested";
   - Material Maker: road and façade materials are in-engine shaders over CC0 textures.
   - GdUnit4: the existing scene tests already cover race logic.
 
+## Trackside advertising system (validated on Lusaka first)
+- **Reusable scenes** in `godot/scenes/ads/`: `LED_Trackside_Board`, `Sponsor_Barrier`, `Overhead_Ad_Gantry` and
+  `Urban_Digital_Billboard`.
+  - Each uses an `AdSurface` root and project-built Blender hardware (`tools/ads/build_ad_hardware.py`).
+  - Source records are in `assets/ads/LICENSES.md`.
+- **`AdPlacementManager`:**
+  - Places ads by rule: LED boards on straights, none within 200 m before a corner apex, so braking boards and
+    chevrons stay clear. Sponsor barriers line the grid. One gantry spans the longest straight. Urban screens go
+    on walls that face the circuit.
+  - Placement IDs and sizes are configurable. Creatives come from an `AdProvider`.
+  - Static or rotating ads: 8 s interval with a 0.6 s cross-fade.
+  - Shared materials: one per rotation group, so 39 Lusaka placements use 9 materials and 1 texture.
+  - Ads are hidden beyond their view distance. The LED look is low-cost: a pixel grid that fades with distance, so
+    no shimmer.
+  - Glow is capped and scales with time of day.
+- **Future monetisation:** `AdProvider` and `LocalAdProvider` separate placement logic from creative sources.
+  `data/ads/campaigns.json` maps placement patterns to creatives. No ad SDK is integrated.
+- **Viewability is measured, not assumed.** An ad counts as visible only if its centre is in the frustum, within
+  view distance, facing the camera and unoccluded (raycast). One impression = 1 s of continuous visibility. Per
+  placement and per creative times are written to `user://ads/impressions.json`.
+- **Validation:**
+  - The 3-lap, 5-car Lusaka race gives the same results with and without ads (no collision or AI interference).
+  - The run logged 39 placements and 16 measured impressions.
+  - Before/after renders for day, rain at dusk and night, with draw-call, triangle and memory numbers, are in `docs/ads/`.
+
 ## What works — verified in this container
 | Check | Result | How |
 |---|---|---|

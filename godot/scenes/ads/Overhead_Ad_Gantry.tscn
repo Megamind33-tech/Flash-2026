@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ads/ad_surface.gd" id="1"]
+[ext_resource type="PackedScene" path="res://assets/ads/hardware/overhead_ad_gantry.glb" id="2"]
+
+[node name="Overhead_Ad_Gantry" type="Node3D"]
+script = ExtResource("1")
+kind = "gantry"
+size = Vector2(10,1.6)
+screen_height = 6.85
+led = true
+view_distance = 260
+
+[node name="Model" parent="." instance=ExtResource("2")]

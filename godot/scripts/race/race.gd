@@ -471,6 +471,10 @@ func _complete() -> void:
 		Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME),
 		Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME), Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0,
 		Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0, Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0])
+	if AdPlacementManager.instance:
+		var ads := AdPlacementManager.instance.summary()
+		AdPlacementManager.instance.provider.report(ads)
+		print("[GRIDLINE] ads placements=%d impressions=%d (measured: %s)" % [ads["placements"], ads["impressions"], ads["criterion"]])
 	print("[GRIDLINE] format=%s city=%s weather=%s/%s grip=%.2f eliminated=%d medal=%d ghost=%s" % [format, city_id, Weather.kind, Weather.time_of_day, Weather.grip, _eliminations, medal, str(not ghost.is_empty())])
 	print("[GRIDLINE] race complete event=%s laps=%d player=P%d race_time=%.1fs avg_fps=%.1f worst_frame_ms=%.1f" % [event["id"], total_laps, player.position, race_time, avg_fps, _worst_frame * 1000.0])
 	for s in standings:
