@@ -131,6 +131,35 @@ func _ready() -> void:
 		pc.look_at(track.position_at(track.wrapd(-14.0)) + r * (track.half_width + CityWorld.BARRIER + 1.2) + Vector3.UP * 1.3, Vector3.UP)
 		pc.make_current()
 		camera.set_physics_process(false)
+	var wdata: Dictionary = CityStyles.data(city_id) if args.has("--cam-water") and city_id != "ashford" else {}
+	if not wdata.get("water", []).is_empty():
+		# Evidence (G6): stand 3 m up on the bank of the largest OSM water body, looking across it.
+		var best := PackedVector2Array()
+		var best_area := 0.0
+		for flat in wdata["water"]:
+			var poly := CityWorld._poly(flat)
+			var area := 0.0
+			for i in poly.size():
+				area += poly[i].cross(poly[(i + 1) % poly.size()])
+			if absf(area) > best_area:
+				best_area = absf(area)
+				best = poly
+		var cen := Vector2.ZERO
+		for q in best:
+			cen += q
+		cen /= best.size()
+		var bank := best[0]
+		for q in best:
+			if q.distance_to(cen) < bank.distance_to(cen):
+				bank = q
+		var pc := Camera3D.new()
+		add_child(pc)
+		var from := Vector3(bank.x, 3.0, bank.y) + Vector3(bank.x - cen.x, 0, bank.y - cen.y).normalized() * 6.0
+		pc.global_position = from
+		pc.look_at(Vector3(cen.x, 0.0, cen.y), Vector3.UP)
+		pc.make_current()
+		camera.set_physics_process(false)
+		print("[GRIDLINE] cam-water area=%.0f m2 bank=%s" % [best_area * 0.5, bank])
 	if args.has("--cam-driver"):
 		var pc := Camera3D.new()
 		player.car.add_child(pc)
@@ -180,7 +209,7 @@ func _ready() -> void:
 		add_child(hud)
 		hud.bind(self)
 	# The opener ends by making the chase camera current, so skip it when a screenshot fixes the camera.
-	if DisplayServer.get_name() != "headless" and not (args.has("--cam-ad") or args.has("--cam-prop") or args.has("--cam-pothole") or args.has("--cam-people") or args.has("--cam-driver")):
+	if DisplayServer.get_name() != "headless" and not (args.has("--cam-ad") or args.has("--cam-prop") or args.has("--cam-pothole") or args.has("--cam-people") or args.has("--cam-driver") or args.has("--cam-water")):
 		await _intro()
 	await get_tree().create_timer(0.75).timeout
 	phase = Phase.COUNTDOWN

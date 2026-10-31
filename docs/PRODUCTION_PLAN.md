@@ -249,6 +249,12 @@ Each card is self-contained: inputs, exit check, and file boundaries.
 - **G8:** already built by the previous session (Ultra = Forward+ with SSR, SSAO and volumetric fog). A same-frame
   comparison of the two renderers on desktop lavapipe is pending. The device comparison is still G13.
 - **G9 part 1 done:** up to 14 parked cars and 6 moving cars on real OSM side streets, kept clear of the circuit, plus
-  waving flags. Pedestrians and spectators are blocked: the RenderPeople CC BY scans on Sketchfab now return 401, because
-  the Sketchfab credential is not applied in this session.
+  waving flags.
+- **G9 part 2 done (people):** Microsoft Rocketbox avatars (MIT, full licence in `godot/assets/people/LICENSE.md`), posed
+  in Blender by `tools/people/build_people.py` (8 avatars x cheer/clap/idle/seated, ~1.9k triangles, 512 px textures).
+  Spectators along the grid and opening straight, pedestrians on side-street pavements (MultiMesh, one draw call per
+  avatar/pose), and a seated driver in every car. Evidence cameras `--cam-people` and `--cam-driver`.
+- **Ads fixes after the first close-ups:** the gantry truss webs were rotated about the world origin (scattered 0.5–9 m);
+  now baked in place. LED boards stand on 1.3 m legs so the whole screen clears the 0.95 m barrier and its banner.
+  Re-render of the day/night/rain close-ups pending review; roll-out beyond Lusaka still waits for owner approval.
 - **Renders:** they now run from a frozen git worktree (`/tmp/claude-0/render`), so edits during a batch cannot break it.
