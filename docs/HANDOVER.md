@@ -1,5 +1,10 @@
 # Handover — GRIDLINE (Godot port)
 
+> **Update (session 018vwXNe):** items 1 (landmarks, water, people, potholes, rain dusk) and 3 (Ultra logging) below were
+> worked on; see `docs/PRODUCTION_PLAN.md` §9. Still open: ad close-ups framed too far to judge, puddle visibility (G4),
+> ads roll-out (owner), G10/G11/G12/G1 (owner). Godot lives in `/home/user/deps/godot-4.7.2/` in this container;
+> Blender 5.2.2 in `/home/user/deps/blender-5.2.2/` (there is no `/usr/bin/blender` here).
+
 Written at the end of session 018WCsTK. Read this first, then `docs/PRODUCTION_PLAN.md` (gates G0–G13, progress log in §8).
 
 ## Where things are

@@ -25,5 +25,5 @@ void fragment() {
 	}
 	ROUGHNESS = mix(0.88, 0.32, wet);
 	float r = length(mesh_pos.xz - centre.xz) / radius;
-	ALPHA = 1.0 - smoothstep(0.55, 0.98, r);
+	ALPHA = 1.0 - smoothstep(0.4, 0.84, r);   // starts early: the scans' own borders are lighter than the road
 }

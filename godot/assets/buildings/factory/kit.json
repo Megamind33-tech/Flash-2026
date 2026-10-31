@@ -34,6 +34,39 @@
    "tris_before": 2050,
    "tris": 650
   },
+  "bay_window_a_lo": {
+   "source": [
+    "wall_window_centered_large_01",
+    "window_centered_large_01"
+   ],
+   "width": 3.0,
+   "depth": 0.23,
+   "height": 3.0,
+   "tris_before": 2278,
+   "tris": 420
+  },
+  "bay_window_b_lo": {
+   "source": [
+    "wall_window_centered_double_01",
+    "window_centered_double_01"
+   ],
+   "width": 3.0,
+   "depth": 0.23,
+   "height": 3.0,
+   "tris_before": 2608,
+   "tris": 420
+  },
+  "bay_window_c_lo": {
+   "source": [
+    "wall_window_centered_medium_01",
+    "window_centered_medium_01"
+   ],
+   "width": 3.0,
+   "depth": 0.23,
+   "height": 3.0,
+   "tris_before": 2050,
+   "tris": 400
+  },
   "bay_blank": {
    "source": [
     "wall_standard_standard_01"

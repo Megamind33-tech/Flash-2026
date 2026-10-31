@@ -13,6 +13,7 @@ echo "== core tests";  "$G" --headless --path . res://tests/core_tests.tscn 2>&1
 echo "== stability";   timeout 600 "$G" --headless --path . --fixed-fps 60 res://tests/stability_test.tscn 2>&1 | grep -E "STABILITY"
 echo "== props";       timeout 300 "$G" --headless --path . -s res://tests/props_test.gd 2>&1 | grep -E "^PROPS|FAIL"
 echo "== placement";   timeout 600 "$G" --headless --path . res://tests/street_props_test.tscn 2>&1 | grep -E "STREET PROPS|FAIL"
+echo "== landmarks";   timeout 300 "$G" --headless --path . res://tests/landmark_test.tscn 2>&1 | grep -E "LANDMARK|SCRIPT ERROR"
 echo "== city formats"; for f in "kitwe elimination rain" "mogadishu time_attack clear" "nairobi duel storm"; do set -- $f; timeout 900 "$G" --headless --path . --fixed-fps 60 res://scenes/race.tscn -- --autotest 2 --city $1 --format $2 --weather $3 2>&1 | grep -E "format=|race complete"; done
 echo "== AI race";     timeout 900 "$G" --headless --path . --fixed-fps 60 res://scenes/race.tscn -- --autotest 2 2>&1 | grep -E "race complete|  P[0-9]|car="
 if [[ "${1:-}" == "--shots" ]]; then

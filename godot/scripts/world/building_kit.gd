@@ -16,6 +16,12 @@ const PIECES := ["bay_window_a", "bay_window_b", "bay_window_c", "bay_blank", "b
 static var _pieces := {}              # "kit/piece" -> {mesh, xf}
 
 
+## Storeys the kit may cover per quality tier (Medium 8, High/Ultra 10). Medium uses the low-detail window bays
+## above the two street-level storeys.
+static func rows_for(quality: int) -> int:
+	return 8 if quality <= 1 else 10
+
+
 static func kit_for(city_id: String) -> String:
 	return "factory" if city_id in ["london"] else "urban"
 
@@ -25,11 +31,16 @@ static func plan(data: Dictionary, track: TrackPath, quality: int) -> Dictionary
 	var out := {}
 	if quality <= 0:
 		return out
-	var reach := 30.0 if quality == 1 else 46.0
+	var reach := 20.0 if quality == 1 else 46.0
+	# Only buildings the kit can cover to the roofline: a partly clad face showed the kit's windows under the
+	# plain facade's differently styled ones (a visible seam). Taller blocks keep their plain/curtain walls.
+	var max_h := rows_for(quality) * BAY + 1.5
 	var grid := _track_grid(track)
 	var bi := -1
 	for b in data.get("buildings", []):
 		bi += 1
+		if float(b[0]) > max_h:
+			continue
 		var poly := CityWorld._poly(b[1])
 		if poly.size() < 3:
 			continue
@@ -62,8 +73,8 @@ static func build(root: Node3D, data: Dictionary, style: Dictionary, clad: Dicti
 	if clad.is_empty():
 		return 0
 	var kit := kit_for(str(data["id"]))
-	var max_rows := 3 if quality == 1 else 6
-	var view := 150.0 if quality == 1 else 240.0
+	var max_rows := rows_for(quality)
+	var view := 130.0 if quality == 1 else 240.0
 	var tint := Color(str(style["tints"][0])).lerp(Color.WHITE, 0.45)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(data["id"]) + "/building_kit")
@@ -109,6 +120,8 @@ static func build(root: Node3D, data: Dictionary, style: Dictionary, clad: Dicti
 						piece = "bay_shop" if roll < 0.45 else ("bay_door" if roll < 0.6 else ("bay_window_c" if roll < 0.85 else "bay_blank"))
 					elif rng.randf() < 0.08:
 						piece = "bay_blank"
+					elif quality <= 1 and r >= 2:
+						piece = upper + "_lo"            # upper storeys on Medium: same bay, ~300 triangles
 					(xf.get_or_add(piece, []) as Array).append(Transform3D(basis, base + Vector3.UP * (r * BAY * sy)))
 					bays += 1
 				(xf.get_or_add("strip_cornice", []) as Array).append(Transform3D(flat, base + Vector3.UP * (BAY * sy - 0.1)))
@@ -147,6 +160,9 @@ static func build(root: Node3D, data: Dictionary, style: Dictionary, clad: Dicti
 			mmi.set_meta("positions", where)
 			mmi.visibility_range_end = view
 			mmi.visibility_range_end_margin = 20.0
+			# The bays sit flush on the building, whose plain wall already casts the same shadow: drawing them in
+			# the shadow pass too only doubled their cost (~+234k triangles in London at Medium).
+			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			root.add_child(mmi)
 	return bays
 

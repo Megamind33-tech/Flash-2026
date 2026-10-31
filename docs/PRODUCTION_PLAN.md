@@ -258,3 +258,30 @@ Each card is self-contained: inputs, exit check, and file boundaries.
   now baked in place. LED boards stand on 1.3 m legs so the whole screen clears the 0.95 m barrier and its banner.
   Re-render of the day/night/rain close-ups pending review; roll-out beyond Lusaka still waits for owner approval.
 - **Renders:** they now run from a frozen git worktree (`/tmp/claude-0/render`), so edits during a batch cannot break it.
+
+## 9. Progress after the second hand-over (session 018vwXNe, on `ccr-dbcb6ab3-0k2lya`)
+
+Started from `ca4c027`. All checks green before changes: import, budgets (69 assets, 0 over), core 45/45, stability,
+props, placement, pothole, three city-format races and an AI race.
+
+- **G7 landmarks fixed.** Kitwe and Nairobi were placed but hidden behind the buildings flanking the street: the spot
+  was 17 degrees off the start line's heading. Landmarks now go beyond the end of the start straight, nearly dead
+  ahead, and only where their top clears every building near the sight line (elevation angles from 3 m up), with the
+  old spots as a fallback. Six of seven now sit at 0 degrees, London at -13. New `tests/landmark_test.tscn` (in
+  `tools_build.sh`) and `--cam-landmark` evidence camera. Kitwe headframe and Nairobi tower confirmed in renders.
+- **G6 water.** OSM rivers and lakes get 0.75 m stone quay walls (none within 8 m of the circuit, which may cross on a
+  bridge); the water no longer floats on the ground with a hard edge. London/Berlin dusk-rain renders checked.
+- **Weather.** Rainy/overcast dusk exposure 0.95 (was 1.3: London rain at dusk washed out). Ultra dusk volumetric fog
+  0.014 (0.006 was invisible); Ultra now logs `ultra effects: ssao ssr volumetric_fog` so the Forward+ path is provable.
+- **Facade kit (buildings step 3) completed.** Only buildings the kit covers to the roofline are clad (no seam between
+  kit windows and the plain facade above). Medium covers up to 8 storeys with low-detail window bays (280-420 tris)
+  above the two street-level storeys, frontage within 20 m; High up to 10 storeys, 46 m. Facade bays no longer cast
+  shadows (the building behind casts the same one): London day 784k -> 665k triangles, Lusaka rain 730k -> 678k
+  (baselines without the kit: 550k and 630k). `--no-facade-kit` gives the A/B baseline.
+- **Cars.** Glass opacity 0.66 (0.84 hid the seated driver).
+- **Road patches.** Fade starts earlier (the scans' lighter borders showed as a rim); relief 0.35.
+- **Evidence reviewed** (`/home/user/scratch/ev*`, not committed): people and driver, Kitwe potholes dry/rain, water,
+  Lusaka rain road, London rain dusk, Lusaka LED and gantry ads by day/night/rain.
+  - Ads: the `--cam-ad` cameras frame the boards from too far to judge the LED legs and gantry webs: still unverified.
+  - Puddles in rain: the wet road reads, individual puddles are subtle: G4 exit still open.
+  - Potholes: visible as dark craters from 10 m at driver height; small in frame.

@@ -65,7 +65,7 @@ static func material(slot: String, livery: String) -> Material:
 			m.rim = 0.25
 			m.rim_tint = 0.6
 		"glass":
-			m.albedo_color = Color(0.015, 0.018, 0.022, 0.84)   # dark, reflective: you see the sky in it, not the seats
+			m.albedo_color = Color(0.015, 0.018, 0.022, 0.66)   # dark and reflective, but the seated driver still shows through
 			m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 			m.metallic = 0.0
 			m.metallic_specular = 0.45   # full specular turned the glass pale grey under a bright sky

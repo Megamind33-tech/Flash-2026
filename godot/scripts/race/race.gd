@@ -168,6 +168,16 @@ func _ready() -> void:
 		pc.look_at(player.car.to_global(Vector3(0.36, 0.75, -0.25)), Vector3.UP)
 		pc.make_current()
 		camera.set_physics_process(false)
+	if args.has("--cam-landmark"):   # evidence: the city landmark from the start line, 3 m up
+		var lmk := find_child("Landmark", true, false) as Node3D
+		if lmk:
+			var lc := Camera3D.new()
+			add_child(lc)
+			lc.far = 3000.0
+			lc.global_position = track.position_at(0.0) + Vector3.UP * 3.0
+			lc.look_at(lmk.global_position + Vector3.UP * 20.0, Vector3.UP)
+			lc.make_current()
+			camera.set_physics_process(false)
 	var ca := args.find("--cam-ad")   # screenshots: frame the first ad of a kind (led, gantry, urban, barrier)
 	if ca >= 0 and AdPlacementManager.instance:
 		for p in AdPlacementManager.instance.placements.values():
@@ -209,7 +219,7 @@ func _ready() -> void:
 		add_child(hud)
 		hud.bind(self)
 	# The opener ends by making the chase camera current, so skip it when a screenshot fixes the camera.
-	if DisplayServer.get_name() != "headless" and not (args.has("--cam-ad") or args.has("--cam-prop") or args.has("--cam-pothole") or args.has("--cam-people") or args.has("--cam-driver") or args.has("--cam-water")):
+	if DisplayServer.get_name() != "headless" and not (args.has("--cam-ad") or args.has("--cam-prop") or args.has("--cam-pothole") or args.has("--cam-people") or args.has("--cam-driver") or args.has("--cam-water") or args.has("--cam-landmark")):
 		await _intro()
 	await get_tree().create_timer(0.75).timeout
 	phase = Phase.COUNTDOWN

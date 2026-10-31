@@ -156,11 +156,12 @@ static func build(parent: Node3D, data: Dictionary, style: Dictionary, track: Tr
 	rng.seed = hash(str(data["id"]))
 	_ground(root, style, track)
 	_circuit(root, style, track)
-	_areas(root, data)
+	_areas(root, data, track)
 	_side_roads(root, data, style)
 	# Real modelled facades on the street-facing walls (assets/buildings, CC0): planned first so the plain walls
 	# behind them get no floor ledges or AC units poking through the new windows.
-	var clad := BuildingKit.plan(data, track, Game.quality())
+	# --no-facade-kit gives the before/after baseline (like --no-ads and --no-street-props).
+	var clad := {} if "--no-facade-kit" in OS.get_cmdline_user_args() else BuildingKit.plan(data, track, Game.quality())
 	var ac := _buildings(root, data, style, rng, clad)
 	_props(root, data, style, track, rng, ac)
 	print("[GRIDLINE] facade kit %s bays=%d on %d buildings" % [BuildingKit.kit_for(str(data["id"])),
@@ -479,8 +480,10 @@ static func _poly(flat: Array) -> PackedVector2Array:
 	return out
 
 
-static func _areas(root: Node3D, data: Dictionary) -> void:
+static func _areas(root: Node3D, data: Dictionary, track: TrackPath = null) -> void:
 	var mesh := ArrayMesh.new()
+	if track:
+		_quays(mesh, data, track)
 	for spec in [["parks", 0.016], ["water", 0.022]]:
 		var bk := Bucket.new()
 		for flat in data.get(spec[0], []):
@@ -503,6 +506,51 @@ static func _areas(root: Node3D, data: Dictionary) -> void:
 	mi.mesh = mesh
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	root.add_child(mi)
+
+
+## Stone quay walls along rivers and lakes: city water sits between walls (the Thames, the Spree), and the wall hides
+## the hard edge of the water polygon. Edges are cut into 20 m pieces; none is built near the circuit, which may cross
+## the water on a bridge.
+static func _quays(mesh: ArrayMesh, data: Dictionary, track: TrackPath) -> void:
+	var bk := Bucket.new()
+	var hint := [-1]
+	var top := 0.75
+	var thick := 0.45
+	for flat in data.get("water", []):
+		var poly := _poly(flat)
+		if poly.size() < 3:
+			continue
+		for i in poly.size():
+			var p0 := poly[i]
+			var p1 := poly[(i + 1) % poly.size()]
+			var length := p0.distance_to(p1)
+			if length < 0.5:
+				continue
+			var e := (p1 - p0) / length
+			var land := Vector2(e.y, -e.x)
+			if Geometry2D.is_point_in_polygon((p0 + p1) * 0.5 + land * 0.5, poly):
+				land = -land
+			var pieces := maxi(1, ceili(length / 20.0))
+			for k in pieces:
+				var a2 := p0.lerp(p1, float(k) / pieces)
+				var b2 := p0.lerp(p1, float(k + 1) / pieces)
+				var mid := (a2 + b2) * 0.5
+				var pr := track.project(Vector3(mid.x, 0, mid.y), hint)
+				hint = [pr[0]]
+				if absf(float(pr[1])) < track.half_width + BARRIER + 8.0:
+					continue
+				var a := Vector3(a2.x, 0, a2.y)
+				var b := Vector3(b2.x, 0, b2.y)
+				var o := Vector3(land.x, 0, land.y) * thick
+				var seg := a.distance_to(b)
+				# water face, top cap, land face
+				bk.quad(a + Vector3.UP * -0.3, a + Vector3.UP * top, b + Vector3.UP * top, b + Vector3.UP * -0.3, -Vector3(land.x, 0, land.y),
+					Vector2(0, -0.3), Vector2(0, top), Vector2(seg, top), Vector2(seg, -0.3))
+				bk.quad(a + Vector3.UP * top, a + o + Vector3.UP * top, b + o + Vector3.UP * top, b + Vector3.UP * top, Vector3.UP,
+					Vector2(0, 0), Vector2(0, thick), Vector2(seg, thick), Vector2(seg, 0))
+				bk.quad(a + o + Vector3.UP * top, a + o, b + o, b + o + Vector3.UP * top, Vector3(land.x, 0, land.y),
+					Vector2(0, top), Vector2(0, 0), Vector2(seg, 0), Vector2(seg, top))
+	bk.commit(mesh, tex_mat("concrete_grey", 2.0, Color(0.8, 0.79, 0.76), 0.9))
 
 
 static func _side_roads(root: Node3D, data: Dictionary, style: Dictionary) -> void:
@@ -791,32 +839,78 @@ static func _landmark(root: Node3D, data: Dictionary, track: TrackPath) -> void:
 	var path := "res://assets/landmarks/%s.glb" % data["id"]
 	if not ResourceLoader.exists(path):
 		return
-	var cents := []
+	var scene := load(path) as PackedScene
+	var probe: Node3D = scene.instantiate()
+	var lm_h := 0.0
+	for gi in probe.find_children("*", "MeshInstance3D", true, false):
+		lm_h = maxf(lm_h, ((gi as MeshInstance3D).transform * (gi as MeshInstance3D).get_aabb()).end.y)
+	probe.free()
+	var blds := []                         # [centre, height]
 	for b in data.get("buildings", []):
 		var poly := _poly(b[1])
 		var c := Vector2.ZERO
 		for q in poly:
 			c += q
-		cents.append(c / poly.size())
+		blds.append([c / poly.size(), float(b[0])])
 	var start := track.position_at(0.0)
 	var fwd := track.tangent_at(0.0)
 	var right := track.right_at(0.0)
-	for ahead: float in [450.0, 600.0, 350.0, 750.0]:
+	var eye := Vector2(start.x, start.z)
+	# Where the start straight ends: the landmark closes the view down that street, like a real skyline.
+	var straight := 60.0
+	while straight < track.length * 0.5:
+		var off := (track.position_at(straight) - start).dot(right)
+		if absf(off) > 12.0:
+			break
+		straight += 10.0
+	var spots := []
+	for ahead: float in [straight + 140.0, straight + 260.0, straight + 400.0, straight + 600.0]:
+		for lat: float in [0.0, 25.0, -25.0, 50.0, -50.0, 80.0, -80.0]:
+			spots.append(start + fwd * ahead + right * lat)
+	for ahead: float in [450.0, 600.0, 350.0, 750.0]:            # the original spots, as a fallback
 		for lat: float in [140.0, -140.0, 200.0, -200.0, 90.0, -90.0]:
-			var p := start + fwd * ahead + right * lat
-			var pr := track.project(p, [-1])
-			if absf(float(pr[1])) < track.half_width + 45.0:
+			spots.append(start + fwd * ahead + right * lat)
+	var chosen := Vector3.INF
+	var fallback := Vector3.INF
+	for p: Vector3 in spots:
+		var pr := track.project(p, [-1])
+		if absf(float(pr[1])) < track.half_width + 45.0:
+			continue
+		var q := Vector2(p.x, p.z)
+		if blds.any(func(bc): return (bc[0] as Vector2).distance_to(q) < 32.0):
+			continue
+		if fallback == Vector3.INF:
+			fallback = p
+		# Visible from the grid camera (about 3 m up): the landmark's top must clear every building near the sight
+		# line by a margin, compared as elevation angles.
+		var dist := eye.distance_to(q)
+		var top := atan2(lm_h - 3.0, dist)
+		var blocked := false
+		for bc in blds:
+			var c: Vector2 = bc[0]
+			var dc := eye.distance_to(c)
+			if dc < 15.0 or dc > dist - 20.0:
 				continue
-			if cents.any(func(c): return (c as Vector2).distance_to(Vector2(p.x, p.z)) < 32.0):
-				continue
-			var lm: Node3D = (load(path) as PackedScene).instantiate()
-			lm.name = "Landmark"
-			root.add_child(lm)
-			lm.global_position = Vector3(p.x, 0.0, p.z)
-			lm.rotation.y = atan2(-fwd.x, -fwd.z)
-			for gi in lm.find_children("*", "GeometryInstance3D", true, false):
-				(gi as GeometryInstance3D).visibility_range_end = 4000.0
-			return
+			if Geometry2D.get_closest_point_to_segment(c, eye, q).distance_to(c) < 14.0 \
+					and atan2(float(bc[1]) - 3.0, dc) > top - deg_to_rad(1.5):
+				blocked = true
+				break
+		if not blocked:
+			chosen = p
+			break
+	if chosen == Vector3.INF:
+		chosen = fallback
+	if chosen == Vector3.INF:
+		return
+	var lm: Node3D = scene.instantiate()
+	lm.name = "Landmark"
+	root.add_child(lm)
+	lm.global_position = Vector3(chosen.x, 0.0, chosen.z)
+	lm.rotation.y = atan2(-fwd.x, -fwd.z)
+	for gi in lm.find_children("*", "GeometryInstance3D", true, false):
+		(gi as GeometryInstance3D).visibility_range_end = 4000.0
+	print("[GRIDLINE] landmark %s at (%.0f, %.0f), %.0f m from the start line, %.0f m tall" % [data["id"], chosen.x, chosen.z,
+		eye.distance_to(Vector2(chosen.x, chosen.z)), lm_h])
 
 
 ## Billboards on the roofs of buildings that face the circuit (every few buildings close to the road).

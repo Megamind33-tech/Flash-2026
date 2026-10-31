@@ -19,7 +19,7 @@ const PATH := "res://assets/props/%s/%s.glb"
 const PAVE_Y := 0.14            # pavement slab height (CityWorld._circuit)
 const PATCH_VIEW := 170.0       # road patches fade out sooner: they are flat and small
 const PROP_VIEW := 320.0
-const PATCH_FLAT := 0.25        # road scans keep a quarter of their relief; the normal map does the rest
+const PATCH_FLAT := 0.35        # road scans keep about a third of their relief; the normal map does the rest
 const ROAD_PATCHES := ["cracks_in_asfalt_road_free", "manhole_cover_on_broken_asphalt_road", "photoscan_manhole_cover_2"]
 
 static var _cache := {}

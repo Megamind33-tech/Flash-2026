@@ -21,6 +21,10 @@ PIECES = {
         "bay_window_a": ("wall_window_centered_large_01", "window_centered_large_01", 700),
         "bay_window_b": ("wall_window_centered_double_01", "window_centered_double_01", 700),
         "bay_window_c": ("wall_window_offset_small_01", "window_offset_small_01", 600),
+        # Low-detail versions for upper storeys (seen from 10 m and more): same bay, 280-420 triangles.
+        "bay_window_a_lo": ("wall_window_centered_large_01", "window_centered_large_01", 300),
+        "bay_window_b_lo": ("wall_window_centered_double_01", "window_centered_double_01", 300),
+        "bay_window_c_lo": ("wall_window_offset_small_01", "window_offset_small_01", 280),
         "bay_blank": ("wall_standard_standard_01", None, 250),
         "bay_shop": ("wall_door_window_small_01", "door_window_small_01", 800),
         "bay_door": ("wall_door_centered_large_01", "door_centered_large_01", 700),
@@ -32,6 +36,9 @@ PIECES = {
         "bay_window_a": ("wall_window_centered_large_01", "window_centered_large_01", 700),
         "bay_window_b": ("wall_window_centered_double_01", "window_centered_double_01", 700),
         "bay_window_c": ("wall_window_centered_medium_01", "window_centered_medium_01", 650),
+        "bay_window_a_lo": ("wall_window_centered_large_01", "window_centered_large_01", 420),   # steel grids need more
+        "bay_window_b_lo": ("wall_window_centered_double_01", "window_centered_double_01", 420),
+        "bay_window_c_lo": ("wall_window_centered_medium_01", "window_centered_medium_01", 400),
         "bay_blank": ("wall_standard_standard_01", None, 250),
         "bay_shop": ("wall_door_window_small_01", "door_window_small_01", 800),
         "bay_door": ("wall_door_recessed_large_01", "door_recessed_large_01", 800),

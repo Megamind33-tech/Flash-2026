@@ -121,7 +121,8 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 	env.ambient_light_energy = {"day": (0.68 if wet_day else 0.85) if overcast else 0.55, "dusk": 0.6, "night": 0.45}[time_of_day]
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
-	env.tonemap_exposure = {"day": 1.0, "dusk": 1.3, "night": 1.3}[time_of_day]
+	# A clear dusk is lifted to keep its glow; a rainy or overcast dusk is already bright with haze (it washed out).
+	env.tonemap_exposure = {"day": 1.0, "dusk": 0.95 if overcast else 1.3, "night": 1.3}[time_of_day]
 	env.adjustment_enabled = true
 	env.adjustment_contrast = 1.12
 	env.adjustment_saturation = 0.92 if overcast else (1.18 if time_of_day == "dusk" else 1.08)
@@ -227,10 +228,12 @@ static func _ultra(env: Environment) -> void:
 	env.ssr_depth_tolerance = 0.3
 	if time_of_day == "dusk" or kind in ["fog", "dust", "rain", "storm"]:
 		env.volumetric_fog_enabled = true
-		env.volumetric_fog_density = 0.006 if kind in ["clear", "cloudy"] else 0.018
+		# Dusk needs enough density for visible sun shafts between buildings (0.006 was indistinguishable from Mobile).
+		env.volumetric_fog_density = 0.014 if kind in ["clear", "cloudy"] else 0.018
 		env.volumetric_fog_anisotropy = 0.65
 		env.volumetric_fog_length = 120.0
 		env.volumetric_fog_albedo = env.fog_light_color
+	print("[GRIDLINE] ultra effects: ssao=%s ssr=%s volumetric_fog=%s" % [env.ssao_enabled, env.ssr_enabled, env.volumetric_fog_enabled])
 
 
 ## Rain streaks / dust drifting around the camera (world-space particles, so they stay put as you drive).
