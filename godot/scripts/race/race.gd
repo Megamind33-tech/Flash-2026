@@ -116,8 +116,10 @@ func _ready() -> void:
 				var cam := Camera3D.new()
 				add_child(cam)
 				var c := node.centre()
-				var back := 10.0 + node.size.x * 1.1
-				cam.global_position = c + node.facing() * back + track.right_at(track.project(c, [-1])[0]).cross(Vector3.UP) * 0.0 + Vector3.UP * 1.5 + (node.global_basis.x * back * 0.45)
+				# Driver's-eye view: on the road, a little before the ad, as a racer would see it.
+				var dd := float(track.project(c, [-1])[0])
+				var lead := 18.0 if node.kind != "gantry" else 45.0
+				cam.global_position = track.position_at(track.wrapd(dd - lead)) + Vector3.UP * 1.6
 				cam.look_at(c, Vector3.UP)
 				cam.make_current()
 				camera.set_physics_process(false)
