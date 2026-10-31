@@ -8,6 +8,7 @@ cd "$(dirname "$0")"
 G="${GODOT:?set GODOT to the Godot 4.7.2 editor binary}"
 mkdir -p ../builds/android ../docs/godot
 echo "== import";      timeout 600 "$G" --headless --path . --import > /dev/null 2>&1
+echo "== budgets";      python3 -I ../tools/assets/budget_check.py | tail -1 || { echo "BUDGET CHECK FAILED"; [ "${STRICT_BUDGETS:-0}" = 1 ] && exit 1; }
 echo "== core tests";  "$G" --headless --path . res://tests/core_tests.tscn 2>&1 | grep -E "core tests|FAIL"
 echo "== stability";   timeout 600 "$G" --headless --path . --fixed-fps 60 res://tests/stability_test.tscn 2>&1 | grep -E "STABILITY"
 echo "== props";       timeout 300 "$G" --headless --path . -s res://tests/props_test.gd 2>&1 | grep -E "^PROPS|FAIL"

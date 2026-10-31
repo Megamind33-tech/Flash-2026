@@ -43,3 +43,4 @@ artifacts/
 /builds/
 *.idsig
 /tools/cities/osm_cache/
+/tools/assets/originals/
