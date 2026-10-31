@@ -51,7 +51,8 @@ func _ready() -> void:
 	# Cars: white studio paint so the card's tier colour carries the accent.
 	vp.size = CAR_SIZE
 	cam.fov = 30.0
-	for id in CarBuilder.car_ids():
+	var only_portraits := OS.get_cmdline_user_args().has("--portraits-only")
+	for id in ([] if only_portraits else CarBuilder.car_ids()):
 		var car := CarBuilder.build("player_white", false, id)
 		car.freeze = true
 		world.add_child(car)
@@ -70,7 +71,11 @@ func _ready() -> void:
 	# Driver portraits from the idle pose of each avatar (head and shoulders).
 	vp.size = PORTRAIT_SIZE
 	cam.fov = 24.0
-	for avatar in People.AVATARS:
+	var avatars: Array = People.AVATARS
+	var src_dir := DirAccess.open("res://assets/people/portrait_src")
+	if src_dir:   # every exported bust (tools/people/build_people.py PORTRAIT=1)
+		avatars = Array(src_dir.get_files()).filter(func(f): return f.ends_with("_idle.glb")).map(func(f): return f.trim_suffix("_idle.glb"))
+	for avatar in avatars:
 		# Full-detail bust from tools/people/build_people.py (PORTRAIT=1) when present: the shipped 2k-triangle
 		# crowd meshes lose the lips. Falls back to the crowd mesh.
 		var m: Mesh = null
