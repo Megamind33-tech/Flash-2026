@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://w6npmbet2jat"
-path="res://.godot/imported/jacaranda_tree_a.png-7be83c7dd446c832bffbac4209cc8131.ctex"
+path.s3tc="res://.godot/imported/jacaranda_tree_a.png-7be83c7dd446c832bffbac4209cc8131.s3tc.ctex"
+path.etc2="res://.godot/imported/jacaranda_tree_a.png-7be83c7dd446c832bffbac4209cc8131.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/world/trees/jacaranda_tree_a.png"
-dest_files=["res://.godot/imported/jacaranda_tree_a.png-7be83c7dd446c832bffbac4209cc8131.ctex"]
+dest_files=["res://.godot/imported/jacaranda_tree_a.png-7be83c7dd446c832bffbac4209cc8131.s3tc.ctex", "res://.godot/imported/jacaranda_tree_a.png-7be83c7dd446c832bffbac4209cc8131.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
