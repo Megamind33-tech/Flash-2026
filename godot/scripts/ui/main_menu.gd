@@ -118,7 +118,19 @@ func _build_showroom() -> void:
 	Weather.configure("clear", "dusk", 1.0, 1)
 	Weather.build_environment(world, style)
 	show_track = CityWorld.track_from(data)
-	CityWorld.build(world, data, style, show_track)
+	if OS.get_cmdline_user_args().has("--studio"):   # fast screenshots of the UI: skip building the city
+		var floor := MeshInstance3D.new()
+		var pm := PlaneMesh.new()
+		pm.size = Vector2(400, 400)
+		floor.mesh = pm
+		var fm := StandardMaterial3D.new()
+		fm.albedo_color = Color(0.09, 0.09, 0.1)
+		fm.roughness = 0.35
+		floor.material_override = fm
+		world.add_child(floor)
+		floor.global_position = show_track.position_at(140.0) + Vector3.UP * 0.01
+	else:
+		CityWorld.build(world, data, style, show_track)
 	showroom = world
 	_place_showroom_car()
 	cam = Camera3D.new()
