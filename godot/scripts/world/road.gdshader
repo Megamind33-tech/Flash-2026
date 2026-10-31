@@ -38,9 +38,9 @@ void fragment() {
 	rough = mix(rough, rough * 0.8, mask.r);
 	// rain: darken everything, water fills the real low spots
 	float low = 1.0 - texture(height_tex, m / 23.0).r;
-	float puddle = wet * smoothstep(0.58, 0.7, low) * (1.0 - mask.r * 0.6);
-	vec3 col = base * mix(1.0, 0.58, wet);
-	rough = mix(rough, rough * 0.45, wet);
+	float puddle = wet * smoothstep(0.5, 0.6, low) * (1.0 - mask.r * 0.5);
+	vec3 col = base * mix(1.0, 0.45, wet);
+	rough = mix(rough, rough * 0.3, wet);
 	rough = mix(rough, 0.02, puddle);
 	col = mix(col, col * 0.45, puddle);
 	ALBEDO = col;
