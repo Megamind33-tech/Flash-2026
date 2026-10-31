@@ -182,6 +182,22 @@ func _dress_cars() -> void:
 			lamp.light_color = Color(1.0, 0.95, 0.85)
 			lamp.shadow_enabled = false
 			player.car.add_child(lamp)
+		for r in racers:   # headlight beam pool on the road ahead of every car
+			var beam := MeshInstance3D.new()
+			var q := QuadMesh.new()
+			q.size = Vector2(7, 22)
+			q.orientation = PlaneMesh.FACE_Y
+			beam.mesh = q
+			beam.position = Vector3(0, 0.04, 12.5)
+			var bm := StandardMaterial3D.new()
+			bm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			bm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+			bm.albedo_texture = Weather.soft_glow()
+			bm.albedo_color = Color(0.95, 0.92, 0.82) * (1.0 if Weather.time_of_day == "night" else 0.4)
+			bm.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+			beam.material_override = bm
+			beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			r.car.add_child(beam)
 
 
 func _build_environment() -> void:

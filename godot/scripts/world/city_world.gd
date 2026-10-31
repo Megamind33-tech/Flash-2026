@@ -534,6 +534,22 @@ static func _props(root: Node3D, data: Dictionary, style: Dictionary, track: Tra
 		hm.emission = Color(1.0, 0.82, 0.55)
 		hm.emission_energy_multiplier = 4.0 if night else 1.5
 	_multimesh(root, head, hm, heads, "LampHeads", false)
+	if night or Weather.time_of_day == "dusk":
+		# Light pools under the lamps: additive soft decals (one draw call, no dynamic lights on phones).
+		var pools := []
+		for h in heads:
+			var o: Vector3 = (h as Transform3D).origin
+			pools.append(Transform3D(Basis(), Vector3(o.x, 0.03, o.z)))
+		var pool := QuadMesh.new()
+		pool.size = Vector2(17, 17)
+		pool.orientation = PlaneMesh.FACE_Y
+		var pm := StandardMaterial3D.new()
+		pm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		pm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		pm.albedo_texture = Weather.soft_glow()
+		pm.albedo_color = Color(1.0, 0.74, 0.42) * (1.0 if night else 0.35)
+		pm.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+		_multimesh(root, pool, pm, pools, "LampPools", false)
 	# trees: OSM-mapped trees, park planting, and street trees on the pavement
 	var trees := []
 	for t in data.get("trees", []):

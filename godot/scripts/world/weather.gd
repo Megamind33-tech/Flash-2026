@@ -27,6 +27,25 @@ static var wind_accel := 0.0
 static var wind_dir := Vector3(1, 0, 0)
 static var _t := 0.0
 static var _soft: Texture2D
+static var _glow: Texture2D
+
+
+## Soft round glow for additive light pools: colour fades to black (additive blending ignores alpha).
+static func soft_glow() -> Texture2D:
+	if _glow == null:
+		var g := Gradient.new()
+		g.set_color(0, Color(1, 1, 1, 1))
+		g.set_color(1, Color(0, 0, 0, 1))
+		g.add_point(0.45, Color(0.45, 0.45, 0.45, 1))
+		var t := GradientTexture2D.new()
+		t.gradient = g
+		t.fill = GradientTexture2D.FILL_RADIAL
+		t.fill_from = Vector2(0.5, 0.5)
+		t.fill_to = Vector2(1.0, 0.5)
+		t.width = 64
+		t.height = 64
+		_glow = t
+	return _glow
 
 
 ## Soft round puff for spray and dust (procedural radial gradient, no asset needed).
@@ -90,16 +109,16 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 	var sky_name: String = "night" if time_of_day == "night" else ("sunset" if time_of_day == "dusk" and kind in ["clear", "cloudy", "dust"] else str(p["sky"]))
 	var pano := PanoramaSkyMaterial.new()
 	pano.panorama = load("res://assets/city/sky_%s.hdr" % sky_name)
-	pano.energy_multiplier = {"night": 0.5, "sunset": 1.0}.get(sky_name, 1.1)
+	pano.energy_multiplier = {"night": 0.12, "sunset": 1.0}.get(sky_name, 1.1)
 	sky.sky_material = pano
 	sky.radiance_size = Sky.RADIANCE_SIZE_64 if Game.quality() == 0 else Sky.RADIANCE_SIZE_128
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.55 if time_of_day == "night" else 0.9
+	env.ambient_light_energy = 0.5 if time_of_day == "night" else 0.9
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
-	env.tonemap_exposure = {"day": 1.0, "dusk": 1.1, "night": 1.45}[time_of_day]
+	env.tonemap_exposure = {"day": 1.0, "dusk": 1.1, "night": 1.2}[time_of_day]
 	env.adjustment_enabled = true
 	env.adjustment_contrast = 1.08
 	env.adjustment_saturation = 0.95 if kind in ["rain", "storm", "fog"] else 1.06
@@ -136,7 +155,7 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 		"night":
 			sun.rotation_degrees = Vector3(-55, 40, 0)
 			sun.light_color = Color(0.62, 0.7, 0.95)
-			sun.light_energy = 0.12
+			sun.light_energy = 0.08
 		_:
 			sun.rotation_degrees = Vector3(-48, -32, 0)
 			sun.light_color = Color(1.0, 0.95, 0.88) if kind != "dust" else Color(1.0, 0.82, 0.6)
