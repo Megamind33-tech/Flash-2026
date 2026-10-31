@@ -242,3 +242,13 @@ Each card is self-contained: inputs, exit check, and file boundaries.
   error. The owner needs to check Settings → Billing → Actions.
 - **G11 blocked:** the Freesound API answers "Authentication credentials were not provided" even though the
   environment lists freesound.org. An API token has to be added in the environment's network secrets.
+- **G6 code done:** `water.gdshader` gives OSM rivers and lakes analytic Gerstner normals, Fresnel sky reflection, and
+  roughness driven by wind and rain. Evidence render pending (London at dusk in rain).
+- **G7 landmarks done:** one per city, built from primitives by `tools/buildings/build_landmarks.py` (project-owned,
+  144–2,448 triangles). Each is placed about 470 m down the start straight, clear of OSM buildings and the circuit.
+- **G8:** already built by the previous session (Ultra = Forward+ with SSR, SSAO and volumetric fog). A same-frame
+  comparison of the two renderers on desktop lavapipe is pending. The device comparison is still G13.
+- **G9 part 1 done:** up to 14 parked cars and 6 moving cars on real OSM side streets, kept clear of the circuit, plus
+  waving flags. Pedestrians and spectators are blocked: the RenderPeople CC BY scans on Sketchfab now return 401, because
+  the Sketchfab credential is not applied in this session.
+- **Renders:** they now run from a frozen git worktree (`/tmp/claude-0/render`), so edits during a batch cannot break it.
