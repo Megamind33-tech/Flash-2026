@@ -148,7 +148,9 @@ func track_key() -> String:
 
 
 func owns_car(id: String) -> bool:
-	return id == CarBuilder.DEFAULT_CAR or id in save["career"].get("cars", [])
+	if id == CarBuilder.DEFAULT_CAR:
+		return not bool(save["career"].get("soldStarter", false))
+	return id in save["career"].get("cars", [])
 
 
 func buy_car(id: String) -> bool:
@@ -163,6 +165,76 @@ func buy_car(id: String) -> bool:
 	return true
 
 
+## Sell an owned car for its resale value (CarCatalogue.resale). The starter car can be sold too once another
+## car is owned; the car in use falls back to another owned car.
+func sell_car(id: String) -> int:
+	var owned: Array = owned_cars()
+	if not owns_car(id) or owned.size() <= 1:
+		return 0
+	var value: int = CarCatalogue.resale(id)
+	if id == CarBuilder.DEFAULT_CAR:
+		save["career"]["soldStarter"] = true
+	else:
+		(save["career"]["cars"] as Array).erase(id)
+	_post(save["career"], value, "Car", "Sold " + str(CarBuilder.info(id)["name"]))
+	if player_car() == id:
+		owned.erase(id)
+		set_player_car(owned[0])
+	persist()
+	return value
+
+
+func owned_cars() -> Array:
+	return CarBuilder.car_ids().filter(func(c): return owns_car(c))
+
+
+# ------------------------------------------------------------------ levels (XP) and test unlocks
+
+## Test builds open every mode regardless of level (owner request: "for testing these should be open").
+const TEST_UNLOCK_ALL := true
+const LEVEL_GATES := {"team_owner": 5, "clubs": 3, "own_club": 10}
+
+
+func xp() -> int:
+	return int(save["career"].get("xp", 0))
+
+
+func add_xp(amount: int) -> void:
+	save["career"]["xp"] = xp() + amount
+
+
+## Level 1.. from XP: each level needs 250 XP more than the last (250, 750, 1500, ...).
+func level() -> int:
+	var lv := 1
+	var need := 250
+	var x := xp()
+	while x >= need:
+		x -= need
+		lv += 1
+		need += 250
+	return lv
+
+
+func level_progress() -> float:
+	var lv := 1
+	var need := 250
+	var x := xp()
+	while x >= need:
+		x -= need
+		lv += 1
+		need += 250
+	return float(x) / float(need)
+
+
+func unlocked(feature: String) -> bool:
+	return TEST_UNLOCK_ALL or level() >= int(LEVEL_GATES.get(feature, 1))
+
+
+func grant_test_funds(amount := 100000) -> void:
+	_post(save["career"], amount, "Test", "Test funds")
+	persist()
+
+
 func progress() -> Dictionary:
 	if not save.has("progress"):
 		save["progress"] = {"season": {}, "done": [], "campaigns": {}, "daily": "", "medals": {}}
@@ -175,6 +247,12 @@ func player_car() -> String:
 		return forced
 	var id := str(save["career"].get("car", CarBuilder.DEFAULT_CAR))
 	return id if CarBuilder.ROSTER.has(id) else CarBuilder.DEFAULT_CAR
+
+
+func set_player_car(id: String) -> void:
+	if owns_car(id):
+		save["career"]["car"] = id
+		persist()
 
 
 func settings() -> Dictionary:
@@ -332,6 +410,8 @@ func apply_result(ev: Dictionary, position: int, field: int, best_lap_ms: int, f
 		_post(career, reward["fastestBonus"], "Prize", "Fastest lap bonus at " + ev["name"])
 	career["reputation"] = maxi(int(economy["minimumReputation"]), int(career["reputation"]) + reward["rep"])
 	career["championshipPoints"] = int(career["championshipPoints"]) + reward["points"]
+	reward["xp"] = 40 + maxi(0, field - position) * 25 + (30 if fastest_lap else 0)
+	add_xp(reward["xp"])
 	if position == 1:
 		career["wins"] = int(career["wins"]) + 1
 	if position <= 3:

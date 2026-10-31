@@ -7,8 +7,8 @@ class_name People
 extends RefCounted
 
 const AVATARS := ["Male_Adult_01", "Male_Adult_05", "Male_Adult_12", "Female_Adult_02", "Female_Adult_07",
-	"Female_Adult_11", "Sports_Male_02", "Sports_Female_01"]
-const DRIVERS := ["Sports_Male_02", "Sports_Female_01", "Male_Adult_05", "Female_Adult_07", "Male_Adult_12"]
+	"Female_Adult_11", "Sports_Male_02"]   # Sports_Female_01 (swimwear) dropped: wrong for a race crowd and drivers
+const DRIVERS := ["Sports_Male_02", "Female_Adult_11", "Male_Adult_05", "Female_Adult_07", "Male_Adult_12"]
 
 static var _meshes := {}
 static var _animated := {}       # avatar_pose -> mesh copy with spectator.gdshader materials

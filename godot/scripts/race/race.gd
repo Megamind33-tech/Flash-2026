@@ -751,6 +751,8 @@ func _complete() -> void:
 		if skill_bonus > 0:
 			Game._post(Game.save["career"], skill_bonus, "skills", "Skill chains")
 			reward["skills"] = skill_bonus
+		if event.has("club_comp"):   # live career: points for the player's club
+			reward["club_points"] = Clubs.record_result(str(event["club_comp"]), pos, racers.size())
 		var pr := Game.progress()
 		if not (pr["done"] as Array).has(event["id"]):
 			(pr["done"] as Array).append(event["id"])

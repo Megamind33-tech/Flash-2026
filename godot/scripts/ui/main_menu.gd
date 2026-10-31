@@ -21,9 +21,11 @@ var hub: Control
 var hub_next: Label
 var hub_car: Label
 const ORANGE := Color(1.0, 0.42, 0.0)
-const HUB_CARDS := [["career", "CAREER", "Four tiers · 11 venues"], ["campaigns", "CAMPAIGNS", "Story chapters"],
+const HUB_CARDS := [["modes", "CAREER", "Driver · Owner · Clubs"], ["campaigns", "CAMPAIGNS", "Story chapters"],
 	["competitions", "COMPETITIONS", "Daily · City Cups"], ["pvp", "PVP RIVALS", "Ghost duels"],
-	["quick", "QUICK RACE", "11 venues · any weather"], ["garage", "GARAGE", "Buy · choose your car"]]
+	["quick", "QUICK RACE", "11 venues · any weather"], ["garage", "DEALERSHIP", "Buy · sell · garage"],
+	["drivers", "DRIVERS", "Cards · profiles"]]
+const CARD_ART := {"modes": "res://assets/ui/cards/career.jpg", "drivers": "res://assets/ui/portraits/Male_Adult_05.png"}
 var sel_tier := 0
 var sel_campaign: Dictionary = {}
 var quick := {"city": "lusaka", "weather": "clear", "time": "day", "format": "race"}
@@ -32,8 +34,11 @@ var quick := {"city": "lusaka", "weather": "clear", "time": "day", "format": "ra
 func _place_showroom_car() -> void:
 	if viewport_car:
 		viewport_car.queue_free()
+		viewport_car = null
+	if not is_inside_tree() or showroom == null:
+		return
 	var args := OS.get_cmdline_user_args()   # screenshots: --show-car <id> [--livery <livery>]
-	var car_id: String = args[args.find("--show-car") + 1] if args.has("--show-car") else Game.player_car()
+	var car_id: String = args[args.find("--show-car") + 1] if args.has("--show-car") else (display_car if display_car != "" else Game.player_car())
 	var livery: String = args[args.find("--livery") + 1] if args.has("--livery") else "player_white"
 	viewport_car = CarBuilder.build(livery, false, car_id)
 	# Not frozen: let the car settle on its real suspension (input disabled = parking brake on).
@@ -63,7 +68,7 @@ func _ready() -> void:
 	_build_ui()
 	_build_hub()
 	_show("main")
-	if DisplayServer.get_name() != "headless":   # menu music (CC0, assets/audio/CREDITS.md)
+	if DisplayServer.get_name() != "headless":   # menu music ("Heart in the Drive", owner-supplied; assets/audio/CREDITS.md)
 		var mp := AudioStreamPlayer.new()
 		mp.name = "Music"
 		var ms: AudioStreamOggVorbis = load("res://assets/audio/music_menu.ogg")
@@ -77,8 +82,31 @@ func _ready() -> void:
 		_click.volume_db = -10.0
 		add_child(_click)
 	var args := OS.get_cmdline_user_args()   # screenshots/tests: open a page directly (e.g. --page garage)
+	if args.has("--demo-career"):   # screenshots: a populated team, a club and funds (test save only)
+		Game.grant_test_funds(250000)
+		Game.add_xp(2600)
+		if not TeamOwner.founded():
+			TeamOwner.found("Kafue Motorsport", "#B3261E")
+			var sc := TeamOwner.scouts()
+			TeamOwner.sign(sc[0])
+			TeamOwner.sign(sc[2])
+			TeamOwner.buy_car("solano_concept")
+			TeamOwner.buy_car("arden_gt3")
+			var ds: Array = TeamOwner.state()["drivers"]
+			TeamOwner.assign(ds[0]["id"], TeamOwner.state()["fleet"][0]["uid"])
+			TeamOwner.assign(ds[1]["id"], TeamOwner.state()["fleet"][1]["uid"])
+			TeamOwner.accept(TeamOwner.offers()[0])
+			TeamOwner.run(TeamOwner.COMPETITIONS[0], [ds[0]["id"], ds[1]["id"]])
+		if Clubs.my_club().is_empty():
+			Clubs.request("copperbelt")
+			Clubs.record_result("club_local", 2, 8)
 	if args.has("--page"):
 		_go(args[args.find("--page") + 1])
+		if overlay is CareerModes and args.has("--tab"):
+			(overlay as CareerModes).tab = args[args.find("--tab") + 1].replace("_", " ")
+			(overlay as CareerModes)._render()
+		if overlay is DriverCards and args.has("--profile"):
+			(overlay as DriverCards)._profile(DriverCards.all_drivers()[int(args[args.find("--profile") + 1])])
 
 
 func _build_showroom() -> void:
@@ -101,6 +129,8 @@ func _build_showroom() -> void:
 
 func _process(delta: float) -> void:
 	orbit += delta * 6.0
+	if viewport_car == null or not is_instance_valid(viewport_car):
+		return
 	var focus := viewport_car.global_position + Vector3.UP * 0.7
 	var rot := Basis(Vector3.UP, deg_to_rad(orbit + 200.0))
 	cam.global_position = focus + rot * Vector3(0, 1.1, -6.4)
@@ -239,7 +269,7 @@ func _build_hub() -> void:
 		var card := _hub_card(c[0], c[1], c[2])
 		card.position = Vector2(x, 1080 - 64 - 360)
 		hub.add_child(card)
-		x += 300.0
+		x += 258.0
 	for corner in [["PROFILE", "profile", 1500.0], ["SETTINGS", "settings", 1700.0]]:
 		var b := Button.new()
 		b.text = corner[0]
@@ -255,17 +285,19 @@ func _build_hub() -> void:
 
 func _hub_card(page: String, title: String, sub: String) -> Control:
 	var card := Button.new()
-	card.custom_minimum_size = Vector2(280, 360)
-	card.size = Vector2(280, 360)
+	card.custom_minimum_size = Vector2(246, 360)
+	card.size = Vector2(246, 360)
 	card.clip_contents = true
 	for st in ["normal", "focus"]:
 		card.add_theme_stylebox_override(st, UiStyle.box(Color(0.06, 0.065, 0.075, 0.82), 1, Color(1, 1, 1, 0.12), 14))
 	card.add_theme_stylebox_override("hover", UiStyle.box(Color(0.1, 0.1, 0.11, 0.9), 3, ORANGE, 14))
 	card.add_theme_stylebox_override("pressed", UiStyle.box(Color(0.12, 0.08, 0.04, 0.95), 3, ORANGE, 14))
 	var img := TextureRect.new()
-	img.texture = load("res://assets/ui/cards/%s.jpg" % page)
+	var art: String = CARD_ART.get(page, "res://assets/ui/cards/%s.jpg" % page)
+	if ResourceLoader.exists(art):
+		img.texture = load(art)
 	img.position = Vector2(1, 1)
-	img.size = Vector2(278, 220)
+	img.size = Vector2(244, 220)
 	img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	img.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -276,11 +308,11 @@ func _hub_card(page: String, title: String, sub: String) -> Control:
 	bar.size = Vector2(36, 5)
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_child(bar)
-	var t := UiStyle.label(title, UiStyle.display(), 46, Color.WHITE)
+	var t := UiStyle.label(title, UiStyle.display(), 42, Color.WHITE)
 	t.position = Vector2(20, 248)
 	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_child(t)
-	var st2 := UiStyle.label(sub, UiStyle.cond(), 24, UiStyle.MUTED)
+	var st2 := UiStyle.label(sub, UiStyle.cond(), 22, UiStyle.MUTED)
 	st2.position = Vector2(21, 304)
 	st2.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_child(st2)
@@ -328,8 +360,57 @@ func _info_row(text: String, value: String) -> void:
 
 
 func _go(p: String) -> void:
+	if p in ["garage", "dealership", "sell"]:
+		_open_dealership({"garage": "garage", "dealership": "showroom", "sell": "sell"}[p])
+		return
+	if p in ["drivers", "team_owner", "clubs", "modes"] and has_method("_open_" + p):
+		call("_open_" + p)
+		return
 	stack.append(page)
 	_show(p)
+
+
+var display_car := ""
+var overlay: Control
+
+
+## Full-screen sub-screens (dealership, driver cards, career modes) replace the list menu and the hub.
+func _overlay_opened(o: Control) -> void:
+	overlay = o
+	hub.visible = false
+	nav.visible = false
+	o.tree_exited.connect(func():
+		overlay = null
+		display_car = ""
+		_place_showroom_car()
+		_show(page))
+
+
+func _open_modes() -> void:
+	_overlay_opened(CareerModes.open(self, "hub"))
+
+
+func _open_team_owner() -> void:
+	_overlay_opened(CareerModes.open(self, "team"))
+
+
+func _open_clubs() -> void:
+	_overlay_opened(CareerModes.open(self, "clubs"))
+
+
+func _open_drivers() -> void:
+	_overlay_opened(DriverCards.open(self))
+
+
+func _open_dealership(start_tab: String) -> void:
+	_overlay_opened(Dealership.open(self, start_tab))
+
+
+func show_car(id: String) -> void:
+	if id == display_car:
+		return
+	display_car = id
+	_place_showroom_car()
 
 
 func _back() -> void:
@@ -359,12 +440,14 @@ func _show(p: String) -> void:
 			var rep := int(career["reputation"])
 			var ti := Career.unlocked_tier(rep)
 			subtitle.text = "   THE RACING LEAGUE"
-			_item("Career", Career.tier(ti)["name"].to_upper(), func(): _go("career"), true)
+			_item("Career", "DRIVER · OWNER · CLUBS", func(): _go("modes"), true)
+			_item("Driver Career", Career.tier(ti)["name"].to_upper(), func(): _go("career"))
 			_item("Campaigns", "%d STORIES" % Career.CAMPAIGNS.size(), func(): _go("campaigns"))
 			_item("Competitions", "DAILY · CUPS", func(): _go("competitions"))
 			_item("PvP Rivals", "GHOST DUELS", func(): _go("pvp"))
 			_item("Quick Race", "", func(): _go("quick"))
-			_item("Garage", CarBuilder.info(Game.player_car())["name"].to_upper(), func(): _go("garage"))
+			_item("Dealership", CarBuilder.info(Game.player_car())["name"].to_upper(), func(): _go("garage"))
+			_item("Drivers", "CARDS", func(): _go("drivers"))
 			_item("Profile", "", func(): _go("profile"))
 			_item("Settings", "", func(): _go("settings"))
 			desc.text = "7 real street circuits from OpenStreetMap · live weather\nReputation %d · Rank %d" % [rep, Game.rank()]
@@ -487,6 +570,10 @@ func _show(p: String) -> void:
 			desc.text = "%s · %s · %s drive · %d kg. Tap a car to take it to the grid." % [cur["name"], cur["class"], "All-wheel" if cur["awd"] else "Rear-wheel", int(cur["mass"])]
 		"profile":
 			subtitle.text = "   PROFILE"
+			_info_row("Level", "%d  ·  %s XP" % [Game.level(), RaceHud._thousands(Game.xp())])
+			if Game.TEST_UNLOCK_ALL:
+				_item("Add $100,000 test funds", "TEST BUILD", func(): Game.grant_test_funds(); _show("profile"))
+				_item("Add 1,000 XP", "TEST BUILD", func(): Game.add_xp(1000); Game.persist(); _show("profile"))
 			_info_row("Races", str(career["racesEntered"]))
 			_info_row("Wins / Podiums", "%d / %d" % [career["wins"], career["podiums"]])
 			_info_row("Points", str(career["championshipPoints"]))

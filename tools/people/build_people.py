@@ -16,10 +16,18 @@ args = sys.argv[sys.argv.index("--") + 1:]
 RB = args[0]
 ONLY = set(args[1:])
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "godot", "assets", "people")
-TEX = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_tex")   # intermediate, git-ignored
+TEX = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_tex_portrait" if os.environ.get("PORTRAIT") == "1" else "_tex")   # intermediate, git-ignored
 ANIM = os.path.join(RB, "Assets", "Animations", "all_animations_max_motextr_static")
 POSES = {"cheer": ("cheer_01", 0.12), "clap": ("claphands_01", 0.5), "idle": ("idle_breathe_01", 0.2), "seated": ("sit_chair_breathe_01", 0.2)}
 BUDGET = 2000
+# PORTRAIT=1: one idle pose per avatar at full detail (lips and eyes intact) with 1024 px textures, written to
+# godot/assets/people/portrait_src/ for tools/render_cards.gd only (not shipped; delete after rendering).
+PORTRAIT = os.environ.get("PORTRAIT") == "1"
+if PORTRAIT:
+    POSES = {"idle": POSES["idle"]}
+    BUDGET = 60000
+    OUT = os.path.join(OUT, "portrait_src")
+TEX_SIZE = 1024 if PORTRAIT else 512
 
 
 def avatars():
@@ -42,7 +50,7 @@ def small_textures(name, folder):
         key = "body" if "body_color" in b else "head" if "head_color" in b else "opacity" if "opacity_color" in b else None
         if key:
             im = Image.open(t)
-            im = im.convert("RGBA" if key == "opacity" else "RGB").resize((512, 512))
+            im = im.convert("RGBA" if key == "opacity" else "RGB").resize((TEX_SIZE, TEX_SIZE))
             dst = os.path.join(TEX, f"{name}_{key}.{'png' if key == 'opacity' else 'jpg'}")
             im.save(dst, quality=88) if key != "opacity" else im.save(dst)
             res[key] = dst
