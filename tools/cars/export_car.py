@@ -35,6 +35,9 @@ CARS = {
                            width_scale=0.88),   # the author's body is ~2.4 m wide; bring it to a real ~2.1 m
     "solano_concept": dict(length=4.50, forward="-x", tyre=r"^tire1",
                            exclude=r"^circle\.015$|^plane", mat={"rim mat": "rim", "rims": "chrome", "carpainrt": "tail"}),
+    # Spectral GT RS (CC0 1.0, JaronKBragg7337, procedurally generated, no brand). Front is +X in its Blender scene.
+    "spectral_gt_rs": dict(length=4.45, forward="+x", tyre=r"_Tire(_Block_\d)?$",
+                           exclude=r"^(Backdrop|Platform|Platform_Inlay|Studio_Floor)$", mat={}, wheel_scale=0.74),
     "elektra_egt": dict(length=4.85, forward="+y", tyre_mat=r"rubber tire",
                         exclude=r"^plane\.001$|show lights|^vert\.005$", mat={"porsche white.005": "rim", "pbr - metal": "rim"}),
 }
@@ -70,6 +73,20 @@ BODY_BUDGET, WHEEL_BUDGET, OBJ_CAP = 70000, 1500, 20000
 args = sys.argv[sys.argv.index("--") + 1:]
 car_id, out_dir = args[0], args[1]
 cfg = CARS[car_id]
+# Optional: scale each complete wheel assembly (tyre, tread blocks, rim, disc, calipers) about its hub, so the
+# axle stays where the author put it and the tyre matches a real road-car size. Tread blocks have their own
+# origins, so per-object scaling would scatter them.
+if "wheel_scale" in cfg:
+    _f = cfg["wheel_scale"]
+    _wheel_parts = re.compile(r"^(Front|Rear)_(Left|Right)_(Tire|Rim|Brake_Disc|Brake_Hat|Brake_Caliper)")
+    for _o in list(bpy.data.objects):
+        _m = _wheel_parts.match(_o.name)
+        if not _m or _o.type != "MESH" or _o.parent is not None:
+            continue
+        _hub_name = f"{_m.group(1)}_{_m.group(2)}_Tire"
+        _hub = bpy.data.objects[_hub_name].matrix_world.translation if _hub_name in bpy.data.objects else _o.location
+        _o.location = _hub + (_o.location - _hub) * _f
+        _o.scale = _o.scale * _f
 _canon_mats = {}
 
 
@@ -375,8 +392,14 @@ def make(name, meshes, budget):
     while o.data.uv_layers:
         o.data.uv_layers.remove(o.data.uv_layers[0])
     bpy.ops.object.shade_smooth()
-    o.data.use_auto_smooth = True
-    o.data.auto_smooth_angle = math.radians(40)
+    if hasattr(o.data, "use_auto_smooth"):          # Blender < 4.1
+        o.data.use_auto_smooth = True
+        o.data.auto_smooth_angle = math.radians(40)
+    else:                                           # Blender >= 4.1 (auto smooth removed in 5.x)
+        bpy.ops.object.select_all(action="DESELECT")
+        o.select_set(True)
+        bpy.context.view_layer.objects.active = o
+        bpy.ops.object.shade_smooth_by_angle(angle=math.radians(40))
     return o
 
 
