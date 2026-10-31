@@ -25,7 +25,7 @@ func _ready() -> void:
 		ts.loop = true
 		tone.stream = ts
 		tone.volume_db = -26.0
-		tone.bus = "SFX"
+		tone.bus = "Ambience"
 		add_child(tone)
 		tone.play()
 		var hum := AudioStreamPlayer3D.new()   # a compressor / machine running in the workshop
@@ -34,7 +34,7 @@ func _ready() -> void:
 		hum.stream = hs
 		hum.volume_db = -18.0
 		hum.unit_size = 6.0
-		hum.bus = "SFX"
+		hum.bus = "Ambience"
 		hum.position = Vector3(-30.0, 1.0, 22.0)
 		add_child(hum)
 		hum.play()

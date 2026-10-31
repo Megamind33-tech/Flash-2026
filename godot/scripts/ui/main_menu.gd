@@ -136,8 +136,15 @@ func _evidence_flags() -> void:
 				(c as CanvasItem).visible = false
 			elif c is CanvasLayer:
 				(c as CanvasLayer).visible = false
-	if args.has("--open-options"):   # screenshots: the Options screen over the menu
+	if args.has("--open-options"):   # screenshots: the Settings screen over the menu
 		_open_options()
+	var os_i := args.find("--open-settings")   # screenshots: --open-settings <AUDIO|DISPLAY|GRAPHICS|CONTROLS|ACCESSIBILITY>
+	if os_i >= 0 and os_i + 1 < args.size():
+		_open_settings()
+		for c in get_children():
+			if c is SettingsScreen:
+				(c as SettingsScreen).tab = args[os_i + 1]
+				(c as SettingsScreen)._render.call_deferred()
 	var ca := args.find("--cam-at")   # evidence: a free camera, --cam-at x,y,z --look x,y,z [--fov n]
 	if ca >= 0 and ca + 1 < args.size():
 		var p := args[ca + 1].split_floats(",")
@@ -206,7 +213,7 @@ func _process(delta: float) -> void:
 			off = rad_to_deg(atan((2.0 * frac - 1.0) * tan(hfov * 0.5)))
 			studio.dist_scale = clampf(0.42 / (hub_band.size.x / vw.x), 1.0, 1.45)
 		if version_label:
-			version_label.visible = not home
+			version_label.visible = not home and overlay == null
 		studio.frame_offset = -9.0 if overlay is Dealership else off
 		studio.frame_pitch = -4.5 if overlay is Dealership else 0.0
 		studio.drive_camera(cam, delta, viewport_car.global_position + Vector3.UP * 0.55)
@@ -596,7 +603,13 @@ var _click: AudioStreamPlayer
 ## Settings + Menus addon screens (addons/settings_menus): Options (audio, display + our graphics rows, per-feature
 ## graphics, controls rebinding, accessibility) and the scrolling Credits, in GRIDLINE's dark theme.
 func _open_options() -> void:
-	GridlineMenus.open_options(self, func(): _show(page))
+	_open_settings()
+
+
+func _open_settings() -> void:
+	var sc := SettingsScreen.open(self)
+	sc.open_page.connect(func(pg): (func(): stack.append("main"); _show(pg)).call_deferred())
+	_overlay_opened(sc)
 
 
 func _open_credits() -> void:
@@ -644,6 +657,9 @@ func _go(p: String) -> void:
 	if p in ["garage", "dealership", "sell"]:   # garage = your cars at the team HQ; dealership/sell = the showroom
 		_open_dealership({"garage": "garage", "dealership": "showroom", "sell": "sell"}[p])
 		return
+	if p == "settings":   # the one Settings screen (scripts/ui/settings_screen.gd)
+		_open_settings()
+		return
 	if p in ["drivers", "team_owner", "clubs", "modes"] and has_method("_open_" + p):
 		call("_open_" + p)
 		return
@@ -664,6 +680,8 @@ func _overlay_opened(o: Control) -> void:
 	hub.visible = false
 	nav.visible = false
 	status_box.visible = false
+	if version_label:
+		version_label.visible = false
 	o.tree_exited.connect(func():
 		overlay = null
 		if is_instance_valid(status_box):

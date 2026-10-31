@@ -288,7 +288,12 @@ func unlocked(feature: String) -> bool:
 
 ## Developer mode (Settings): shows test labels and the test-funds / XP buttons. Off in the release UI.
 func developer() -> bool:
-	return bool(settings().get("developer", false)) or OS.get_cmdline_user_args().has("--debug-ui")
+	return developer_allowed() and bool(settings().get("developer", false)) or OS.get_cmdline_user_args().has("--debug-ui")
+
+
+## Developer options exist only in debug builds (and the editor); a release export never shows them.
+func developer_allowed() -> bool:
+	return OS.is_debug_build()
 
 
 func grant_test_funds(amount := 100000) -> void:
@@ -343,6 +348,7 @@ func preset_index() -> int:
 
 
 func apply_preset(i: int) -> void:
+	i = mini(i, available_presets().size() - 1)
 	var p: Dictionary = PRESETS[clampi(i, 0, PRESETS.size() - 1)]
 	var s := settings()
 	s["quality"] = p["quality"]
@@ -372,9 +378,49 @@ func set_render_scale(scale: float) -> void:
 	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR if scale < 0.99 and RenderingServer.get_current_rendering_method() == "forward_plus" else Viewport.SCALING_3D_MODE_BILINEAR
 
 
+## Frame-rate caps offered: never above what the display refreshes at (a cap is a limit, not a promise).
+func display_hz() -> int:
+	var hz := roundi(DisplayServer.screen_get_refresh_rate()) if DisplayServer.get_name() != "headless" else 60
+	return hz if hz >= 30 else 60
+
+
+func frame_caps() -> Array:
+	return FPS_CAPS.filter(func(f): return f <= display_hz() + 1)
+
+
+## Ultra (Forward+ renderer) only on devices with the memory for it; desktops always.
+func available_presets() -> Array:
+	var mem_gb := float(OS.get_memory_info().get("physical", 0)) / 1073741824.0
+	var ultra_ok := not OS.has_feature("mobile") or mem_gb >= 7.5
+	return PRESETS if ultra_ok else PRESETS.slice(0, 3)
+
+
+## Extra audio buses: Engine (cars) and Ambience (crowd, workshop, room tone), both under the add-on's SFX bus, and
+## the engine volume kept in the save.
+func apply_audio_extras() -> void:
+	for pair in [["Engine", "SFX"], ["Ambience", "Master"]]:
+		var idx := AudioServer.get_bus_index(pair[0])
+		if idx < 0:
+			idx = AudioServer.bus_count
+			AudioServer.add_bus(idx)
+			AudioServer.set_bus_name(idx, pair[0])
+			AudioServer.set_bus_send(idx, pair[1])
+	var ev := float(settings().get("engineVolume", 1.0))
+	var e := AudioServer.get_bus_index("Engine")
+	AudioServer.set_bus_mute(e, ev <= 0.001)
+	AudioServer.set_bus_volume_db(e, linear_to_db(maxf(ev, 0.001)))
+	var st := get_node_or_null("/root/Settings")
+	if st:
+		st.apply_audio()
+
+
 func apply_settings() -> void:
 	var s := settings()
-	Engine.max_fps = int(s.get("fps", 30 if int(s["quality"]) == 0 else 60))
+	var caps := frame_caps()
+	Engine.max_fps = mini(int(s.get("fps", 30 if int(s["quality"]) == 0 else 60)), int(caps[-1]))
+	UiStyle.high_contrast = bool(s.get("highContrast", false))
+	UiStyle.edge_margin = float(s.get("edgeMargin", 0))
+	apply_audio_extras()
 	DisplayServer.screen_set_keep_on(true)
 	# Mesh LOD aggressiveness per tier (pixels of error allowed before a coarser LOD is used): the hero cars are
 	# 60k-280k triangles at full detail, so phones must drop LODs much earlier than desktop.
@@ -382,6 +428,11 @@ func apply_settings() -> void:
 	if tree and tree.root:
 		tree.root.mesh_lod_threshold = [12.0, 6.0, 2.0][clampi(int(s["quality"]), 0, 2)]
 	set_render_scale(base_render_scale())
+	if tree and tree.root:
+		tree.root.content_scale_factor = clampf(float(s.get("uiScale", 1.0)), 0.8, 1.4)
+	var vm := get_node_or_null("/root/VisualsManager")
+	if vm:
+		vm.apply_brightness()
 	_renderer_override(int(s["quality"]) >= 3)
 
 

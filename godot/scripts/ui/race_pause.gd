@@ -52,14 +52,10 @@ func _build() -> void:
 	_big(grid, "Change Camera", func():
 		if race:
 			race.camera.cycle())
-	_big(grid, "Options", _open_options)
-	var gfx := VBoxContainer.new()
-	gfx.add_theme_constant_override("separation", 6)
-	col.add_child(gfx)
-	GridlineMenus._fill_graphics(gfx)
+	_big(grid, "Settings", _open_options)
 	var retire := _big(col, "Retire to Menu", _main_menu)
 	retire.add_theme_color_override("font_color", Color(1, 0.5, 0.45))
-	var note := UiStyle.label("Resolution and frame rate change now; graphics detail applies on restart. Retiring forfeits the entry fee.",
+	var note := UiStyle.label("Retiring forfeits the entry fee.",
 		UiStyle.body(), 24, GridlineMenus.DIM, HORIZONTAL_ALIGNMENT_LEFT, false)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(note)
@@ -75,8 +71,11 @@ func _big(parent: Container, text: String, cb: Callable) -> Button:
 
 func _open_options() -> void:
 	_panel.visible = false
-	GridlineMenus.open_options(self, func():
+	var sc := SettingsScreen.open(self, true)
+	sc.closed.connect(func():
 		_panel.visible = true
+		if race and race.has_method("reset_dynamic_resolution"):
+			race.reset_dynamic_resolution()
 		_restore_focus())
 
 

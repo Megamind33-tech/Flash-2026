@@ -20,6 +20,8 @@ const ACCENT := Color(0.96, 0.55, 0.16)
 const INK := Color(0.05, 0.05, 0.06)
 
 static var _fonts := {}
+static var high_contrast := false   # Settings > Accessibility: solid panels, brighter secondary text
+static var edge_margin := 0.0      # Settings > Display: extra space from the screen edges
 
 
 static func font(name: String) -> Font:
@@ -36,6 +38,10 @@ static func body() -> Font: return font("Barlow-SemiBold")
 
 static func box(c: Color, border := 0, border_color := Color.TRANSPARENT, radius := 0) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
+	if high_contrast and c.a > 0.0 and c.a < 0.95:
+		c = Color(c.r, c.g, c.b, 0.96)
+		if border > 0 and border_color == LINE:
+			border_color = Color(1, 1, 1, 0.35)
 	s.bg_color = c
 	s.set_border_width_all(border)
 	s.border_color = border_color
@@ -49,7 +55,7 @@ static func label(text: String, f: Font, size: int, color := TEXT, align := HORI
 	l.text = text
 	l.add_theme_font_override("font", f)
 	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_color_override("font_color", color)
+	l.add_theme_color_override("font_color", TEXT if high_contrast and color == MUTED else color)
 	if shadow:
 		l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
 		l.add_theme_constant_override("shadow_offset_x", 2)
@@ -218,7 +224,8 @@ static func tile_button(title: String, sub: String, sz: Vector2) -> Button:
 static func safe_margins(vp: Viewport) -> Vector4:
 	var win := DisplayServer.window_get_size()
 	var safe := DisplayServer.get_display_safe_area()
+	var e := edge_margin
 	if win.x <= 0 or safe.size.x <= 0 or safe.size.x >= win.x:
-		return Vector4.ZERO
+		return Vector4(e, e, e, e)
 	var k := vp.get_visible_rect().size.x / float(win.x)
-	return Vector4(safe.position.x * k, safe.position.y * k, (win.x - safe.end.x) * k, (win.y - safe.end.y) * k)
+	return Vector4(safe.position.x * k + e, safe.position.y * k + e, (win.x - safe.end.x) * k + e, (win.y - safe.end.y) * k + e)

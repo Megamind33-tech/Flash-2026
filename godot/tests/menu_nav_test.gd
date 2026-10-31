@@ -37,7 +37,7 @@ func _process(delta: float) -> void:
 				step = -1   # this step awaits frames; keep _process from re-entering it
 				menu = get_tree().current_scene
 				check(menu != null and menu.has_method("_go"), "main menu loaded")
-				for p in ["career", "campaigns", "competitions", "pvp", "quick", "settings", "credits", "profile"]:   # garage = Dealership overlay (ui_buttons_test)
+				for p in ["career", "campaigns", "competitions", "pvp", "quick", "credits", "profile"]:   # garage = Dealership overlay (ui_buttons_test)
 					menu._go(p)
 					check(menu.page == p and menu.list.get_child_count() > 0, "page %s (%d items)" % [p, menu.list.get_child_count()])
 					menu._back()
@@ -56,14 +56,17 @@ func _process(delta: float) -> void:
 				check(gg._ids().all(func(c): return Game.owns_car(c)), "my garage lists only owned cars (%d)" % gg._ids().size())
 				gg.queue_free()
 				await get_tree().process_frame
-				menu._open_options()
-				var opts := menu.find_child("*", true, false)
-				var tabs := menu.find_children("*", "TabContainer", true, false)
-				check(not tabs.is_empty() and (tabs[0] as TabContainer).get_tab_count() >= 4, "options tabs: %d" % (0 if tabs.is_empty() else (tabs[0] as TabContainer).get_tab_count()))
-				var display := menu.find_child("Display", true, false)
-				check(display != null and display.find_children("Opt*", "Button", true, false).size() >= 10, "GRIDLINE graphics rows inside Options > Display")
-				var o: OptionsMenuUI = menu.find_children("*", "OptionsMenuUI", true, false)[0]
-				o.close_requested.emit()
+				# One Settings screen with five sections; every section builds its rows.
+				menu._go("settings")
+				var sset := menu.overlay as SettingsScreen
+				check(sset != null, "settings opens the unified screen")
+				if sset:
+					for tname in SettingsScreen.TABS:
+						sset.tab = tname
+						sset._render()
+						check(sset._body.get_child_count() >= 3, "settings section %s (%d rows)" % [tname, sset._body.get_child_count()])
+					sset._close()
+				await get_tree().process_frame
 				menu._open_credits()
 				check(not menu.find_children("*", "CreditsUI", true, false).is_empty(), "credits screen")
 				(menu.find_children("*", "CreditsUI", true, false)[0] as CreditsUI).close_requested.emit()
@@ -79,8 +82,10 @@ func _process(delta: float) -> void:
 				race.hud._set_pause(true)
 				check(get_tree().paused and race.hud.pause_panel.visible, "pause menu open, tree paused")
 				race.hud.pause_panel._open_options()
-				check(not race.hud.pause_panel.find_children("*", "OptionsMenuUI", true, false).is_empty(), "options from pause")
-				(race.hud.pause_panel.find_children("*", "OptionsMenuUI", true, false)[0] as OptionsMenuUI).close_requested.emit()
+				var ps: Array = race.hud.pause_panel.find_children("*", "SettingsScreen", true, false)
+				check(not ps.is_empty(), "the same Settings screen from pause")
+				if not ps.is_empty():
+					(ps[0] as SettingsScreen)._close()
 				race.hud._set_pause(false)
 				check(not get_tree().paused and not race.hud.pause_panel.visible, "resumed")
 				check(race.skills != null and race.hud.boost_fill != null, "skills and boost HUD present")

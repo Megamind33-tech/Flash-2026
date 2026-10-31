@@ -650,7 +650,7 @@ func _race_audio() -> void:
 	_crowd.unit_size = 30.0
 	_crowd.max_db = 0.0
 	_crowd.volume_db = -4.0
-	_crowd.bus = "SFX"
+	_crowd.bus = "Ambience"
 	add_child(_crowd)
 	_crowd.global_position = track.position_at(track.wrapd(-20.0)) + track.right_at(0.0) * (track.half_width + 4.0) + Vector3.UP * 2.0
 	_crowd.play()

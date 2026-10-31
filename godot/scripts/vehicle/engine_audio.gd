@@ -35,7 +35,7 @@ func _ready() -> void:
 		p.unit_size = 10.0 if player else 6.0
 		p.max_db = 3.0 if player else -2.0
 		p.volume_db = -80.0
-		p.bus = "SFX"
+		p.bus = "Engine"
 		p.doppler_tracking = AudioStreamPlayer3D.DOPPLER_TRACKING_PHYSICS_STEP
 		p.attenuation_filter_cutoff_hz = 9000.0 if player else 4500.0
 		add_child(p)

@@ -8,6 +8,27 @@ signal changed
 var _axes := {"shadows": -1, "textures": -1, "effects": -1, "view_distance": -1, "post": -1}
 
 
+func _ready() -> void:
+	get_tree().node_added.connect(func(n):
+		if n is WorldEnvironment:
+			_brighten.call_deferred(n))
+
+
+## Settings > Display > Brightness: scales every scene's exposure (each environment keeps its authored base).
+func apply_brightness() -> void:
+	for we in get_tree().root.find_children("*", "WorldEnvironment", true, false):
+		_brighten(we)
+
+
+func _brighten(we: WorldEnvironment) -> void:
+	if not is_instance_valid(we) or we.environment == null:
+		return
+	var env := we.environment
+	if not env.has_meta("base_exposure"):
+		env.set_meta("base_exposure", env.tonemap_exposure)
+	env.tonemap_exposure = float(env.get_meta("base_exposure")) * float(Game.settings().get("brightness", 1.0))
+
+
 ## Called by Settings.apply_quality() for every axis (addon contract).
 func set_axis_quality(axis: String, level: int) -> void:
 	_axes[axis] = level
