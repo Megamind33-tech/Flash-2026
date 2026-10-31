@@ -134,6 +134,8 @@ func _evidence_flags() -> void:
 				(c as CanvasItem).visible = false
 			elif c is CanvasLayer:
 				(c as CanvasLayer).visible = false
+	if args.has("--open-options"):   # screenshots: the Options screen over the menu
+		_open_options()
 	var ca := args.find("--cam-at")   # evidence: a free camera, --cam-at x,y,z --look x,y,z [--fov n]
 	if ca >= 0 and ca + 1 < args.size():
 		var p := args[ca + 1].split_floats(",")
