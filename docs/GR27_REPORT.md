@@ -15,6 +15,10 @@ first wet-weather pass). Evidence in `docs/evidence/gr27/`. Every number below c
 | Wet road reflects only the sky | Mobile renderer has no screen-space reflections | Three box-projected reflection probes leapfrog ahead of the player in wet weather (Balanced tier up), one capture per 45 m, cars excluded (`world/wet_reflections.gd`) |
 | Repetitive circular "stamped" puddles | ~23 round scanned manhole/patch decals scattered randomly per lap, with a wetness fixed at load | Fewer patches (3–8/km), manholes on a lane line; patches follow the live road film (`street_props.gd`, `road_patch.gdshader`) |
 | Rain did not change braking at all | Godot's raycast vehicle clamps brake impulse to tyre friction only while the wheel also carries side force, so straight-line braking ignored grip; brakes were also weaker than the tyres | Tyre-limited braking: min(brake capacity, tyre limit from weather grip), ABS holds at the limit; brakes +20 % (`car.gd`) |
+| No wet reflection of tail lights | Probes leave cars out (they move) and there is no SSR | Two soft red streaks per car on the wet road behind the lamps, scaled by the road film, brighter on braking (`Weather.make_light_streaks`) |
+| White bar across the rain frame | A raindrop drawn right at the lens | Rain particles fade out within 4 m of the camera |
+| Wet weather doubled video memory | Default reflection atlas: 64 probe slots at 256 px (~200 MB) for the 3 probes used | Atlas 4 slots, 128 px on mobile: wet 531 → 311 MB (dry 270) on the desktop renderer |
+| Dusk after rain washed out | Clear-dusk exposure 1.3 and a full-energy sunset sky lit everything evenly | Darker sky (0.7) and shade (0.42), stronger warm sun, exposure 1.05; dusk sun aimed 8° up and 65° off the straight (long shadows) |
 | Race renders froze (found while capturing evidence) | **WorkerThreadPool starvation** on first-run shader compilation: main thread waits for its compile tasks while every worker blocks on the same shader lock; reproduced 100 % with 4 workers (this machine's core count), also with 8 in rain | Pool sized to 32 (`project.godot`). Cold-cache rain race renders in < 2 min. **Phones compile on a cold cache after install, so a 4-core phone could have frozen the same way** |
 
 ## 2. Weather state system (`world/weather.gd`)
@@ -52,7 +56,17 @@ Braking from 111 km/h, Kaze R4 (`tests/drive_test --weather`):
 - Heavy-rain race (Kitwe): water reached 0.94, grip 0.561, 70 probe captures over a ~3 km lap.
 
 ## 4. Performance (desktop software renderer only — not phone figures)
-See §6 for the per-tier table once captured. Already visible: the Lusaka grid draws **~1.63 M triangles and ~345
+Lusaka grid, chase camera, default (Balanced) settings, 1280×720, `perf-at-shot`:
+
+| Weather | Draw calls | Triangles | Video memory |
+|---|---|---|---|
+| Clear day | 345 | 1.64 M | 270 MB |
+| Rain (before atlas fix) | 357 | 1.65 M | 531 MB |
+| Heavy rain | 361 | 1.66 M | 531 MB → fixed |
+| After rain, dusk (after atlas fix) | 366 | 1.62 M | 311 MB |
+
+Wet weather adds ~12–20 draw calls (spray, streaks, probes, rain) and, after the atlas fix, ~40 MB. FPS on llvmpipe
+(2–3 fps) says nothing about phones. Already visible: the Lusaka grid draws **~1.63 M triangles and ~345
 draw calls** in clear weather at default settings after the latest venue additions (paddock, grandstands, 187
 roof tanks, 98 verandas) — heavy for affordable phones; needs a budget pass and real device measurement.
 
