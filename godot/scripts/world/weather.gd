@@ -61,14 +61,15 @@ static func state_at(k: String, t: float) -> Vector3:
 
 
 ## Advance the weather to race time t: physics grip, aquaplaning and the road's shader globals all follow.
-## Grip loss is physical, not visual: a water film costs up to ~17 % and standing water another ~13 %, and
-## standing water makes grip fall further with speed (aquaplaning, grip_at). Called by the race every physics tick.
+## Grip loss is physical, not visual: a water film costs up to 25 % (wet asphalt friction is ~0.7-0.75 of dry) and
+## standing water up to another 15 %, and standing water makes grip fall further with speed (aquaplaning, grip_at).
+## Called by the race every physics tick.
 static func update(t: float) -> void:
 	var st := state_at(kind, t)
 	rain = st.x
 	water = st.y
 	film = st.z
-	grip = base_grip * clampf(1.0 - 0.17 * film - 0.13 * water, 0.55, 1.0)
+	grip = base_grip * clampf(1.0 - 0.25 * film - 0.15 * water, 0.5, 1.0)
 	if kind == "storm":
 		grip *= 0.97   # heavy rain: water sheeting across the whole surface
 	aquaplane = 0.009 * water

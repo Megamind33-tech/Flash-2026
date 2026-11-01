@@ -73,7 +73,11 @@ var _stopped_on_brake := false
 ## Per-kilogram baselines tuned on the 1100 kg prototype (0-100 km/h ~4.2 s, ~200 km/h top speed); scaling
 ## every force with mass keeps acceleration and top speed while giving the car real weight in contacts.
 const ACCEL_PER_KG := 4800.0 / 1100.0
-const BRAKE_PER_KG := 40.0 / 1100.0   # with the per-car "brakes" rating: 100-0 in ~33-42 m (tests/handling_test)
+## GR27: brakes stronger than the tyres, as on a real car (ABS below holds each wheel at the tyre's limit), so dry
+## stopping is brake/tyre balanced (~1.2 g) and a wet road - lower tyre friction - genuinely lengthens braking.
+## At 40/1100 the brakes were the weaker link (~0.98 g) and rain made no difference to stopping at all.
+const BRAKE_PER_KG := 48.0 / 1100.0   # with the per-car "brakes" rating
+const TYRE_OVER_BRAKES := 1.0 / 0.88   # dry tyre friction limit vs brake capacity (tyres slightly stronger)
 const DRAG_PER_KG := 0.0012     # aero drag, (m/s^2) per (m/s)^2: ~0.9 m/s^2 at 100 km/h, ~3 at 180
 ## Power limit: full engine force up to this road speed (m/s), then force falls as 1/speed (constant power), as
 ## in a real car. Sets the top speed against drag without the heavy drag the old constant-force engine needed.
@@ -258,7 +262,15 @@ func _drive(thr: float, brk: float, fwd_speed: float, speed: float) -> void:
 			lock = minf(lock, w.get_skidinfo())
 		# ABS: ease the pressure while a wheel locks (skid info near 0), so hard braking still steers and stops short.
 		abs_active = lock < 0.35 and speed > 4.0
-		brake = brake_force * tick * stop * (0.62 if abs_active else 1.0)
+		# Tyre-limited braking (GR27). Godot's raycast vehicle only clamps a wheel's brake impulse to its friction
+		# while the wheel also carries side force, so straight-line braking ignored grip and a wet road stopped as
+		# short as a dry one. Braking force is the lesser of the brake capacity and the tyre's limit: the same
+		# weather grip the wheels use (film, standing water, aquaplaning), with dry tyres TYRE_OVER_BRAKES above the
+		# brakes. When the tyre is the limit, ABS is holding the wheels at it (HUD lamp).
+		var tyre := clampf(Weather.grip_at(speed) * TYRE_OVER_BRAKES, 0.2, 1.0)
+		if tyre < 0.999 and speed > 4.0:
+			abs_active = true
+		brake = brake_force * tick * stop * (0.62 if abs_active and tyre >= 0.999 else 1.0) * tyre
 		if stopped:
 			brake = brake_force * tick   # at rest: hold
 			_static_hold()

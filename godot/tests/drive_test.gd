@@ -16,6 +16,11 @@ func _ready() -> void:
 	TrackBuilder.build(self)
 	var args := OS.get_cmdline_user_args()
 	var id := args[args.find("--car") + 1] if args.has("--car") else CarBuilder.DEFAULT_CAR
+	# GR27: --weather rain|storm|after_rain [--weather-t S] measures the same run on a wet road (grip from Weather.update)
+	var wk := args[args.find("--weather") + 1] if args.has("--weather") else "clear"
+	Weather.configure(wk, "day", 1.0, 1)
+	Weather.update(float(args[args.find("--weather-t") + 1]) if args.has("--weather-t") else 0.0)
+	print("weather=%s grip=%.3f aquaplane=%.4f" % [wk, Weather.grip, Weather.aquaplane])
 	car = CarBuilder.build("player_white", false, id)
 	print("car=%s mass=%.0f" % [id, car.mass])
 	add_child(car)
