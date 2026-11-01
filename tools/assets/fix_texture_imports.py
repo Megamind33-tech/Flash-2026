@@ -10,6 +10,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ASSETS = os.path.join(HERE, "..", "..", "godot", "assets")
 SKIP_DIRS = ("ui", "fonts")          # 2D: no mipmaps needed, lossless keeps text and icons crisp
 NORMAL = re.compile(r"(_normal|_nor(_gl)?|_nrm|normalgl|_n)\.(png|jpg|jpeg|webp)$", re.I)
+# Largest dimension kept per texture: road, cars, adverts and the graffiti atlas keep 2048 (seen up close or carrying
+# text); walls, ground, props and buildings, tiled every few metres, keep 1024 (no visible loss on a 720p-1080p phone,
+# a quarter of the memory).
+KEEP_2K = ("road/", "models/", "ads/", "world/graffiti", "ui/cars/")
+# Real-building models are always seen from 12 m+ across the barriers; garage props are secondary detail: 768.
+SMALL = ("buildings/real/", "garage/models/")
 changed, ok, problems = 0, 0, []
 check = "--check" in sys.argv
 for root, dirs, files in os.walk(ASSETS):
@@ -24,7 +30,9 @@ for root, dirs, files in os.walk(ASSETS):
         if 'importer="texture"' not in s:
             continue
         src = f[:-len(".import")]
-        want = {"mipmaps/generate": "true", "compress/mode": "2"}
+        relp = os.path.relpath(p, ASSETS).replace(os.sep, "/")
+        want = {"mipmaps/generate": "true", "compress/mode": "2",
+                "process/size_limit": "768" if relp.startswith(SMALL) else ("2048" if relp.startswith(KEEP_2K) else "1024")}
         if NORMAL.search(src):
             want["compress/normal_map"] = "1"
         new = s
