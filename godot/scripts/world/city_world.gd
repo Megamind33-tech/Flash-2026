@@ -148,7 +148,25 @@ class Bucket:
 		st.commit(mesh)
 
 
+static var _lp_t := 0
+
+
+## --load-profile: prints how long each world-building stage took (milliseconds).
+static func lp(stage: String) -> void:
+	if "--load-profile" in OS.get_cmdline_user_args():
+		var now := Time.get_ticks_msec()
+		print("[LOAD] %-24s %5d ms" % [stage, now - _lp_t])
+		_lp_t = now
+
+
+## A build stage: times it (--load-profile) and lets the loading screen show it and animate (one frame).
+static func stage(key: String, label: String, fraction: float) -> void:
+	lp(key)
+	await RaceLoader.step(label, fraction)
+
+
 static func build(parent: Node3D, data: Dictionary, style: Dictionary, track: TrackPath) -> Node3D:
+	await stage("start", "Preparing the city", 0.0)
 	var root := Node3D.new()
 	root.name = "City_" + str(data["id"])
 	parent.add_child(root)
@@ -157,8 +175,10 @@ static func build(parent: Node3D, data: Dictionary, style: Dictionary, track: Tr
 	rng.seed = hash(str(data["id"]))
 	_ground(root, style, track)
 	_circuit(root, style, track)
+	await stage("ground+circuit", "Laying the circuit and barriers", 0.12)
 	_areas(root, data, track)
 	_side_roads(root, data, style)
+	await stage("areas+side roads", "Streets, parks and water", 0.2)
 	# Real modelled facades on the street-facing walls (assets/buildings, CC0): planned first so the plain walls
 	# behind them get no floor ledges or AC units poking through the new windows.
 	# --no-facade-kit gives the before/after baseline (like --no-ads and --no-street-props).
@@ -172,23 +192,30 @@ static func build(parent: Node3D, data: Dictionary, style: Dictionary, track: Tr
 	for bi in skip:
 		clad.erase(bi)
 	var ac := _buildings(root, data, style, rng, clad, skip)
+	await stage("plans+building shells", "Raising the buildings", 0.38)
 	_props(root, data, style, track, rng, ac)
+	await stage("props", "Rooftops and air-conditioners", 0.42)
 	print("[GRIDLINE] real buildings %s" % JSON.stringify(RealBuildings.build(root, data, real)))
 	print("[GRIDLINE] facade kit %s bays=%d on %d buildings" % [BuildingKit.kit_for(str(data["id"])),
 		BuildingKit.build(root, data, style, clad, Game.quality()), clad.size()])
+	await stage("real bldgs+facade kit", "Landmark buildings and facades", 0.5)
 	# Real street props and road scans (assets/props, CC BY): additive, own random seed.
 	# --no-street-props gives the before/after baseline (like --no-ads).
 	if not "--no-street-props" in OS.get_cmdline_user_args():
 		var street := StreetProps.place(root, data, style, track, Game.quality())
 		print("[GRIDLINE] street props %s" % JSON.stringify(street))
+	await stage("street props", "Street furniture", 0.58)
 	barrier_ads(root, track, track.half_width + BARRIER, 0.6)
 	race_furniture(root, track, track.half_width + BARRIER)
+	await stage("barrier ads+furniture", "Barrier boards and marshal posts", 0.64)
 	if data.has("venue"):   # Lusaka event venue: streetscape, paddock, grandstand, road details (lusaka_venue.gd)
 		print("[GRIDLINE] venue %s" % JSON.stringify(LusakaVenue.build(root, data, track)))
 	_landmark(root, data, track)
 	CityTraffic.build(root, data, track)
+	await stage("venue+landmark+traffic", "Paddock, grandstands and traffic", 0.78)
 	People.spectators(root, track, track.half_width + BARRIER + 0.3)
 	People.pedestrians(root, data, track)   # gate G9: parked cars, side-street traffic, flags
+	await stage("spectators+pedestrians", "Spectators", 0.9)
 	# Potholes on the worn roads (none on smooth European asphalt below wear 0.5).
 	var wear := float(style.get("wear", style.get("stains", 0.6)))
 	# A resurfaced race venue (crack_fade, e.g. Lusaka) has no potholes.
@@ -201,6 +228,7 @@ static func build(parent: Node3D, data: Dictionary, style: Dictionary, track: Tr
 	if style.get("poles", false):
 		_power_lines(root, track)
 	_rooftop_boards(root, data, track)
+	await stage("potholes+ads+lines+boards", "Advertising screens and power lines", 0.98)
 	return root
 
 

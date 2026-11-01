@@ -73,6 +73,7 @@ func _place_showroom_car() -> void:
 
 
 func _ready() -> void:
+	RaceLoader.preload_race.call_deferred()   # load the race scene on a background thread while the player browses
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	get_tree().paused = false
 	Game.apply_settings()
@@ -143,6 +144,8 @@ func _ready() -> void:
 ## Evidence: --hide-ui shows only the 3D scene; --garage-shot <front|side|rear|low|top|wide|bay> fixes the camera.
 func _evidence_flags() -> void:
 	var args := OS.get_cmdline_user_args()
+	if args.has("--race-now"):   # evidence: start the next event through the loading screen / race briefing
+		_race_next.call_deferred()
 	if args.has("--hide-ui"):
 		for c in get_children():
 			if c is CanvasItem:
@@ -1040,7 +1043,7 @@ func _launch(ev: Dictionary, championship := false) -> void:
 	Game.session["affects_career"] = true
 	Game.session["entry_paid"] = false
 	Game.persist()
-	get_tree().change_scene_to_file("res://scenes/race.tscn")
+	RaceLoader.start_race()
 
 
 func _pick_car(car_id: String) -> void:
@@ -1067,7 +1070,7 @@ func _start(event_id: String, championship: bool) -> void:
 	Game.session["affects_career"] = true
 	Game.session["entry_paid"] = false
 	Game.session.erase("laps_override")
-	get_tree().change_scene_to_file("res://scenes/race.tscn")
+	RaceLoader.start_race()
 
 
 func _unhandled_input(ev: InputEvent) -> void:

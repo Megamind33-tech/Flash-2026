@@ -60,6 +60,7 @@ var _stability := {}   # autotest: per car [airborne seconds, longest airborne s
 
 
 func _ready() -> void:
+	CityWorld.lp("race scene loaded")
 	var args := OS.get_cmdline_user_args()
 	autotest = "--autotest" in args
 	if autotest:
@@ -87,6 +88,8 @@ func _ready() -> void:
 	total_laps = int(Game.session.get("laps_override", event["laps"]))
 	city_id = str(Game.session.get("city", "lusaka"))
 	var style := CityStyles.get_style(city_id)
+	_order = _grid_order()
+	RaceLoader.set_grid(_briefing_rows())
 	Weather.configure(str(Game.session.get("weather", "clear")), str(Game.session.get("time", "day")),
 		float(style["surface_grip"]) if city_id != "ashford" else 1.0, hash(city_id + str(event["id"])))
 	Potholes.clear()
@@ -102,10 +105,12 @@ func _ready() -> void:
 		_env = Weather.build_environment(self, style)
 		if ScenicWorld.is_scenic(city_id):
 			track = ScenicWorld.track_from(data)
+			await RaceLoader.step("Shaping the terrain and road", 0.3)
 			ScenicWorld.build(self, data, style, track)
+			await RaceLoader.step("Forests and scenery", 0.9)
 		else:
 			track = CityWorld.track_from(data)
-			CityWorld.build(self, data, style, track)
+			await CityWorld.build(self, data, style, track)
 	# AI braking points and corner speeds follow the grip the weather leaves.
 	track.lateral_grip_g *= Weather.grip
 	track.decel *= Weather.grip
@@ -114,7 +119,9 @@ func _ready() -> void:
 		receipt = Game.enter_race(event)
 		Game.session["entry_paid"] = true
 		Game.persist()
+	CityWorld.lp("world built")
 	_spawn_grid()
+	CityWorld.lp("grid (5 cars)")
 	for r in racers:
 		r.rivals = racers
 	skills = Skills.new(player, racers)
@@ -310,6 +317,12 @@ func _ready() -> void:
 		hud = RaceHud.new()
 		add_child(hud)
 		hud.bind(self)
+	_built = true
+	# Race briefing: the world is ready; the player starts when they have seen the circuit and the grid.
+	if RaceLoader.active:
+		RaceLoader.finished()
+		if RaceLoader.active:
+			await RaceLoader.go
 	# The opener ends by making the chase camera current, so skip it when a screenshot fixes the camera.
 	if DisplayServer.get_name() != "headless" and not (args.has("--cam-track") or args.has("--cam-card") or args.has("--cam-ad") or args.has("--cam-prop") or args.has("--cam-pothole") or args.has("--cam-people") or args.has("--cam-driver") or args.has("--cam-water") or args.has("--cam-landmark") or args.has("--cam-node") or args.has("--cam-road")):
 		await _intro()
@@ -537,12 +550,15 @@ func _log_impact(r: Racer, strength: float) -> void:
 		track.curvature(int(d / track.length * track.points.size()), 4), c.wheels_on_ground, c.speed_kmh, near, cause, touching])
 
 
-func _spawn_grid() -> void:
+var _order := []
+
+
+## The qualifying draw, decided before the world is built so the briefing can show the grid.
+## A fresh seed every race (tests pass --seed for repeatable runs): grid order, form and mistakes change, so the
+## fastest rival no longer starts on pole and wins every time. The grid is a qualifying draw weighted by pace.
+func _grid_order() -> Array:
 	var drivers: Array = Game.save["aiDrivers"]
 	var ai_count := mini(int(Game.session["ai"]), drivers.size())
-	var field := ai_count + 1
-	# A fresh seed every race (tests pass --seed for repeatable runs): grid order, form and mistakes change, so the
-	# fastest rival no longer starts on pole and wins every time. The grid is a qualifying draw weighted by pace.
 	var si := OS.get_cmdline_user_args().find("--seed")
 	race_seed = int(OS.get_cmdline_user_args()[si + 1]) if si >= 0 and si + 1 < OS.get_cmdline_user_args().size() else randi()
 	var rng := RandomNumberGenerator.new()
@@ -551,6 +567,28 @@ func _spawn_grid() -> void:
 	for i in ai_count:
 		order.append([Game.pace_factor(drivers[i]) + rng.randfn(0.0, 0.012), drivers[i]])
 	order.sort_custom(func(a, b): return a[0] > b[0])
+	return order
+
+
+## Grid rows for the briefing: AI in qualifying order, the player from the back (as _spawn_grid places them).
+func _briefing_rows() -> Array:
+	var rows := []
+	for i in _order.size():
+		var dr: Dictionary = _order[i][1]
+		var team := Game.team(dr["team"])
+		var car := str(CarBuilder.TEAM_CARS.get(dr["team"], CarBuilder.DEFAULT_CAR))
+		rows.append({"pos": i + 1, "name": dr["name"], "team": team.get("name", ""), "color": Color(str(team.get("color", "#ffffff"))),
+			"car": CarBuilder.info(car)["name"], "rating": CarCatalogue.rating(car)})
+	var mine := Game.player_car()
+	rows.append({"pos": _order.size() + 1, "name": Game.save["career"]["driverName"], "team": TeamOwner.state()["name"] if TeamOwner.founded() else "Privateer",
+		"color": UiStyle.GOLD, "car": CarBuilder.info(mine)["name"], "rating": CarCatalogue.rating(mine), "player": true})
+	return rows
+
+
+func _spawn_grid() -> void:
+	var order := _order
+	var ai_count := order.size()
+	var field := ai_count + 1
 	for slot in field:
 		var is_player := slot == field - 1   # the rookie starts from the back
 		var driver: Dictionary = {} if is_player else order[slot][1]
@@ -606,7 +644,12 @@ func _ai_slipstream(delta: float) -> void:
 		car.draft = minf(1.0, car.draft + delta * 1.5) if drafting else maxf(0.0, car.draft - delta * 2.0)
 
 
+var _built := false   # the world and grid are built in stages (loading screen); nothing runs until then
+
+
 func _physics_process(delta: float) -> void:
+	if not _built:
+		return
 	if phase == Phase.RACING and not OS.has_environment("AI_NO_DRAFT"):   # env switch: A/B measurements only
 		_ai_slipstream(delta)
 	if Engine.get_physics_frames() % 3 == 0:   # crowd excitement: car positions to the spectator shader at 20 Hz
@@ -786,6 +829,8 @@ func _dynamic_resolution(delta: float) -> void:
 
 
 func _process(delta: float) -> void:
+	if not _built:
+		return
 	_frames += 1
 	_frame_time += delta
 	_worst_frame = maxf(_worst_frame, delta)
@@ -942,7 +987,7 @@ func set_paused(p: bool) -> void:
 
 func restart() -> void:
 	get_tree().paused = false
-	get_tree().reload_current_scene()
+	RaceLoader.start_race()
 
 
 func quit_to_menu() -> void:

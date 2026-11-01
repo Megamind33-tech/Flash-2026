@@ -11,3 +11,4 @@
 | engine.wav, tirescreech.wav, carhit*.wav | earlier imports (see docs) | — | — |
 | shop_*.ogg (ratchet, drill, clink, clatter, drop, machine) | [68 Workshop Sounds](https://opengameart.org/content/68-workshop-sounds) (OpenGameArt) | see page | CC0 (trimmed, normalised) |
 | hall_tone.ogg | synthesised room tone (rumble, ventilation, hum) | GRIDLINE | project-owned |
+| music_loading.ogg | [Racing Game Menu](https://opengameart.org/content/racing-game-menu) (165 bpm loop, loading screen / race briefing) | MintoDog | CC0 1.0 |

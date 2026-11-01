@@ -18,6 +18,7 @@ config/project_settings_override="user://override.cfg"
 Game="*res://scripts/core/game.gd"
 Settings="*res://addons/settings_menus/settings_manager.gd"
 VisualsManager="*res://scripts/core/visuals_manager.gd"
+RaceLoader="*res://scripts/ui/race_loader.gd"
 
 [display]
 
