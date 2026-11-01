@@ -76,7 +76,7 @@ static func info(car_id: String) -> Dictionary:
 ## Shared material per canonical slot (paint is per livery; tail lights are per car so brake lights can glow).
 static func material(slot: String, livery: String) -> Material:
 	var flake := VisualsManager.level("textures") >= 2   # metallic flake only from Quality textures up (budget phones: plain metallic)
-	var key := slot + "|" + (livery if slot == "paint" else "") + ("|f" if slot == "paint" and flake else "")
+	var key := slot + "|" + (livery if slot == "paint" else "") + ("|f" if slot == "paint" and flake else "") + ("|wet" if wetness > 0.0 else "")
 	if _materials.has(key):
 		return _materials[key]
 	var m := StandardMaterial3D.new()
@@ -91,7 +91,8 @@ static func material(slot: String, livery: String) -> Material:
 			var solid := livery == "player_white"
 			m.albedo_color = col if solid else col.darkened(0.08)
 			m.metallic = 0.0 if solid else 0.82
-			m.roughness = 0.3 if solid else 0.3
+			# base coat under a deep clear coat: 0.22 keeps the metallic sheen tight (0.3 read as satin on track)
+			m.roughness = 0.26 if solid else 0.22
 			m.metallic_specular = 0.6
 			if not solid and flake:
 				# Metallic flake: a tileable micro-flake normal map (assets/models/cars/paint_flake_normal.png) under a
@@ -99,7 +100,7 @@ static func material(slot: String, livery: String) -> Material:
 				# instead of a flat grey sheen; the clear coat keeps the sharp reflections of the softboxes and sky.
 				m.normal_enabled = true
 				m.normal_texture = load("res://assets/models/cars/paint_flake_normal.png")
-				m.normal_scale = 0.12   # needs the texture's mipmaps (import: mipmaps/generate=true) or it aliases into speckle
+				m.normal_scale = 0.06   # (0.12 showed as a dotted grain at race resolution) needs the texture's mipmaps (import: mipmaps/generate=true) or it aliases into speckle
 				m.uv1_triplanar = true
 				m.uv1_scale = Vector3.ONE * 12.0
 			m.clearcoat_enabled = true
@@ -109,12 +110,19 @@ static func material(slot: String, livery: String) -> Material:
 			m.rim_enabled = true          # soft Fresnel brightening along the body edges
 			m.rim = 0.25
 			m.rim_tint = 0.6
+			if wetness > 0.0:
+				_wet_layer(m, "res://assets/models/cars/wet_beads_normal.png", 1.0)
+				m.albedo_color = m.albedo_color.darkened(0.06 * wetness)   # a water film deepens the colour
+				m.roughness = minf(m.roughness, 0.14)
+				m.clearcoat_roughness = 0.03
 		"glass":
 			m.albedo_color = Color(0.02, 0.028, 0.034, 0.62)   # slightly green-grey tint, reflective, the seated driver still shows through
 			m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 			m.metallic = 0.0
 			m.metallic_specular = 0.45   # full specular turned the glass pale grey under a bright sky
 			m.roughness = 0.03
+			if wetness > 0.0:   # drops and run-off streaks on the windscreen and windows
+				_wet_layer(m, "res://assets/models/cars/wet_glass_normal.png", 1.2)
 		"chrome":
 			m.albedo_color = Color(0.9, 0.9, 0.92)
 			m.metallic = 1.0
@@ -281,6 +289,8 @@ static func enable_lods(car: Node3D) -> void:
 
 
 static var _tyre: ORMMaterial3D
+## 0 dry, up to 1 in a storm: set by the race before it builds the grid (rain on paint, glass and tyres), 0 elsewhere.
+static var wetness := 0.0
 
 
 ## GRIDLINE's tyre (every car, one shared material): baked albedo, tangent-space normal (tread grooves, shoulder blocks,
@@ -288,8 +298,37 @@ static var _tyre: ORMMaterial3D
 ## tools/cars/make_tyre_textures.py for the lathed tyre in tools/cars/export_sketchfab_car.py (u: 0.2 m of tread per
 ## texture repeat, v: bead to bead).
 static func tyre_material() -> ORMMaterial3D:
+	if wetness > 0.0:
+		if _tyre_wet == null:
+			_tyre_wet = _make_tyre()
+			# wet rubber: darker and glossy, with beads on the sidewall
+			_tyre_wet.albedo_color = Color(0.72, 0.72, 0.72)
+			_tyre_wet.roughness = 0.5          # multiplies the baked roughness
+			# (no bead layer: an unmasked detail normal would replace the grooves and sidewall lettering)
+		return _tyre_wet
 	if _tyre:
 		return _tyre
+	_tyre = _make_tyre()
+	return _tyre
+
+
+static var _tyre_wet: ORMMaterial3D
+
+
+## Rain on a car: a tileable water normal (beaded drops, or drops and run-off on glass). Baked by
+## tools/cars/make_wet_textures.py.
+static func _wet_layer(m: BaseMaterial3D, tex: String, repeats_per_m: float) -> void:
+	# The water normal is the material's own normal map (Godot's detail-normal layer did not show on this renderer):
+	# wet paint gives up the metallic-flake normal for it, glass has none. Triplanar in car space, so drops keep a real
+	# 1-15 mm size on every panel.
+	m.normal_enabled = true
+	m.normal_texture = load(tex)
+	m.normal_scale = 1.0
+	m.uv1_triplanar = true
+	m.uv1_scale = Vector3.ONE * repeats_per_m
+
+
+static func _make_tyre() -> ORMMaterial3D:
 	var m := ORMMaterial3D.new()
 	m.albedo_texture = load("res://assets/models/cars/tyre_albedo.png")
 	m.orm_texture = load("res://assets/models/cars/tyre_orm.png")
@@ -298,7 +337,6 @@ static func tyre_material() -> ORMMaterial3D:
 	m.normal_scale = 1.0
 	m.metallic_specular = 0.35   # rubber: dielectric, weak specular (F0 ~ 0.03)
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-	_tyre = m
 	return m
 
 

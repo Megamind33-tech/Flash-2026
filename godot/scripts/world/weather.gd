@@ -4,14 +4,16 @@
 class_name Weather
 extends RefCounted
 
-const KINDS := ["clear", "cloudy", "rain", "storm", "fog", "dust"]
+const KINDS := ["clear", "cloudy", "after_rain", "rain", "storm", "fog", "dust"]
 const TIMES := ["day", "dusk", "night"]
-const LABEL := {"clear": "Clear", "cloudy": "Overcast", "rain": "Rain", "storm": "Thunderstorm", "fog": "Fog", "dust": "Dust storm"}
+const LABEL := {"clear": "Clear", "cloudy": "Overcast", "after_rain": "After rain", "rain": "Rain", "storm": "Thunderstorm", "fog": "Fog", "dust": "Dust storm"}
 ## grip: tyre grip multiplier · aqua: extra grip loss per m/s above 25 m/s · wind: crosswind accel (m/s^2)
 ## fog: depth fog density · rain: particle share · wet: road/wall wetness · sun: light energy
 const PRESET := {
 	"clear":  {"grip": 1.0, "aqua": 0.0, "wind": 0.0, "fog": 0.00035, "rain": 0.0, "wet": 0.0, "sun": 1.35, "sky": "clear"},
 	"cloudy": {"grip": 0.99, "aqua": 0.0, "wind": 0.0, "fog": 0.0016, "rain": 0.0, "wet": 0.0, "sun": 0.7, "sky": "partly"},
+	# the shower has passed: low sun on wet streets (reflections, beaded cars), nothing falling
+	"after_rain": {"grip": 0.88, "aqua": 0.001, "wind": 0.0, "fog": 0.0008, "rain": 0.0, "wet": 0.7, "sun": 1.25, "sky": "partly"},
 	"rain":   {"grip": 0.8, "aqua": 0.004, "wind": 0.0, "fog": 0.004, "rain": 0.55, "wet": 0.8, "sun": 0.42, "sky": "overcast"},
 	"storm":  {"grip": 0.66, "aqua": 0.008, "wind": 0.35, "fog": 0.008, "rain": 1.0, "wet": 1.0, "sun": 0.3, "sky": "overcast"},
 	"fog":    {"grip": 0.95, "aqua": 0.0, "wind": 0.0, "fog": 0.011, "rain": 0.0, "wet": 0.35, "sun": 0.45, "sky": "misty"},
@@ -106,7 +108,7 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 	var p: Dictionary = PRESET[kind]
 	var env := Environment.new()
 	var sky := Sky.new()
-	var sky_name: String = "night" if time_of_day == "night" else ("sunset" if time_of_day == "dusk" and kind in ["clear", "cloudy", "dust"] else str(p["sky"]))
+	var sky_name: String = "night" if time_of_day == "night" else ("sunset" if time_of_day == "dusk" and kind in ["clear", "cloudy", "dust", "after_rain"] else str(p["sky"]))
 	var pano := PanoramaSkyMaterial.new()
 	pano.panorama = load("res://assets/city/sky_%s.hdr" % sky_name)
 	# Day sky 0.85 (was 1.1): the panorama was the brightest thing on screen and clipped toward white behind the

@@ -57,6 +57,8 @@ func _ready() -> void:
 	cam.fov = 30.0
 	var only_portraits := OS.get_cmdline_user_args().has("--portraits-only")
 	var ids: Array = [] if only_portraits else CarBuilder.car_ids()
+	if OS.get_cmdline_user_args().has("--wet"):   # rain check: beaded paint, wet glass and tyres
+		CarBuilder.wetness = 1.0
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--only="):   # e.g. --only=kaze_r4,arden_gt12
 			ids = Array(a.trim_prefix("--only=").split(","))

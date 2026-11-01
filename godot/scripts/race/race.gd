@@ -124,6 +124,8 @@ func _ready() -> void:
 		Game.session["entry_paid"] = true
 		Game.persist()
 	CityWorld.lp("world built")
+	# water on the cars (paint beads, windscreen drops and streaks, wet tyres) in rain and on wet roads after it
+	CarBuilder.wetness = float(Weather.PRESET[Weather.kind]["wet"]) if float(Weather.PRESET[Weather.kind]["wet"]) >= 0.5 else 0.0
 	_spawn_grid()
 	CityWorld.lp("grid (5 cars)")
 	for r in racers:
@@ -237,6 +239,7 @@ func _ready() -> void:
 			sc.look_at(player.car.to_global(Vector3(0.0, 0.55, 0.2)), Vector3.UP)
 		sc.far = 3000.0
 		sc.make_current()
+		Weather.attach_particles(sc)   # the rain falls in front of this camera too
 		camera.set_physics_process(false)
 	if args.has("--cam-card"):   # card art for the event screens: the grid from behind and above, looking down the road
 		var cc := Camera3D.new()
@@ -1048,3 +1051,7 @@ func quit_to_menu() -> void:
 	Game.session.erase("benchmark")
 	Game.session["entry_paid"] = false
 	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
+
+
+func _exit_tree() -> void:
+	CarBuilder.wetness = 0.0   # menus, garage and dealership show dry cars

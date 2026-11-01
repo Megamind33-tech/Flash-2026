@@ -178,7 +178,7 @@ static func build(parent: Node3D, data: Dictionary, style: Dictionary, track: Tr
 	_circuit(root, style, track)
 	await stage("ground+circuit", "Laying the circuit and barriers", 0.12)
 	_areas(root, data, track)
-	_side_roads(root, data, style)
+	_side_roads(root, data, style, track)
 	await stage("areas+side roads", "Streets, parks and water", 0.2)
 	# Real modelled facades on the street-facing walls (assets/buildings, CC0): planned first so the plain walls
 	# behind them get no floor ledges or AC units poking through the new windows.
@@ -632,22 +632,47 @@ static func _quays(mesh: ArrayMesh, data: Dictionary, track: TrackPath) -> void:
 	bk.commit(mesh, tex_mat("concrete_grey", 2.0, Color(0.8, 0.79, 0.76), 0.9))
 
 
-static func _side_roads(root: Node3D, data: Dictionary, style: Dictionary) -> void:
+static func _side_roads(root: Node3D, data: Dictionary, style: Dictionary, track: TrackPath = null) -> void:
 	var bk := Bucket.new()
+	# The city's streets follow the map, and the circuit runs along some of them: drawn 8 mm above the race surface they
+	# hid it (rubbered line, damp patches, rain puddles all invisible on the Lusaka start straight). Street pieces on
+	# the circuit are left out; a cross street meets the track at a junction.
+	var on_track := {}
+	if track:
+		var reach := track.half_width + 1.0
+		var cells := int(ceil(reach / 2.0))
+		var d := 0.0
+		while d < track.length:
+			var p := track.position_at(d)
+			var cx := int(floor(p.x / 2.0)); var cz := int(floor(p.z / 2.0))
+			for ix in range(-cells, cells + 1):
+				for iz in range(-cells, cells + 1):
+					var c := Vector2((cx + ix) * 2.0 + 1.0, (cz + iz) * 2.0 + 1.0)
+					if c.distance_to(Vector2(p.x, p.z)) < reach:
+						on_track[Vector2i(cx + ix, cz + iz)] = true
+			d += 1.0
 	for r in data.get("roads", []):
 		var w := float(r[0]) * 0.5
 		var pts := _poly(r[1])
 		var dist := 0.0
 		for i in pts.size() - 1:
-			var a := Vector3(pts[i].x, 0.008, pts[i].y)
-			var b := Vector3(pts[i + 1].x, 0.008, pts[i + 1].y)
-			var dir := (b - a)
-			if dir.length() < 0.1:
+			var a0 := Vector3(pts[i].x, 0.008, pts[i].y)
+			var b0 := Vector3(pts[i + 1].x, 0.008, pts[i + 1].y)
+			var seg := (b0 - a0).length()
+			if seg < 0.1:
 				continue
-			var rr := dir.normalized().cross(Vector3.UP) * w
-			var d2 := dist + dir.length()
-			bk.quad(a - rr, a + rr, b + rr, b - rr, Vector3.UP, Vector2(-w, dist), Vector2(w, dist), Vector2(w, d2), Vector2(-w, d2))
-			dist = d2
+			var rr := (b0 - a0).normalized().cross(Vector3.UP) * w
+			var pieces := maxi(1, int(ceil(seg / 4.0)))
+			for k in pieces:
+				var a := a0.lerp(b0, float(k) / pieces)
+				var b := a0.lerp(b0, float(k + 1) / pieces)
+				var da := dist + seg * k / pieces
+				var db := dist + seg * (k + 1) / pieces
+				var mid := (a + b) * 0.5
+				if on_track.has(Vector2i(int(floor(mid.x / 2.0)), int(floor(mid.z / 2.0)))):
+					continue
+				bk.quad(a - rr, a + rr, b + rr, b - rr, Vector3.UP, Vector2(-w, da), Vector2(w, da), Vector2(w, db), Vector2(-w, db))
+			dist += seg
 	var mesh := ArrayMesh.new()
 	bk.commit(mesh, tex_mat(str(style["road"]), 7.0, Color(str(style["road_tint"])).darkened(0.08), 0.85))
 	var mi := MeshInstance3D.new()

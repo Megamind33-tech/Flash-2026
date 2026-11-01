@@ -18,7 +18,7 @@ const STYLES := {
 		"surface_grip": 0.96, "lines": "#f2f2ee", "crack_fade": 0.3, "damp": 0.8,   # texture itself is resurfaced (tools/assets/resurface_asphalt.py); this lifts what remains
 		# painted render instead of the kit's European brick: Lusaka's cream, ochre, terracotta, pale green, blue, white
 		"painted": true, "paint_palette": ["#e8dcc0", "#d9b37a", "#cf8f72", "#b9cba3", "#9fbfd6", "#f1eee6", "#e3c9a0", "#c96f4a"],
-		"weather": {"clear": 0.45, "cloudy": 0.25, "dust": 0.12, "rain": 0.12, "storm": 0.06},
+		"weather": {"clear": 0.45, "cloudy": 0.25, "dust": 0.12, "after_rain": 0.08, "rain": 0.12, "storm": 0.06},
 	},
 	"kitwe": {
 		"poles": true, "tagline": "Copperbelt, Kitwe city centre", "wall": "plaster_old", "wall2": "concrete_patch",
@@ -27,7 +27,7 @@ const STYLES := {
 		"ground": "ground_dirt", "ground_tint": "#a35a36", "road": "road_aged", "road_tint": "#8f8a80",
 		"tower": "tower_white", "trees": 1.0, "tree_tint": "#a8c890", "haze": "#c9b49a",
 		"surface_grip": 0.95, "lines": "#efefe8",
-		"weather": {"clear": 0.3, "cloudy": 0.3, "rain": 0.25, "storm": 0.1, "fog": 0.05},
+		"weather": {"clear": 0.3, "cloudy": 0.3, "after_rain": 0.08, "rain": 0.25, "storm": 0.1, "fog": 0.05},
 	},
 	"nairobi": {
 		"poles": true, "tagline": "Moi Avenue & Uhuru Highway, Nairobi", "wall": "concrete_grey", "wall2": "plaster_white",
@@ -36,7 +36,7 @@ const STYLES := {
 		"ground": "grass", "ground_tint": "#8fa070", "road": "road_dark", "road_tint": "#a09d98",
 		"tower": "tower_glass", "trees": 1.2, "tree_tint": "#b9a8e0", "haze": "#bcc6cc",
 		"surface_grip": 0.98, "lines": "#f5d33a",
-		"weather": {"clear": 0.3, "cloudy": 0.35, "rain": 0.2, "storm": 0.08, "fog": 0.07},
+		"weather": {"clear": 0.3, "cloudy": 0.35, "after_rain": 0.08, "rain": 0.2, "storm": 0.08, "fog": 0.07},
 	},
 	"mogadishu": {
 		"poles": true, "tagline": "Hamar Weyne old town, Mogadishu", "wall": "plaster_white", "wall2": "plaster_old",

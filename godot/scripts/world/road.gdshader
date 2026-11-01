@@ -80,7 +80,7 @@ void fragment() {
 		float field = vnoise(m * vec2(0.55, 0.22)) * 0.6 + vnoise(m * vec2(1.4, 0.9) + 7.3) * 0.4;
 		float gutter = smoothstep(0.6, 0.95, abs(m.x) / road_half);
 		field += gutter * 0.14 - mask.r * 0.3 + (0.5 - h) * 0.12;
-		float thr = mix(0.80, 0.66, wet);   // ~11 % of the road in rain, ~15 % in a storm
+		float thr = mix(0.72, 0.60, wet);   // standing water on ~25 % of the road in rain, more in a storm
 		puddle = smoothstep(thr, thr + 0.035, field);
 		// raindrop rings: one drop per 0.6 m cell, random phase, ring expanding over its cycle
 		vec2 cell = floor(m / 0.6);
@@ -102,13 +102,15 @@ void fragment() {
 	}
 	vec3 col = base * mix(1.0, 0.45, wet) * (1.0 - 0.28 * dampm);
 	rough = max(rough, rough_floor * (1.0 - wet));
-	rough = mix(rough, max(rough * 0.6, 0.35), wet);   // damp but still rough, so puddles read as mirrors against it
+	// a wet film: glossy enough to streak the sky and lights (0.35 read as dry grey on the Mobile renderer, which has
+	// no screen-space reflections); puddles go to a mirror against it
+	rough = mix(rough, max(rough * 0.5, 0.3), wet);   // (0.16 turned the whole road into a pale mirror of the sky)
 	rough = mix(rough, 0.03, puddle);
 	rough = mix(rough, 0.12, dampm);
 	col = mix(col, base * 0.12, puddle);
 	ALBEDO = col;
 	ROUGHNESS = rough;
-	SPECULAR = mix(0.5, 0.6, puddle);
+	SPECULAR = mix(mix(0.5, 0.32, wet), 0.6, puddle);   // dark wet film, bright standing water
 	nm = mix(nm, vec3(0.5, 0.5, 1.0), clamp(puddle * 0.97 + wet * 0.25 + dampm * 0.6, 0.0, 1.0));
 	nm.xy += ripple;
 	NORMAL_MAP = nm;
