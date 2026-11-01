@@ -1,0 +1,94 @@
+{
+ "id": "kaze_r4",
+ "source": "r34",
+ "wheels": {
+  "Wheel_FL": {
+   "centre": [
+    0.7089,
+    -1.33,
+    0.323
+   ],
+   "radius": 0.323,
+   "width": 0.3385,
+   "tris": 2599
+  },
+  "Wheel_FR": {
+   "centre": [
+    -0.7089,
+    -1.33,
+    0.323
+   ],
+   "radius": 0.323,
+   "width": 0.3385,
+   "tris": 2599
+  },
+  "Wheel_RL": {
+   "centre": [
+    0.7089,
+    1.33,
+    0.323
+   ],
+   "radius": 0.323,
+   "width": 0.3385,
+   "tris": 2624
+  },
+  "Wheel_RR": {
+   "centre": [
+    -0.7089,
+    1.33,
+    0.323
+   ],
+   "radius": 0.323,
+   "width": 0.3385,
+   "tris": 2625
+  }
+ },
+ "lod1_tris": 30064,
+ "lod2_tris": 9018,
+ "length": 4.6,
+ "width": 1.883,
+ "height": 1.214,
+ "body_min": [
+  -0.934,
+  -2.254,
+  0.126
+ ],
+ "body_max": [
+  0.948,
+  2.346,
+  1.34
+ ],
+ "body_tris": 37259,
+ "materials": [
+  "GL_amber",
+  "GL_glass",
+  "GL_paint",
+  "GL_tail",
+  "KEEP_Material_002",
+  "KEEP_Material_003",
+  "KEEP_Material_004",
+  "KEEP_Material_005",
+  "KEEP_Material_006",
+  "KEEP_Material_008",
+  "KEEP_Material_011",
+  "KEEP_Material_013",
+  "KEEP_Material_015"
+ ],
+ "scale": 1.3771125415479208,
+ "dropped": [
+  "Object_8"
+ ],
+ "kept": [
+  "KEEP_Material_002",
+  "KEEP_Material_003",
+  "KEEP_Material_004",
+  "KEEP_Material_005",
+  "KEEP_Material_006",
+  "KEEP_Material_008",
+  "KEEP_Material_010",
+  "KEEP_Material_011",
+  "KEEP_Material_012",
+  "KEEP_Material_013",
+  "KEEP_Material_015"
+ ]
+}

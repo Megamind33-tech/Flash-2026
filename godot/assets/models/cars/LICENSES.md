@@ -13,6 +13,14 @@ The original licence files are in `tools/cars/licences/sketchfab/`.
 | Ravenna Ibrido (Hypercar) | `ravenna_hybrid.glb` | "Mclaren P1 \| www.vecarz.com" https://sketchfab.com/3d-models/mclaren-p1-wwwvecarzcom-adae2edc721e4ce7b31c1d06a581e30a | vecarz (https://sketchfab.com/heynic) | CC BY 4.0 |
 | Solano GT-LM (GT1) | `solano_concept.glb` | "2006 \| Ford GT LM Spec ll Test Car" https://sketchfab.com/3d-models/2006-ford-gt-lm-spec-ll-test-car-dd6c3effdb1e43ecadace447ccbda68d | kevin (ケビン) (https://sketchfab.com/sohyalebret) | CC BY 4.0 |
 | Vesta Evo II (Touring) | `elektra_egt.glb` | "[FREE] BMW M3 E30" https://sketchfab.com/3d-models/free-bmw-m3-e30-ac3c7013434e403e8faff87948caf422 | Martin Trafas (https://sketchfab.com/Bexxie) | CC BY 4.0 |
+| Kaze R4 GT (JDM GT) | `kaze_r4.glb` | "Nissan Skyline R34 GT-R" https://sketchfab.com/3d-models/nissan-skyline-r34-gt-r-ff8fb2251dfa4bb9979e7022c5a6666c | Lexyc16 (https://sketchfab.com/Lexyc16) | CC BY 4.0 |
+| Kaze Rotor 7 (JDM) | `kaze_rotor.glb` | "Mazda RX-7 FD" https://sketchfab.com/3d-models/mazda-rx-7-fd-d35ff630df614771b82e7b2f59035b1e | Lexyc16 (https://sketchfab.com/Lexyc16) | CC BY 4.0 |
+| Hikari NS-1 (Classic) | `hikari_ns1.glb` | "Honda NSX 1990" https://sketchfab.com/3d-models/honda-nsx-1990-1cc15628a00a4739a6b6c01128927c8d | Lexyc16 (https://sketchfab.com/Lexyc16) | CC BY 4.0 |
+| Alba Integra Evo (Rally) | `alba_integra.glb` | "FREE Lancia Delta HF Integrale evo 2" https://sketchfab.com/3d-models/free-lancia-delta-hf-integrale-evo-2-85614131e0dc4613a948472aaa935fc7 | TARANTULA (https://sketchfab.com/begemot.988888) | CC BY 4.0 |
+| Ridgeway SV8 (Muscle) | `ridgeway_sv8.glb` | "Ford Mustang Shelby GT500" https://sketchfab.com/3d-models/ford-mustang-shelby-gt500-0eaa7a16796540f29461ddae05ecdeb3 | Jiaxing (https://sketchfab.com/saitoyang) | CC BY 4.0 |
+| Ravenna Quaranta (Classic supercar) | `ravenna_quaranta.glb` | "Ferrari f40" https://sketchfab.com/3d-models/ferrari-f40-52a66c41cfcd4f999fb1b1c49bf24d70 | Black Snow (https://sketchfab.com/BlackSnow02) | CC BY 4.0 |
+| Kaze GT-35 Wide (GT) | `kaze_gt35.glb` | "Nissan Skyline GTR r35" https://sketchfab.com/3d-models/nissan-skyline-gtr-r35-7b142ea3376e4811a326256c59bbc7a2 | Black Snow (https://sketchfab.com/BlackSnow02) | CC BY 4.0 |
+| Arden GT12 (Grand tourer) | `arden_gt12.glb` | "Aston Martin db11" https://sketchfab.com/3d-models/aston-martin-db11-0ce56f01b1ff40b3a4e36bc56873dbc7 | Black Snow (https://sketchfab.com/BlackSnow02) | CC BY 4.0 |
 
 **Required credit line** (in-game at Settings → Credits, and to be repeated in the store listing): *"<title>" by
 <author>, licensed under CC BY 4.0, modified for GRIDLINE.*
@@ -66,6 +74,19 @@ textures were scrubbed in a working copy; the downloads themselves are kept unmo
 | Arden GT3 R | 88.7k | 11.4k | 100.1k |
 
 Opponents use Godot's automatic mesh LODs with a stronger LOD bias (`race.gd`: `lod_bias = 0.35`).
+
+## Second batch: brand removal
+
+- Badge and lettering parts and materials were dropped: maker badge sheets, model scripts, cobra badges, the F40
+  logo sheet, the AMR / sticker sheets, GT-R / NISMO lettering, and the rally car's shield, number plate,
+  "delta integrale" badge, club sticker and sun-strip.
+- Tyre sidewalls: the Bridgestone lettering annulus was repainted as plain rubber (R4, Rotor 7, NS-1), and the Toyo
+  lettering inpainted (Integra).
+- NS-1: the rear-panel photo had its plate script and maker emblem removed.
+- GT-35: the tuner lettering on the rim was inpainted and the steering-wheel badge blacked out.
+- Ridgeway SV8: a display rock (an icosphere) was removed from the scene.
+
+All eight are recognisable real designs. The same trademark caveat applies (see below).
 
 ## Rejected candidates (for the record)
 

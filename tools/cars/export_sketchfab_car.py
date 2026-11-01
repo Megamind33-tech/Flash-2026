@@ -53,7 +53,7 @@ CARS = {
                          drop_mat=r"^logo$|^number$|^shield_2$|^red_suns$|^legion$|^legend$|^alpha_mask$",
                          drop=r"badge|logo|emblem|number plate", paint=r"^paint$", glass=r"^glass$", tail=r"light_rear"),
     "ridgeway_sv8": dict(src="gt500", length=4.82, forward="auto", tyre_mat=r"^tire$", drop_mat=r"^lambert1$",
-                         drop=r"badge|logo|emblem|license|plate_number", paint=r"^carpaint$", glass=r"tinted_glass", tail=r"rearlight"),
+                         drop=r"badge|logo|emblem|license|plate_number|^icosphere", paint=r"^carpaint$", glass=r"tinted_glass", tail=r"rearlight"),
     "ravenna_quaranta": dict(src="f40", length=4.36, forward="auto", tyre_mat=r"^scene_-_root", drop_mat=r"^f40_logos$",
                              drop=r"badge|logo|emblem", paint=r"^material$", glass=r"f40_glass|f40_window", tail=r"brakelight"),
     "kaze_gt35": dict(src="r35", length=4.71, forward="auto", tyre_mat=r"^scene_-_root", drop_mat=r"r35_badges|r35_symbols",

@@ -4,61 +4,61 @@
  "wheels": {
   "Wheel_RL": {
    "centre": [
-    0.7119,
-    1.1658,
-    0.3016
+    0.8356,
+    1.3683,
+    0.354
    ],
-   "radius": 0.3016,
-   "width": 0.2512,
-   "tris": 4383
+   "radius": 0.354,
+   "width": 0.2948,
+   "tris": 4380
   },
   "Wheel_FR": {
    "centre": [
-    -0.6841,
-    -1.171,
-    0.2965
+    -0.8028,
+    -1.3743,
+    0.348
    ],
-   "radius": 0.2965,
-   "width": 0.2705,
-   "tris": 4228
+   "radius": 0.348,
+   "width": 0.3174,
+   "tris": 4226
   },
   "Wheel_FL": {
    "centre": [
-    0.693,
-    -1.1689,
-    0.2965
+    0.8133,
+    -1.3718,
+    0.348
    ],
-   "radius": 0.2965,
-   "width": 0.2706,
-   "tris": 4215
+   "radius": 0.348,
+   "width": 0.3176,
+   "tris": 4310
   },
   "Wheel_RR": {
    "centre": [
-    -0.7144,
-    1.166,
-    0.2962
+    -0.8385,
+    1.3684,
+    0.3477
    ],
-   "radius": 0.2962,
-   "width": 0.2462,
-   "tris": 4454
+   "radius": 0.3477,
+   "width": 0.2889,
+   "tris": 4427
   }
  },
- "lod1_tris": 94978,
- "lod2_tris": 28493,
+ "lod1_tris": 94254,
+ "lod2_tris": 28275,
  "length": 4.82,
- "width": 1.773,
- "height": 2.017,
+ "width": 2.081,
+ "height": 1.252,
  "body_min": [
-  -0.884,
-  -2.835,
-  -0.839
+  -1.038,
+  -2.49,
+  0.13
  ],
  "body_max": [
-  0.889,
-  1.985,
-  1.178
+  1.044,
+  2.33,
+  1.382
  ],
- "body_tris": 102387,
+ "body_tris": 101592,
  "materials": [
   "GL_amber",
   "GL_glass",
@@ -74,7 +74,7 @@
   "KEEP_seat",
   "KEEP_white_gloss"
  ],
- "scale": 0.8504711873898836,
+ "scale": 0.9981508480449145,
  "dropped": [
   "GT500.Badge.R_glossblack_0",
   "GT500.Badge.L_glossblack_0",
@@ -82,7 +82,8 @@
   "GT500.Wheel.Ft.R_lambert1_0",
   "GT500.Wheel.Bk.L_lambert1_0",
   "GT500.Wheel.Bk.R_lambert1_0",
-  "GT500.Wheel.Ft.L_lambert1_0"
+  "GT500.Wheel.Ft.L_lambert1_0",
+  "Icosphere"
  ],
  "kept": [
   "KEEP_brake",

@@ -1,0 +1,97 @@
+{
+ "id": "alba_integra",
+ "source": "delta",
+ "wheels": {
+  "Wheel_FL": {
+   "centre": [
+    0.6957,
+    -1.2286,
+    0.2945
+   ],
+   "radius": 0.2945,
+   "width": 0.2384,
+   "tris": 2696
+  },
+  "Wheel_RL": {
+   "centre": [
+    0.6957,
+    1.2305,
+    0.2946
+   ],
+   "radius": 0.2946,
+   "width": 0.2384,
+   "tris": 2639
+  },
+  "Wheel_RR": {
+   "centre": [
+    -0.695,
+    1.2305,
+    0.2946
+   ],
+   "radius": 0.2946,
+   "width": 0.2397,
+   "tris": 2639
+  },
+  "Wheel_FR": {
+   "centre": [
+    -0.6949,
+    -1.2297,
+    0.2953
+   ],
+   "radius": 0.2953,
+   "width": 0.24,
+   "tris": 2695
+  }
+ },
+ "lod1_tris": 67110,
+ "lod2_tris": 20133,
+ "length": 3.9,
+ "width": 1.7,
+ "height": 1.617,
+ "body_min": [
+  -0.849,
+  -2.031,
+  0.094
+ ],
+ "body_max": [
+  0.85,
+  1.869,
+  1.711
+ ],
+ "body_tris": 74303,
+ "materials": [
+  "GL_amber",
+  "GL_glass",
+  "GL_paint",
+  "GL_tail",
+  "KEEP_Black",
+  "KEEP_Chrome_Detail",
+  "KEEP_Cube",
+  "KEEP_Light",
+  "KEEP_LightBump",
+  "KEEP_LightBump_rear",
+  "KEEP_detail_1"
+ ],
+ "scale": 0.9928486164001585,
+ "dropped": [
+  "Shield_Logo_0",
+  "Frame_Alpha mask_0",
+  "Number Plate_Number_0",
+  "Number Plate.001_Shield 2_0",
+  "Plane_Red Suns_0",
+  "Plane.001_Legend_0",
+  "Plane.002_Legion_0"
+ ],
+ "kept": [
+  "KEEP_Black",
+  "KEEP_Chrome_Detail",
+  "KEEP_Cube",
+  "KEEP_Light",
+  "KEEP_LightBump",
+  "KEEP_LightBump_rear",
+  "KEEP_Tire",
+  "KEEP_detail_1",
+  "KEEP_material",
+  "KEEP_rim_2"
+ ]
+}

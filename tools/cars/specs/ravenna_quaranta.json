@@ -1,0 +1,123 @@
+{
+ "id": "ravenna_quaranta",
+ "source": "f40",
+ "wheels": {
+  "Wheel_RR": {
+   "centre": [
+    -0.7745,
+    1.2143,
+    0.3211
+   ],
+   "radius": 0.3211,
+   "width": 0.339,
+   "tris": 2628
+  },
+  "Wheel_FL": {
+   "centre": [
+    0.776,
+    -1.2143,
+    0.3211
+   ],
+   "radius": 0.3211,
+   "width": 0.2825,
+   "tris": 2616
+  },
+  "Wheel_FR": {
+   "centre": [
+    -0.776,
+    -1.2143,
+    0.3211
+   ],
+   "radius": 0.3211,
+   "width": 0.2825,
+   "tris": 2614
+  },
+  "Wheel_RL": {
+   "centre": [
+    0.7745,
+    1.2143,
+    0.3211
+   ],
+   "radius": 0.3211,
+   "width": 0.339,
+   "tris": 2627
+  }
+ },
+ "lod1_tris": 39349,
+ "lod2_tris": 11804,
+ "length": 4.36,
+ "width": 2.032,
+ "height": 1.018,
+ "body_min": [
+  -1.018,
+  -2.267,
+  0.109
+ ],
+ "body_max": [
+  1.013,
+  2.093,
+  1.127
+ ],
+ "body_tris": 87715,
+ "materials": [
+  "GL_amber",
+  "GL_glass",
+  "GL_paint",
+  "GL_tail",
+  "KEEP_F40_Carbon",
+  "KEEP_F40_Chrome",
+  "KEEP_F40_Chrome_001",
+  "KEEP_F40_Cockpit",
+  "KEEP_F40_Cockpit_HR",
+  "KEEP_F40_Display",
+  "KEEP_F40_Display_1",
+  "KEEP_F40_Estra",
+  "KEEP_F40_Grid",
+  "KEEP_F40_GridD",
+  "KEEP_F40_Headlights",
+  "KEEP_F40_Mechanics",
+  "KEEP_F40_Mechanics_001",
+  "KEEP_F40_Pedali",
+  "KEEP_F40_Sheft",
+  "KEEP_F40_Skin",
+  "KEEP_F40_Strelki",
+  "KEEP_F40_Tappetini",
+  "KEEP_F40_Vehiclelight",
+  "KEEP_super_gauges",
+  "KEEP_super_headlight",
+  "KEEP_super_reverselight",
+  "KEEP_super_signal_L"
+ ],
+ "scale": 0.9629324864953983,
+ "dropped": [
+  "Object_25"
+ ],
+ "kept": [
+  "KEEP_F40_Brake",
+  "KEEP_F40_Carbon",
+  "KEEP_F40_Chrome",
+  "KEEP_F40_Chrome_001",
+  "KEEP_F40_Cockpit",
+  "KEEP_F40_Cockpit_HR",
+  "KEEP_F40_Display",
+  "KEEP_F40_Display_1",
+  "KEEP_F40_Estra",
+  "KEEP_F40_Grid",
+  "KEEP_F40_GridD",
+  "KEEP_F40_Headlights",
+  "KEEP_F40_Mechanics",
+  "KEEP_F40_Mechanics_001",
+  "KEEP_F40_Pedali",
+  "KEEP_F40_Rrims",
+  "KEEP_F40_Sheft",
+  "KEEP_F40_Skin",
+  "KEEP_F40_Strelki",
+  "KEEP_F40_Tappetini",
+  "KEEP_F40_Vehiclelight",
+  "KEEP_Scene___Root_002",
+  "KEEP_super_gauges",
+  "KEEP_super_headlight",
+  "KEEP_super_reverselight",
+  "KEEP_super_signal_L"
+ ]
+}

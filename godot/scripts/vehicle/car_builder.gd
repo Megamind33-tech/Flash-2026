@@ -26,6 +26,23 @@ const ROSTER := {
 		"author": "kevin (sohyalebret, Sketchfab)", "licence": "CC BY 4.0"},
 	"elektra_egt": {"band": 16.0, "steer": 1.1, "brakes": 1.0, "vmax": 57.0, "price": 45000, "name": "Vesta Evo II", "class": "Touring", "mass": 1200.0, "power": 1.12, "grip": 0.98, "aero": 0.9, "awd": false,
 		"author": "Martin Trafas (Bexxie, Sketchfab)", "licence": "CC BY 4.0"},
+	# second batch (same pipeline and licence; see assets/models/cars/LICENSES.md)
+	"kaze_r4": {"band": 18.0, "steer": 1.0, "brakes": 1.05, "vmax": 58.0, "price": 26000, "name": "Kaze R4 GT", "class": "JDM GT", "mass": 1560.0, "power": 1.02, "grip": 1.0, "aero": 1.0, "awd": true,
+		"author": "Lexyc16 (Sketchfab)", "licence": "CC BY 4.0"},
+	"kaze_rotor": {"band": 17.0, "steer": 1.12, "brakes": 1.0, "vmax": 56.0, "price": 21000, "name": "Kaze Rotor 7", "class": "JDM", "mass": 1280.0, "power": 0.98, "grip": 1.0, "aero": 1.0, "awd": false,
+		"author": "Lexyc16 (Sketchfab)", "licence": "CC BY 4.0"},
+	"hikari_ns1": {"band": 19.0, "steer": 1.1, "brakes": 1.0, "vmax": 57.0, "price": 24000, "name": "Hikari NS-1", "class": "Classic", "mass": 1370.0, "power": 0.96, "grip": 1.01, "aero": 1.0, "awd": false,
+		"author": "Lexyc16 (Sketchfab)", "licence": "CC BY 4.0"},
+	"alba_integra": {"band": 15.0, "steer": 1.12, "brakes": 1.0, "vmax": 54.0, "price": 22000, "name": "Alba Integra Evo", "class": "Rally", "mass": 1340.0, "power": 1.0, "grip": 1.02, "aero": 0.9, "awd": true,
+		"author": "TARANTULA (begemot.988888, Sketchfab)", "licence": "CC BY 4.0"},
+	"ridgeway_sv8": {"band": 17.0, "steer": 0.9, "brakes": 1.1, "vmax": 61.0, "price": 30000, "name": "Ridgeway SV8", "class": "Muscle", "mass": 1880.0, "power": 1.15, "grip": 0.98, "aero": 1.0, "awd": false,
+		"author": "Jiaxing (saitoyang, Sketchfab)", "licence": "CC BY 4.0"},
+	"ravenna_quaranta": {"band": 18.5, "steer": 1.05, "brakes": 1.0, "vmax": 61.0, "price": 52000, "name": "Ravenna Quaranta", "class": "Classic Supercar", "mass": 1250.0, "power": 1.02, "grip": 1.0, "aero": 1.1, "awd": false,
+		"author": "Black Snow (Sketchfab)", "licence": "CC BY 4.0"},
+	"kaze_gt35": {"band": 17.0, "steer": 1.0, "brakes": 1.15, "vmax": 61.0, "price": 48000, "name": "Kaze GT-35 Wide", "class": "GT", "mass": 1740.0, "power": 1.1, "grip": 1.03, "aero": 1.2, "awd": true,
+		"author": "Black Snow (Sketchfab)", "licence": "CC BY 4.0"},
+	"arden_gt12": {"band": 18.0, "steer": 0.95, "brakes": 1.05, "vmax": 62.0, "price": 40000, "name": "Arden GT12", "class": "Grand Tourer", "mass": 1770.0, "power": 1.08, "grip": 1.0, "aero": 1.0, "awd": false,
+		"author": "Black Snow (Sketchfab)", "licence": "CC BY 4.0"},
 }
 ## Team cars (each AI team races one model; the player picks theirs in the Garage).
 const TEAM_CARS := {"halden": "ravenna_hybrid", "corsair": "arden_gt3", "vantor": "solano_concept", "northline": "elektra_egt"}
