@@ -334,7 +334,9 @@ func _mode_card(title: String, img: String, text: String, status: String, gate: 
 	st.size = Vector2(476, 30)
 	p.add_child(st)
 	var open := gate == "" or Game.unlocked(gate)
-	var gate_text := "" if gate == "" else ("REQUIRES LEVEL %d%s" % [int(Game.LEVEL_GATES[gate]), "  ·  OPEN FOR TESTING" if Game.TEST_UNLOCK_ALL and Game.developer() else ""])
+	# An open mode shows no requirement (it said "REQUIRES LEVEL 5" above an ENTER that worked, which read as broken);
+	# a locked one says what it needs and where the player is.
+	var gate_text := "" if open else "LOCKED  ·  REACH LEVEL %d (YOU ARE LEVEL %d)" % [int(Game.LEVEL_GATES[gate]), Game.level()]
 	if gate_text != "":
 		var g := UiStyle.label(gate_text, UiStyle.cond(), 20, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false)
 		g.position = Vector2(32, 622)

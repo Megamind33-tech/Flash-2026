@@ -485,7 +485,7 @@ func _build_hub() -> void:
 	side.custom_minimum_size = Vector2(300, 0)
 	side.add_theme_constant_override("separation", 0)
 	sidep.add_child(side)
-	for it in [["campaigns", "Campaigns"], ["competitions", "Competitions"], ["pvp", "PvP Rivals"], ["quick", "Quick Race"], ["drivers", "Drivers"], ["clubs", "Live Career"], ["settings", "Settings"]]:
+	for it in [["campaigns", "Campaigns"], ["competitions", "Competitions"], ["pvp", "PvP Rivals"], ["quick", "Quick Race"], ["drivers", "Drivers"], ["settings", "Settings"]]:
 		var b := Button.new()
 		b.text = it[1].to_upper() + "   ›"
 		b.alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -506,7 +506,8 @@ func _build_hub() -> void:
 	tiles.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tiles.add_theme_constant_override("separation", 20)
 	rows.add_child(tiles)
-	for t in [["modes", "CAREER", "Driver · seasons · campaigns"], ["team_owner", "TEAM OWNER", "Run your racing company"],
+	# Career is one entry: it opens the three modes (Driver Career, Team Owner, Live Career) and the player picks.
+	for t in [["modes", "CAREER", "Driver · Team Owner · Live Career"],
 			["garage", "MY GARAGE", "Your cars · paint · inspect"], ["dealership", "DEALERSHIP", "Buy · sell · trade in"]]:
 		var tb := UiStyle.tile_button(t[1], t[2], Vector2(300, 140))
 		tb.size_flags_horizontal = Control.SIZE_EXPAND_FILL

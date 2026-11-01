@@ -71,9 +71,11 @@ func _dealer_room() -> void:
 	body.add_child(cs)
 	add_child(body)
 	# back wall with the backlit brand wall; side walls; ceiling with light coves
-	hq.box("white", Vector3(W * 2.0, H, 0.3), Vector3(0, H * 0.5, D))
+	# raw concrete feature walls (sides and back) as the canvas for the street-art walls (_graffiti)
+	hq.mats["raw"] = hq._tex("concrete_grey", Color(0.58, 0.58, 0.6), 0.9, 0.25)
+	hq.box("raw", Vector3(W * 2.0, H, 0.3), Vector3(0, H * 0.5, D))
 	for sx: float in [-1.0, 1.0]:
-		hq.box("white", Vector3(0.3, H, D * 2.0), Vector3(sx * W, H * 0.5, 0))
+		hq.box("raw", Vector3(0.3, H, D * 2.0), Vector3(sx * W, H * 0.5, 0))
 	hq.box("ceiling", Vector3(W * 2.0, 0.2, D * 2.0), Vector3(0, H, 0))
 	for x: float in [-9.0, 0.0, 9.0]:
 		hq.box("cove", Vector3(6.0, 0.03, 3.4), Vector3(x, H - 0.12, -2.0), 32)
@@ -123,6 +125,7 @@ func _dealer_room() -> void:
 	sub.position = Vector3(0, 2.6, D - 0.3)
 	sub.rotation_degrees.y = 180.0
 	add_child(sub)
+	_graffiti()
 	# sales lounge, plants, promo screen
 	_prop("metal_office_desk", Vector3(-13.5, 0, 7.5), 180.0)
 	_prop("modern_arm_chair_01", Vector3(-13.0, 0, 5.6), 10.0)
@@ -194,3 +197,66 @@ func _dealer_lights() -> void:
 	fill.omni_range = 18.0
 	fill.light_energy = 0.8
 	add_child(fill)
+
+
+## Street-art feature walls: layered tags and throw-ups from a CC0 atlas (ambientCG GraffitiSet001, 4 x 4 generic
+## tags, no brands) sprayed over the raw concrete side and back walls, kept clear of the brand wall, the promo
+## screen and the lounge; and along the ground floors of the buildings across the street. One draw call.
+func _graffiti() -> void:
+	var bk := CityWorld.Bucket.new()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1972
+	# walls: [origin (left end, floor), along, inward normal, length, keep-out ranges along the wall [from, to, below_h]]
+	var walls := [
+		[Vector3(-W + 0.16, 0, -D + 3.0), Vector3(0, 0, 1), Vector3(1, 0, 0), D * 2.0 - 5.0, [[D - 3.0 + 4.5, D - 3.0 + 12.5, 3.0]]],   # left: lounge sofas / desk low
+		[Vector3(W - 0.16, 0, -D + 3.0), Vector3(0, 0, 1), Vector3(-1, 0, 0), D * 2.0 - 5.0, [[D - 3.0 - 0.8, D - 3.0 + 5.2, 9.0]]],   # right: promo screen
+		[Vector3(-W + 0.5, 0, D - 0.16), Vector3(1, 0, 0), Vector3(0, 0, -1), W * 2.0 - 1.0, [[W - 9.0, W + 8.5, 9.0]]],          # back: brand wall
+	]
+	for w in walls:
+		var o: Vector3 = w[0]
+		var along: Vector3 = w[1]
+		var nrm: Vector3 = w[2]
+		var length: float = w[3]
+		var x := 0.6
+		while x < length - 1.5:
+			var size := rng.randf_range(2.2, 4.6)
+			var h := rng.randf_range(0.25, H - size - 0.4)
+			var blocked := false
+			for k in w[4]:
+				if x + size > float(k[0]) and x < float(k[1]) and h < float(k[2]):
+					blocked = true
+			if not blocked:
+				_tag(bk, o + along * x + Vector3.UP * h + nrm * rng.randf_range(0.01, 0.03), along, nrm, size, rng.randi() % 16)
+				if rng.randf() < 0.45:   # a second, smaller tag layered over it
+					var s2 := size * rng.randf_range(0.45, 0.7)
+					_tag(bk, o + along * (x + size * rng.randf_range(0.2, 0.6)) + Vector3.UP * (h + size * rng.randf_range(0.0, 0.5)) + nrm * 0.04, along, nrm, s2, rng.randi() % 16)
+			x += size * rng.randf_range(0.65, 1.05)
+	# across the street: tags along the ground floor of the facing buildings (seen through the storefront)
+	var fx := -60.0
+	while fx < 66.0:
+		var size := rng.randf_range(1.8, 3.2)
+		_tag(bk, Vector3(fx, rng.randf_range(0.3, 1.4), -D - 25.95), Vector3(1, 0, 0), Vector3(0, 0, 1), size, rng.randi() % 16)
+		fx += size * rng.randf_range(0.9, 2.2)
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = load("res://assets/world/graffiti_atlas.png")
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS
+	m.roughness = 0.75
+	m.cull_mode = BaseMaterial3D.CULL_BACK
+	var mesh := ArrayMesh.new()
+	bk.commit(mesh, m)
+	var mi := MeshInstance3D.new()
+	mi.name = "StreetArt"
+	mi.mesh = mesh
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mi)
+
+
+## One tag: a square quad on a wall showing atlas cell `cell` (4 x 4 grid).
+func _tag(bk: CityWorld.Bucket, origin: Vector3, along: Vector3, nrm: Vector3, size: float, cell: int) -> void:
+	var u0 := (cell % 4) * 0.25
+	var v0 := (cell / 4) * 0.25
+	var a := origin
+	var b := origin + along * size
+	var c := b + Vector3.UP * size
+	var d := a + Vector3.UP * size
+	bk.quad(a, b, c, d, nrm, Vector2(u0, v0 + 0.25), Vector2(u0 + 0.25, v0 + 0.25), Vector2(u0 + 0.25, v0), Vector2(u0, v0))
