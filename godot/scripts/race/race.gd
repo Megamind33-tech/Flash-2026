@@ -48,6 +48,7 @@ var _env := {}
 var _sprays := []
 var _rain_parts: GPUParticles3D
 var _wet_refl: WetReflections
+var _rain_audio: AudioStreamPlayer
 var _weather_offset := 0.0   # evidence only: --weather-t S shows the weather S seconds into a race
 var _flash := 0.0
 var format := "race"
@@ -146,6 +147,16 @@ func _ready() -> void:
 	add_child(camera)
 	camera.make_current()
 	_rain_parts = Weather.attach_particles(camera)
+	if float(Weather.STATE.get(Weather.kind, Weather.STATE["clear"])[0]) > 0.0:   # rainfall ambience (GR27)
+		_rain_audio = AudioStreamPlayer.new()
+		var rs: AudioStreamWAV = load("res://assets/audio/rain_loop.wav").duplicate()
+		rs.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		rs.loop_end = int(rs.get_length() * rs.mix_rate)
+		_rain_audio.stream = rs
+		_rain_audio.bus = "SFX"
+		_rain_audio.volume_db = -80.0
+		add_child(_rain_audio)
+		_rain_audio.play()
 	_log_overlaps = "--log-overlaps" in args
 	for rr in racers:   # racecraft metric: car-to-car contacts (impact with another car within 6 m)
 		rr.car.impact.connect(func(strength: float):
@@ -760,6 +771,8 @@ func _physics_process(delta: float) -> void:
 		var v := (sp[1] as RaceCarBody).speed_kmh
 		sp[0].emitting = v > 35.0 and spray_k > 0.12
 		sp[0].amount_ratio = clampf(v / 180.0, 0.2, 1.0) * spray_k
+	if _rain_audio:
+		_rain_audio.volume_db = -80.0 if Weather.rain < 0.01 else lerpf(-26.0, -8.0, Weather.rain)
 	if _rain_parts and is_instance_valid(_rain_parts):
 		_rain_parts.amount_ratio = clampf(Weather.rain / maxf(float(Weather.PRESET[Weather.kind]["rain"]), 0.01), 0.0, 1.0)
 		_rain_parts.emitting = Weather.rain > 0.005

@@ -10,6 +10,7 @@ var car: RaceCarBody
 var player := false
 var _layers: Array[AudioStreamPlayer3D] = []
 var _wind: AudioStreamPlayer3D
+var _wet_tyres: AudioStreamPlayer3D   # GR27: tyres on a wet road (hiss grows with speed and road wetness)
 var _boost: AudioStreamPlayer3D
 var _rpm := 0.1
 var _load := 0.0
@@ -42,6 +43,8 @@ func _ready() -> void:
 		_layers.append(p)
 	if player:
 		_wind = _loop("res://assets/audio/wind_loop.wav", -80.0)
+		if Weather.STATE.get(Weather.kind, Weather.STATE["clear"])[4] > 0.3:
+			_wet_tyres = _loop("res://assets/audio/tyre_wet_loop.wav", -80.0)
 		_boost = AudioStreamPlayer3D.new()
 		_boost.stream = load("res://assets/audio/boost_whoosh.wav")
 		_boost.unit_size = 10.0
@@ -100,3 +103,7 @@ func _process(delta: float) -> void:
 		var sp := clampf(car.speed_kmh / 260.0, 0.0, 1.0)
 		_wind.volume_db = lerpf(-50.0, -8.0, sqrt(sp))
 		_wind.pitch_scale = 0.8 + sp * 0.6
+	if _wet_tyres:
+		var sw := clampf(car.speed_kmh / 200.0, 0.0, 1.0) * clampf(Weather.film * 0.6 + Weather.water * 0.8, 0.0, 1.0)
+		_wet_tyres.volume_db = -80.0 if sw < 0.01 else lerpf(-34.0, -6.0, sqrt(sw))
+		_wet_tyres.pitch_scale = 0.85 + clampf(car.speed_kmh / 200.0, 0.0, 1.0) * 0.4
