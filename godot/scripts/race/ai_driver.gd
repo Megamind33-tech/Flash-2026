@@ -116,6 +116,13 @@ func _side_room() -> float:
 			if not hit.is_empty() and hit["collider"] is RaceCarBody:
 				var gap := from.distance_to(hit["position"])
 				push -= s * clampf((2.8 - gap) / 1.6, 0.0, 1.0) * 1.2
+	# never push toward the wall when already near it (a car squeezed onto the barrier)
+	var lat := (car.global_position - track.position_at(racer.distance)).dot(track.right_at(racer.distance))
+	var room := track.half_width - 1.6
+	if lat > room - 0.6:
+		push = minf(push, 0.0)
+	elif lat < -room + 0.6:
+		push = maxf(push, 0.0)
 	return clampf(push, -1.2, 1.2)
 
 
@@ -144,10 +151,19 @@ func _traffic(d: float, speed: float, delta: float) -> float:
 	var space := car.get_world_3d().direct_space_state
 	var from := car.global_position + Vector3.UP * 0.7
 	var range := 26.0 + maxf(speed, 0.0) * 0.4
-	var q := PhysicsRayQueryParameters3D.create(from, from + car.global_basis.z * range)
-	q.exclude = [car.get_rid()]
-	var hit := space.intersect_ray(q)
-	if hit.is_empty() or not (hit["collider"] is RaceCarBody):
+	# A narrow cone (straight ahead and 9 degrees either side): in a corner the car ahead is off-axis, and a single
+	# straight ray missed it on corner entry (opening-lap contacts in turn 1).
+	var hit := {}
+	var best := INF
+	for yaw: float in [0.0, 0.16, -0.16]:
+		var dir := car.global_basis.z.rotated(Vector3.UP, yaw)
+		var q := PhysicsRayQueryParameters3D.create(from, from + dir * range)
+		q.exclude = [car.get_rid()]
+		var h := space.intersect_ray(q)
+		if not h.is_empty() and h["collider"] is RaceCarBody and from.distance_to(h["position"]) < best:
+			best = from.distance_to(h["position"])
+			hit = h
+	if hit.is_empty():
 		if _lane_timer <= 0.0:
 			_target_lane = 0.0
 		return INF
@@ -158,7 +174,12 @@ func _traffic(d: float, speed: float, delta: float) -> float:
 		var other_lat := (other.global_position - track.position_at(d)).dot(track.right_at(d))
 		_target_lane = (-1.0 if other_lat > 0.0 else 1.0) * lerpf(2.2, 3.6, aggression)
 		_lane_timer = lerpf(2.5, 1.2, aggression)
-	var gap := lerpf(9.0, 5.0, aggression) + maxf(speed, 0.0) * 0.15
-	if dist < gap and absf(_target_lane) < 0.5:
+	# Following distance from the closing speed and this car's own braking (~1 g, a little less in the wet), plus a
+	# gap that shrinks with aggression. A car committed to a passing lane still brakes for a car that is in its path
+	# (the cone only hits cars in the path); before, a pass in progress ignored it and ran into the back of it.
+	var closing := maxf(0.0, speed - other_speed)
+	var decel := 8.0 * clampf(Weather.grip, 0.5, 1.0)
+	var need := closing * closing / (2.0 * decel) + lerpf(6.0, 3.5, aggression) + maxf(speed, 0.0) * 0.08
+	if dist < need and (absf(_target_lane) < 0.5 or dist < need * 0.6):
 		return maxf(0.0, other_speed - 1.0)
 	return INF
