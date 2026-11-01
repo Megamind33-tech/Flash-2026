@@ -608,6 +608,7 @@ func _spawn_grid() -> void:
 			for gi in car.find_children("*", "GeometryInstance3D", true, false):
 				(gi as GeometryInstance3D).lod_bias = 0.35
 		add_child(car)
+		TyreFX.attach(car)   # slip-driven wheel spin, smoke, skid marks, squeal
 		car.global_transform = Transform3D(Basis.looking_at(-track.tangent_at(d), Vector3.UP), pos)
 		var r := Racer.new()
 		r.id = "player" if is_player else driver["id"]
@@ -624,6 +625,9 @@ func _spawn_grid() -> void:
 			player = r
 		if not is_player or Game.session["autopilot"]:
 			ais.append(AIDriver.new(r, track, driver if not is_player else {"skill": 70, "experience": 50, "aggression": 40, "consistency": 80}, race_seed + 1000 + slot * 7919))
+			var hs := OS.get_cmdline_user_args().find("--hold-speed")   # recordings: the autopiloted player holds a speed
+			if is_player and hs >= 0:
+				ais[-1].hold_speed = float(OS.get_cmdline_user_args()[hs + 1]) / 3.6
 	standings = _classify()
 
 
@@ -783,6 +787,7 @@ func _player_input() -> void:
 	car.throttle = Input.get_action_strength("accelerate")
 	car.brake_input = Input.get_action_strength("brake")
 	car.boost_held = Input.is_action_pressed("boost")
+	car.handbrake_input = Input.get_action_strength("handbrake") if InputMap.has_action("handbrake") else 0.0
 
 
 ## Auto resolution: every second, compare the frame rate with the cap. Below 90 % of the cap the 3D resolution
@@ -991,6 +996,8 @@ func set_paused(p: bool) -> void:
 
 func restart() -> void:
 	get_tree().paused = false
+	if hud:
+		hud.release_controls()
 	RaceLoader.start_race()
 
 

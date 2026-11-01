@@ -19,6 +19,7 @@ echo "== graphics";   timeout 200 "$G" --headless --path . res://tests/graphics_
 echo "== barriers";   timeout 2400 "$G" --headless --path . --fixed-fps 60 res://tests/barrier_test.tscn 2>&1 | grep -E "^BARRIER"
 echo "== loader";     timeout 600 "$G" --headless --path . -s res://tests/loader_test.gd -- --autotest 1 2>&1 | grep -E "^LOADER (PASS|FAIL)|FAIL"
 echo "== intrusion";  timeout 1800 "$G" --headless --path . res://tests/intrusion_test.tscn 2>&1 | grep -E "^INTRUSION"
+echo "== drive controls"; timeout 1500 "$G" --headless --path . res://tests/drive_controls_test.tscn 2>&1 | grep -E "^DRIVE CONTROLS|FAIL"
 echo "== handling";   timeout 600 "$G" --headless --path . --fixed-fps 60 res://tests/handling_test.tscn 2>&1 | grep -E "^HANDLING"
 echo "== economy";    timeout 200 "$G" --headless --path . res://tests/economy_test.tscn 2>&1 | grep -E "^ECONOMY|FAIL"
 echo "== pause";      timeout 600 "$G" --headless --path . --fixed-fps 60 res://tests/pause_test.tscn 2>&1 | grep -E "^PAUSE"

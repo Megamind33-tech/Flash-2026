@@ -1,0 +1,12 @@
+DRIVE ticks=60
+DRIVE arden_v8       A  ok   stationary 5 s, no input: moved 0.000 m
+DRIVE arden_v8       B  ok   5 s throttle: [0.0, 36.0, 61.0, 83.0, 102.0, 118.0] km/h, wheel turned 300 rad for 299 rad of road, rear squat 1.12°
+DRIVE arden_v8       C  FAIL lift at 100: 87 after 1 s, 50 after 5 s (2.78 m/s² avg), at rest after 23.4 s, then moved 0.004 m, engine force 0
+DRIVE arden_v8       D  FAIL brake from 100: stop in 35.7 m / 2.80 s, min tyre grip 1.00, nose dip 1.39°, brake lights OFF, held 3 s: moved 15.864 m (reverse speed -9.99)
+DRIVE arden_v8       D2 ok   release + press again at rest: reverse -14.6 m/s, gear R
+DRIVE arden_v8       D3 ok   gas after reversing: forward 14.8 m/s
+DRIVE arden_v8       E  ok   80 km/h corner: front wheel steer 10.6°, body roll 3.78°, 4 wheels down true
+DRIVE arden_v8       F  FAIL no handbrake on this controller (n/a)
+DRIVE arden_v8       G  ok   kerbs at 60: suspension travel 0.088 m, max lift 0.12 m/s, min wheels down 4
+DRIVE arden_v8       H  ok   gas + brake held 1 s from 80: 43 km/h
+DRIVE CONTROLS FAIL failures=3

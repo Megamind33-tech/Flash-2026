@@ -15,7 +15,7 @@ const STYLES := {
 		"bay": 3.6, "floor": 3.2, "win": Vector2(0.58, 0.5), "shop": 1.0, "ac": 0.18, "stains": 0.75,
 		"ground": "ground_dirt", "ground_tint": "#b0704a", "road": "road_aged", "road_tint": "#9a958c",
 		"tower": "tower_white", "trees": 0.9, "tree_tint": "#c9b6e6", "haze": "#d8c7a8",
-		"surface_grip": 0.96, "lines": "#f2f2ee", "crack_fade": 0.85,   # resurfaced for the race (Lusaka venue)
+		"surface_grip": 0.96, "lines": "#f2f2ee", "crack_fade": 0.3,   # texture itself is resurfaced (tools/assets/resurface_asphalt.py); this lifts what remains
 		# painted render instead of the kit's European brick: Lusaka's cream, ochre, terracotta, pale green, blue, white
 		"painted": true, "paint_palette": ["#e8dcc0", "#d9b37a", "#cf8f72", "#b9cba3", "#9fbfd6", "#f1eee6", "#e3c9a0", "#c96f4a"],
 		"weather": {"clear": 0.45, "cloudy": 0.25, "dust": 0.12, "rain": 0.12, "storm": 0.06},

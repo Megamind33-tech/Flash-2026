@@ -1,0 +1,52 @@
+DRIVE ticks=60
+DRIVE arden_v8       A  ok   stationary 5 s, no input: moved 0.000 m, fastest wheel 0.01 rad/s
+DRIVE arden_v8       B  ok   5 s throttle: [0.0, 41.0, 73.0, 96.0, 113.0, 126.0] km/h, wheel turned 338 rad for 338 rad of road, rear squat 1.23°, smoke puffs 0 (after launch slip 0.00)
+DRIVE arden_v8       C  ok   lift at 100: 96 after 1 s, 77 after 5 s (1.28 m/s² avg), at rest after 22.6 s, then moved 0.000 m, engine force 0
+DRIVE arden_v8       D  ok   brake from 100: stop in 42.7 m / 3.08 s, min tyre grip 1.00, nose dip 1.17°, brake lights on, held 3 s: wheels moved 0.001 m, body rocked 0.001 m (reverse speed -0.11)
+DRIVE arden_v8       D2 ok   release + press again at rest: reverse -8.5 m/s, gear R
+DRIVE arden_v8       D3 ok   gas after reversing: forward 20.7 m/s
+DRIVE arden_v8       E  ok   80 km/h corner: front wheel steer 9.3°, body roll 3.80°, 4 wheels down true
+DRIVE arden_v8       F  ok   drawn rear wheel turned 3.5 rad vs simulated 3.5 rad; handbrake at 70: body slip angle 35.8°, yaw 1.97 rad/s, upright 1.00, rear wheel at 14% of road speed, smoke puffs 118, skid segments 143
+DRIVE arden_v8       G  ok   kerbs at 60: suspension travel 0.089 m, max lift 0.13 m/s, min wheels down 4
+DRIVE arden_v8       H  ok   gas + brake held 1 s from 80: 49 km/h
+DRIVE arden_gt3      A  ok   stationary 5 s, no input: moved 0.000 m, fastest wheel 0.00 rad/s
+DRIVE arden_gt3      B  ok   5 s throttle: [0.0, 36.0, 64.0, 88.0, 106.0, 120.0] km/h, wheel turned 284 rad for 284 rad of road, rear squat 1.04°, smoke puffs 0 (after launch slip 0.00)
+DRIVE arden_gt3      C  ok   lift at 100: 95 after 1 s, 77 after 5 s (1.30 m/s² avg), at rest after 22.3 s, then moved 0.000 m, engine force 0
+DRIVE arden_gt3      D  ok   brake from 100: stop in 33.3 m / 2.40 s, min tyre grip 1.00, nose dip 1.35°, brake lights on, held 3 s: wheels moved 0.002 m, body rocked 0.006 m (reverse speed -0.13)
+DRIVE arden_gt3      D2 ok   release + press again at rest: reverse -7.1 m/s, gear R
+DRIVE arden_gt3      D3 ok   gas after reversing: forward 20.5 m/s
+DRIVE arden_gt3      E  ok   80 km/h corner: front wheel steer 11.6°, body roll 4.15°, 4 wheels down true
+DRIVE arden_gt3      F  ok   drawn rear wheel turned 3.6 rad vs simulated 3.6 rad; handbrake at 70: body slip angle 27.5°, yaw 1.94 rad/s, upright 1.00, rear wheel at 17% of road speed, smoke puffs 120, skid segments 140
+DRIVE arden_gt3      G  ok   kerbs at 60: suspension travel 0.089 m, max lift 0.12 m/s, min wheels down 4
+DRIVE arden_gt3      H  ok   gas + brake held 1 s from 80: 40 km/h
+DRIVE ravenna_hybrid A  ok   stationary 5 s, no input: moved 0.000 m, fastest wheel 0.00 rad/s
+DRIVE ravenna_hybrid B  ok   5 s throttle: [0.0, 40.0, 73.0, 96.0, 114.0, 127.0] km/h, wheel turned 301 rad for 301 rad of road, rear squat 1.28°, smoke puffs 0 (after launch slip 0.00)
+DRIVE ravenna_hybrid C  ok   lift at 100: 96 after 1 s, 77 after 5 s (1.32 m/s² avg), at rest after 22.1 s, then moved 0.000 m, engine force 0
+DRIVE ravenna_hybrid D  ok   brake from 100: stop in 36.1 m / 2.60 s, min tyre grip 1.00, nose dip 1.40°, brake lights on, held 3 s: wheels moved 0.001 m, body rocked 0.005 m (reverse speed -0.12)
+DRIVE ravenna_hybrid D2 ok   release + press again at rest: reverse -8.3 m/s, gear R
+DRIVE ravenna_hybrid D3 ok   gas after reversing: forward 21.8 m/s
+DRIVE ravenna_hybrid E  ok   80 km/h corner: front wheel steer 10.0°, body roll 3.56°, 4 wheels down true
+DRIVE ravenna_hybrid F  ok   drawn rear wheel turned 4.1 rad vs simulated 4.1 rad; handbrake at 70: body slip angle 21.7°, yaw 1.73 rad/s, upright 1.00, rear wheel at 19% of road speed, smoke puffs 117, skid segments 146
+DRIVE ravenna_hybrid G  ok   kerbs at 60: suspension travel 0.089 m, max lift 0.12 m/s, min wheels down 4
+DRIVE ravenna_hybrid H  ok   gas + brake held 1 s from 80: 43 km/h
+DRIVE solano_concept A  ok   stationary 5 s, no input: moved 0.000 m, fastest wheel 0.01 rad/s
+DRIVE solano_concept B  ok   5 s throttle: [0.0, 39.0, 70.0, 93.0, 110.0, 123.0] km/h, wheel turned 308 rad for 308 rad of road, rear squat 1.15°, smoke puffs 0 (after launch slip 0.00)
+DRIVE solano_concept C  ok   lift at 100: 96 after 1 s, 77 after 5 s (1.28 m/s² avg), at rest after 22.6 s, then moved 0.000 m, engine force 0
+DRIVE solano_concept D  ok   brake from 100: stop in 39.8 m / 2.87 s, min tyre grip 1.00, nose dip 1.22°, brake lights on, held 3 s: wheels moved 0.000 m, body rocked 0.003 m (reverse speed -0.12)
+DRIVE solano_concept D2 ok   release + press again at rest: reverse -7.9 m/s, gear R
+DRIVE solano_concept D3 ok   gas after reversing: forward 20.6 m/s
+DRIVE solano_concept E  ok   80 km/h corner: front wheel steer 10.4°, body roll 2.81°, 4 wheels down true
+DRIVE solano_concept F  ok   drawn rear wheel turned 3.4 rad vs simulated 3.4 rad; handbrake at 70: body slip angle 29.4°, yaw 1.85 rad/s, upright 1.00, rear wheel at 15% of road speed, smoke puffs 120, skid segments 144
+DRIVE solano_concept G  ok   kerbs at 60: suspension travel 0.085 m, max lift 0.12 m/s, min wheels down 4
+DRIVE solano_concept H  ok   gas + brake held 1 s from 80: 47 km/h
+DRIVE elektra_egt    A  ok   stationary 5 s, no input: moved 0.000 m, fastest wheel 0.00 rad/s
+DRIVE elektra_egt    B  ok   5 s throttle: [0.0, 44.0, 77.0, 98.0, 114.0, 127.0] km/h, wheel turned 304 rad for 304 rad of road, rear squat 1.11°, smoke puffs 0 (after launch slip 0.00)
+DRIVE elektra_egt    C  ok   lift at 100: 96 after 1 s, 77 after 5 s (1.27 m/s² avg), at rest after 22.6 s, then moved 0.000 m, engine force 0
+DRIVE elektra_egt    D  ok   brake from 100: stop in 44.8 m / 3.23 s, min tyre grip 1.00, nose dip 0.93°, brake lights on, held 3 s: wheels moved 0.001 m, body rocked 0.004 m (reverse speed -0.09)
+DRIVE elektra_egt    D2 ok   release + press again at rest: reverse -9.1 m/s, gear R
+DRIVE elektra_egt    D3 ok   gas after reversing: forward 20.8 m/s
+DRIVE elektra_egt    E  ok   80 km/h corner: front wheel steer 8.6°, body roll 3.24°, 4 wheels down true
+DRIVE elektra_egt    F  ok   drawn rear wheel turned 3.1 rad vs simulated 3.1 rad; handbrake at 70: body slip angle 30.3°, yaw 1.83 rad/s, upright 1.00, rear wheel at 15% of road speed, smoke puffs 117, skid segments 146
+DRIVE elektra_egt    G  ok   kerbs at 60: suspension travel 0.085 m, max lift 0.12 m/s, min wheels down 4
+DRIVE elektra_egt    H  ok   gas + brake held 1 s from 80: 51 km/h
+DRIVE CONTROLS PASS failures=0

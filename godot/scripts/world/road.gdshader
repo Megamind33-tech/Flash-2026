@@ -48,7 +48,13 @@ void fragment() {
 	float h = mix(texture(height_tex, t).r, texture(height_tex, t2).r, mixw);
 	// local tone (a coarse mip of both samples): the reference for softening speckle and lifting cracks
 	vec3 local = mix(textureLod(albedo_tex, t, 4.0).rgb, textureLod(albedo_tex, t2, 4.0).rgb, mixw) * tint;
-	base = mix(base, local, detail_soften);
+	// Soften only where the texture is minified (more than ~1.5 texels per pixel, i.e. far away or at grazing
+	// angles, where aggregate detail is finer than a pixel and would shimmer). Close to the camera, where the
+	// scan is resolved, the real aggregate detail stays: the old constant blend blurred the near road too.
+	vec2 texels = fwidth(t) * vec2(textureSize(albedo_tex, 0));
+	float footprint = max(texels.x, texels.y);
+	float soften = detail_soften * smoothstep(1.2, 4.0, footprint);
+	base = mix(base, local, soften);
 	// crack fade: pixels much darker than their neighbourhood (the cracks in the scan) are lifted toward it
 	if (crack_fade > 0.0) {
 		float dark = clamp((dot(local, vec3(0.333)) - dot(base, vec3(0.333))) * 16.0, 0.0, 1.0);
@@ -66,7 +72,7 @@ void fragment() {
 	rough = mix(rough, rough * 0.8, mask.r);
 	// rain: the whole road darkens and goes satin; puddles stand in shallow dips toward the gutters
 	vec3 nm = mix(texture(normal_tex, t).rgb, texture(normal_tex, t2).rgb, mixw);
-	nm = mix(nm, vec3(0.5, 0.5, 1.0), clamp(crack_fade * 0.45 + 0.35, 0.0, 0.9));   // gentler normal detail: less sparkle
+	nm = mix(nm, vec3(0.5, 0.5, 1.0), 0.6);   // gentler normal detail on every road: the scan's pixel-scale normals sparkle in the sun
 	float puddle = 0.0;
 	vec2 ripple = vec2(0.0);
 	if (wet > 0.0) {

@@ -15,6 +15,12 @@ var _shake := 0.0
 var _bound: RaceCarBody
 var boost_kick := 0.0
 var _kick := 0.0
+var _surge := 0.0        # smoothed longitudinal acceleration (m/s^2): the camera trails under power, closes in braking
+var _last_fwd_speed := 0.0
+## Tuning (metres per m/s^2 of acceleration, clamp; share of the velocity heading followed in a slide)
+const SURGE_GAIN := 0.09
+const SURGE_MAX := 0.75
+const SLIP_FOLLOW := 0.35
 
 
 ## Impacts shake the camera briefly (scaled by the hit; decays in ~0.4 s).
@@ -36,6 +42,20 @@ func _physics_process(delta: float) -> void:
 	var fwd := target.global_basis.z
 	fwd.y = 0.0
 	var target_yaw := atan2(fwd.x, fwd.z)
+	# In a slide, follow part of the direction of travel rather than only the nose, so a drift reads as an angle
+	# on screen instead of the world rotating around a fixed car.
+	var vel := target.linear_velocity
+	vel.y = 0.0
+	if vel.length() > 8.0 and mode != 2:
+		var vyaw := atan2(vel.x, vel.z)
+		var diff := wrapf(vyaw - target_yaw, -PI, PI)
+		if absf(diff) < 1.2:
+			target_yaw += diff * SLIP_FOLLOW * (0.5 if Game.reduce_motion() else 1.0)
+	var fs := target.linear_velocity.dot(target.global_basis.z)
+	var acc := (fs - _last_fwd_speed) / maxf(delta, 0.001)
+	_last_fwd_speed = fs
+	if not _snap:
+		_surge = lerpf(_surge, clampf(acc, -12.0, 12.0), clampf(delta * 3.0, 0.0, 1.0))
 	if _snap:
 		_yaw = target_yaw
 	_yaw = lerp_angle(_yaw, target_yaw, clampf(delta * 6.0, 0.0, 1.0))
@@ -47,6 +67,7 @@ func _physics_process(delta: float) -> void:
 	else:
 		# Pull back a little at speed and swing slightly wide of the turn so corners read better.
 		var pull := 1.0 + 0.12 * clampf(speed / 55.0, 0.0, 1.0)
+		pull += clampf(_surge * SURGE_GAIN, -SURGE_MAX, SURGE_MAX) * (0.5 if Game.reduce_motion() else 1.0) / maxf(MODES[mode][0], 1.0)
 		var swing := -target.steering * (0.5 if Game.reduce_motion() else 1.2)
 		var desired := target.global_position + rot * Vector3(swing, MODES[mode][1], -MODES[mode][0] * pull)
 		# Collision avoidance: pull the camera in front of walls/buildings between it and the car.

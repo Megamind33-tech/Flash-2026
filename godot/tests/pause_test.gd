@@ -25,9 +25,29 @@ func _ready() -> void:
 	for k in 360:   # 6 s of racing
 		await tree.physics_frame
 	var cap := Engine.max_fps
+	# Stuck-touch check: a finger on GAS when the game pauses, lifted while paused (the release never arrives).
+	var gas: TouchScreenButton = null
+	if race.hud:
+		race.hud.controls.visible = true
+		for b in race.hud.controls.find_children("*", "TouchScreenButton", true, false):
+			if (b as TouchScreenButton).action == "accelerate":
+				gas = b
+	var touch_ok := gas != null
+	if gas:
+		var ev := InputEventScreenTouch.new()
+		ev.index = 3
+		ev.pressed = true
+		ev.position = gas.get_viewport().get_screen_transform() * gas.get_global_transform_with_canvas().origin
+		Input.parse_input_event(ev)
+		await tree.process_frame
+		await tree.process_frame
+		touch_ok = Input.is_action_pressed("accelerate")
+		check(touch_ok, "simulated finger on GAS presses accelerate")
 	var before: Array = race.racers.map(func(r): return [r.car.global_position, r.car.linear_velocity.length()])
 	var clock: float = race.race_time
 	tree.paused = true
+	if race.hud:
+		race.hud.pause_panel.pause()
 	for k in 120:
 		await tree.process_frame
 	var still := true
@@ -35,7 +55,13 @@ func _ready() -> void:
 		still = still and race.racers[i].car.global_position.distance_to(before[i][0]) < 0.01
 	check(still, "no car moves during 2 s of pause")
 	check(is_equal_approx(race.race_time, clock), "race clock stops while paused")
+	if race.hud:
+		race.hud.pause_panel.resume()
 	tree.paused = false
+	await tree.process_frame
+	if touch_ok:   # (the pads were rebuilt, so `gas` itself is gone now)
+		check(not Input.is_action_pressed("accelerate"), "GAS released after pause/resume although the finger-up was lost")
+		check(race.player.car.throttle < 0.01 or Game.session["autopilot"], "player throttle not stuck")
 	for k in 120:
 		await tree.physics_frame
 	var moved := 0

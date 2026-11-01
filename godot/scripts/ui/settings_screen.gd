@@ -334,7 +334,7 @@ func _tab_controls() -> void:
 	_slider("Control opacity", float(s.get("controlsOpacity", 0.85)) * 100.0, 30, 100, 5, "%d%%", func(x):
 		s["controlsOpacity"] = x / 100.0
 		Game.persist())
-	_note.text = "A Bluetooth gamepad works too: A accelerate, X brake, B / RB boost, Y camera, Start pause."
+	_note.text = "A Bluetooth gamepad works too: A accelerate, X brake (tap again at a stop to reverse), LB handbrake, B / RB boost, Y camera, Start pause."
 
 
 func _tab_accessibility() -> void:

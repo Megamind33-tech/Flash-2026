@@ -393,6 +393,23 @@ func _pad(parent: Control, action: String, pos: Vector2, sz: Vector2, round: boo
 	panel.add_child(tsb)
 
 
+const DRIVE_ACTIONS := ["accelerate", "brake", "steer_left", "steer_right", "boost", "handbrake"]
+
+
+## Lets go of every driving input and rebuilds the touch pads. Called on pause, resume and when the app loses
+## focus: a finger lifted while the game was paused (or another app on top) never reaches a TouchScreenButton,
+## which would otherwise keep its action held (stuck throttle / brake) after resuming.
+func release_controls() -> void:
+	for a in DRIVE_ACTIONS:
+		if InputMap.has_action(a):
+			Input.action_release(a)
+	if controls:
+		var vis := controls.visible
+		controls.free()
+		_build_controls()
+		controls.visible = vis
+
+
 func _build_controls() -> void:
 	controls = Control.new()
 	controls.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -413,6 +430,7 @@ func _build_controls() -> void:
 	_pad(right, "brake", Vector2(-520, -300), Vector2(200, 250), false, "", "BRAKE", UiStyle.RED)
 	_pad(right, "accelerate", Vector2(-280, -390), Vector2(220, 340), false, "speed", "GAS", UiStyle.MONEY)
 	_pad(right, "boost", Vector2(-480, -520), Vector2(150, 150), true, "", "NOS", Color(0.3, 0.75, 1.0))
+	_pad(right, "handbrake", Vector2(-660, -470), Vector2(130, 130), true, "", "HB", Color(1.0, 0.82, 0.3))
 	# Player-configurable size and transparency (Settings), scaled toward each screen corner.
 	var sc := float(Game.settings().get("controlsSize", 1.0))
 	left.scale = Vector2(sc, sc)
@@ -462,6 +480,8 @@ func _set_pause(p: bool) -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST and race and race.phase != race.Phase.RESULTS:
 		_set_pause(not pause_panel.visible)
+	elif what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
+		release_controls()
 	elif what == NOTIFICATION_APPLICATION_PAUSED and race and (race.phase == race.Phase.RACING or race.phase == race.Phase.FINISHING):
 		_set_pause(true)
 

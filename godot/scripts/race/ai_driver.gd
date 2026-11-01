@@ -7,6 +7,7 @@ var car: RaceCarBody
 var track: TrackPath
 var racer: Racer
 var pace := 0.94
+var hold_speed := -1.0   # m/s cap (recordings at fixed speeds: race.gd --hold-speed <km/h>)
 var noise := 0.01
 var aggression := 0.5
 var steer_gain := 1.9
@@ -79,6 +80,8 @@ func drive(delta: float) -> void:
 	if profile < track.max_speed * 0.95:
 		profile *= bravery
 	var target_speed := minf(profile * (pace + _jitter), cap)
+	if hold_speed > 0.0:
+		target_speed = minf(target_speed, hold_speed)
 	# A mistake: a lock-up or a moment off the line costs about a second, then the driver gathers it up.
 	if _mistake_at >= 0.0 and fmod(d, track.length) > _mistake_at:
 		_mistake_at = -1.0

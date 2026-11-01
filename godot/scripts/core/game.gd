@@ -42,7 +42,7 @@ func _bind_settings_addon() -> void:
 	var st := get_node_or_null("/root/Settings")
 	if st == null:
 		return
-	st.rebindable_actions = PackedStringArray(["accelerate", "brake", "steer_left", "steer_right", "boost", "camera", "pause"])
+	st.rebindable_actions = PackedStringArray(["accelerate", "brake", "handbrake", "steer_left", "steer_right", "boost", "camera", "pause"])
 	st.apply_keybinds()
 	settings()["showFps"] = bool(st.get_value("display.fps_visible", settings().get("showFps", false))) or bool(settings().get("showFps", false))
 	st.setting_changed.connect(func(key: String, value):
@@ -122,6 +122,7 @@ func _ensure_input_actions() -> void:
 	var pads := {
 		"accelerate": [JOY_BUTTON_A], "brake": [JOY_BUTTON_X], "steer_left": [JOY_BUTTON_DPAD_LEFT], "steer_right": [JOY_BUTTON_DPAD_RIGHT],
 		"pause": [JOY_BUTTON_START], "camera": [JOY_BUTTON_Y], "boost": [JOY_BUTTON_B, JOY_BUTTON_RIGHT_SHOULDER],
+		"handbrake": [JOY_BUTTON_LEFT_SHOULDER],
 	}
 	for action in pads:
 		if not InputMap.has_action(action):
@@ -404,6 +405,10 @@ func apply_preset(i: int) -> void:
 
 ## The render scale the game starts a race at: the user's fixed choice, or the preset's default under Auto.
 func base_render_scale() -> float:
+	var args := OS.get_cmdline_user_args()   # measurements: --render-scale 0.75
+	var ri := args.find("--render-scale")
+	if ri >= 0 and ri + 1 < args.size() and args[ri + 1].is_valid_float():
+		return clampf(float(args[ri + 1]), 0.4, 1.0)
 	var s := settings()
 	var fixed := float(s.get("renderScale", 0.0))
 	return fixed if fixed > 0.0 else float(PRESETS[clampi(int(s["quality"]), 0, 3)]["scale"])
@@ -421,6 +426,35 @@ func set_render_scale(scale: float) -> void:
 	vp.scaling_3d_scale = clampf(scale, 0.4, 1.0)
 	# FSR 1 upscaling (sharper edges) exists only on Forward+ (the Ultra tier); the Mobile renderer scales bilinearly.
 	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR if scale < 0.99 and RenderingServer.get_current_rendering_method() == "forward_plus" else Viewport.SCALING_3D_MODE_BILINEAR
+	var args := OS.get_cmdline_user_args()   # measurements: --upscale bilinear|fsr|cas
+	var ui := args.find("--upscale")
+	var mode := args[ui + 1] if ui >= 0 and ui + 1 < args.size() else "auto"
+	if mode == "fsr" and scale < 0.99:
+		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR
+	# Mobile / Compatibility: bilinear stretch, then a contrast-adaptive sharpening pass at native resolution
+	# (scripts/core/upscale_sharpen.gdshader). Stronger the further the 3D image was scaled down.
+	var sharpen := scale < 0.99 and vp.scaling_3d_mode == Viewport.SCALING_3D_MODE_BILINEAR and mode in ["auto", "cas"]
+	_sharpen_pass(sharpen, clampf(0.15 + (1.0 - scale) * 0.9, 0.15, 0.6))
+
+
+var _sharpen_layer: CanvasLayer
+
+
+func _sharpen_pass(on: bool, amount: float) -> void:
+	if _sharpen_layer == null:
+		_sharpen_layer = CanvasLayer.new()
+		_sharpen_layer.name = "UpscaleSharpen"
+		_sharpen_layer.layer = -100   # above the 3D image, below every HUD / menu layer
+		var rect := ColorRect.new()
+		rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var mat := ShaderMaterial.new()
+		mat.shader = load("res://scripts/core/upscale_sharpen.gdshader")
+		rect.material = mat
+		_sharpen_layer.add_child(rect)
+		add_child(_sharpen_layer)
+	_sharpen_layer.visible = on
+	((_sharpen_layer.get_child(0) as ColorRect).material as ShaderMaterial).set_shader_parameter("sharpness", amount)
 
 
 ## Frame-rate caps offered: never above what the display refreshes at (a cap is a limit, not a promise).

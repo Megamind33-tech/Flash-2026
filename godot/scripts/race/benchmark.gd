@@ -18,6 +18,10 @@ var _frames := PackedFloat32Array()
 var _draws := 0.0
 var _prims := 0.0
 var _samples := 0
+var _cpu_ms := 0.0      # render-thread CPU time per frame (RenderingServer measurement)
+var _gpu_ms := 0.0      # GPU time per frame, where the driver reports it
+var _phys_ms := 0.0     # physics step (all _physics_process + the physics server), per frame
+var _proc_ms := 0.0     # game logic (_process), per frame
 var _temp_start := {}
 var _done := false
 var report := {}
@@ -31,6 +35,7 @@ func _ready() -> void:
 	if OS.has_environment("BENCH_SECONDS"):   # tests: a short run
 		duration = float(OS.get_environment("BENCH_SECONDS"))
 	_temp_start = temperatures()
+	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
 
 
 func _process(_delta: float) -> void:
@@ -45,6 +50,11 @@ func _process(_delta: float) -> void:
 	_frames.append(dt)
 	_draws += Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
 	_prims += Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)
+	var vrid := get_viewport().get_viewport_rid()
+	_cpu_ms += RenderingServer.viewport_get_measured_render_time_cpu(vrid) + RenderingServer.get_frame_setup_time_cpu()
+	_gpu_ms += RenderingServer.viewport_get_measured_render_time_gpu(vrid)
+	_phys_ms += Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0
+	_proc_ms += Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
 	_samples += 1
 	if _t >= WARMUP + duration:
 		_finish()
@@ -110,6 +120,8 @@ func _finish() -> void:
 		"low1_fps": snappedf(1000.0 / maxf(worst1, 0.001), 0.1),
 		"p50_ms": snappedf(pct.call(0.5), 0.1), "p95_ms": snappedf(pct.call(0.95), 0.1), "p99_ms": snappedf(pct.call(0.99), 0.1),
 		"worst_ms": snappedf(sorted[n - 1], 0.1), "frames_over_33ms": over,
+		"render_cpu_ms": snappedf(_cpu_ms / maxf(_samples, 1), 0.01), "gpu_ms": snappedf(_gpu_ms / maxf(_samples, 1), 0.01),
+		"physics_ms": snappedf(_phys_ms / maxf(_samples, 1), 0.01), "logic_ms": snappedf(_proc_ms / maxf(_samples, 1), 0.01),
 		"draw_calls": roundi(_draws / maxf(_samples, 1)), "triangles": roundi(_prims / maxf(_samples, 1)),
 		"video_mem_mb": roundi(Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0),
 		"ram_mb": roundi(Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0),
@@ -130,10 +142,10 @@ func text() -> String:
 	var temp := "not readable on this device"
 	if t1.has("battery") or t1.has("hottest_zone"):
 		temp = "battery %s -> %s C, hottest sensor %s -> %s C" % [str(t0.get("battery", "?")), str(t1.get("battery", "?")), str(t0.get("hottest_zone", "?")), str(t1.get("hottest_zone", "?"))]
-	return "GRIDLINE benchmark (Lusaka, 5 cars, %ss)\nDevice: %s (%s)\nGPU: %s, renderer %s\nPreset: %s%s, 3D res %s, cap %d fps, display %d Hz, %s\n\nAverage FPS: %s\n1%% low FPS: %s\nFrame time p50 / p95 / p99 / worst: %s / %s / %s / %s ms\nFrames over 33 ms: %d of %d\nDraw calls: %d   Triangles: %d\nVideo memory: %d MB   RAM: %d MB\nTemperature: %s" % [
+	return "GRIDLINE benchmark (Lusaka, 5 cars, %ss)\nDevice: %s (%s)\nGPU: %s, renderer %s\nPreset: %s%s, 3D res %s, cap %d fps, display %d Hz, %s\n\nAverage FPS: %s\n1%% low FPS: %s\nFrame time p50 / p95 / p99 / worst: %s / %s / %s / %s ms\nFrames over 33 ms: %d of %d\nCPU render %s ms, GPU %s ms, physics %s ms, game logic %s ms per frame\nDraw calls: %d   Triangles: %d\nVideo memory: %d MB   RAM: %d MB\nTemperature: %s" % [
 		r["seconds"], r["device"], r["os"], r["gpu"], r["renderer"], r["preset"], " (custom options)" if r["custom_options"] else "",
 		r["render_scale"], r["frame_cap"], r["display_hz"], r["window"], r["avg_fps"], r["low1_fps"], r["p50_ms"], r["p95_ms"], r["p99_ms"],
-		r["worst_ms"], r["frames_over_33ms"], r["frames"], r["draw_calls"], r["triangles"], r["video_mem_mb"], r["ram_mb"], temp]
+		r["worst_ms"], r["frames_over_33ms"], r["frames"], r["render_cpu_ms"], "n/a" if float(r["gpu_ms"]) <= 0.0 else str(r["gpu_ms"]), r["physics_ms"], r["logic_ms"], r["draw_calls"], r["triangles"], r["video_mem_mb"], r["ram_mb"], temp]
 
 
 func _show() -> void:

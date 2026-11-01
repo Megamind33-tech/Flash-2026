@@ -8,16 +8,20 @@ extends RefCounted
 const DEFAULT_CAR := "arden_v8"
 ## Fictional names only — the source models resemble real cars; no manufacturer names or badges are used.
 ## mass kg · power/grip/aero multipliers (1.0 = baseline) · rear-wheel or all-wheel drive.
+## power x band: launch force and the speed up to which it holds (then constant power, so power x band sets the
+## top speed; all within ~5 %). The EV and the V8 pull hardest off the line, the GT3 is softer off the line but
+## brakes and corners best, the Ravenna has the most top-end. steer: steering rate/lock multiplier (the GT3
+## turns in sharpest, the 2-tonne EV is the heaviest to place).
 const ROSTER := {
-	"arden_v8": {"brakes": 1.0, "vmax": 60.0, "price": 0, "name": "Arden V8 Coupé", "class": "GT", "mass": 1570.0, "power": 1.00, "grip": 1.00, "aero": 1.0, "awd": true,
+	"arden_v8": {"band": 17.0, "steer": 0.92, "brakes": 1.0, "vmax": 60.0, "price": 0, "name": "Arden V8 Coupé", "class": "GT", "mass": 1570.0, "power": 1.10, "grip": 1.00, "aero": 1.0, "awd": true,
 		"author": "Neubi (BlendSwap #17183)", "licence": "CC0"},
-	"arden_gt3": {"brakes": 1.3, "vmax": 62.5, "price": 32000, "name": "Arden GT3 R", "class": "GT3", "mass": 1310.0, "power": 0.97, "grip": 1.04, "aero": 1.6, "awd": false,
+	"arden_gt3": {"band": 19.5, "steer": 1.15, "brakes": 1.3, "vmax": 62.5, "price": 32000, "name": "Arden GT3 R", "class": "GT3", "mass": 1310.0, "power": 0.92, "grip": 1.04, "aero": 1.6, "awd": false,
 		"author": "BlendSwap #91200 author", "licence": "CC0"},
-	"ravenna_hybrid": {"brakes": 1.2, "vmax": 64.0, "price": 60000, "name": "Ravenna Ibrido", "class": "Hypercar", "mass": 1480.0, "power": 1.05, "grip": 1.00, "aero": 1.2, "awd": false,
+	"ravenna_hybrid": {"band": 18.0, "steer": 1.0, "brakes": 1.2, "vmax": 64.0, "price": 60000, "name": "Ravenna Ibrido", "class": "Hypercar", "mass": 1480.0, "power": 1.08, "grip": 1.00, "aero": 1.2, "awd": false,
 		"author": "zenox3d (BlendSwap #74782)", "licence": "CC BY-SA 3.0"},
-	"solano_concept": {"brakes": 1.08, "vmax": 60.5, "price": 18000, "name": "Solano Concepto S", "class": "GT", "mass": 1530.0, "power": 1.02, "grip": 0.99, "aero": 1.0, "awd": false,
+	"solano_concept": {"band": 18.0, "steer": 1.04, "brakes": 1.08, "vmax": 60.5, "price": 18000, "name": "Solano Concepto S", "class": "GT", "mass": 1530.0, "power": 1.02, "grip": 0.99, "aero": 1.0, "awd": false,
 		"author": "zenox3d (BlendSwap #74332)", "licence": "CC BY-SA 3.0"},
-	"elektra_egt": {"brakes": 0.95, "vmax": 59.0, "price": 45000, "name": "Elektra E-GT", "class": "EV", "mass": 2050.0, "power": 1.03, "grip": 0.98, "aero": 0.9, "awd": true,
+	"elektra_egt": {"band": 15.5, "steer": 0.86, "brakes": 0.95, "vmax": 59.0, "price": 45000, "name": "Elektra E-GT", "class": "EV", "mass": 2050.0, "power": 1.20, "grip": 0.98, "aero": 0.9, "awd": true,
 		"author": "Lee Rosario (BlendSwap #86736)", "licence": "CC BY 3.0"},
 }
 ## Team cars (each AI team races one model; the player picks theirs in the Garage).
@@ -53,7 +57,8 @@ static func info(car_id: String) -> Dictionary:
 
 ## Shared material per canonical slot (paint is per livery; tail lights are per car so brake lights can glow).
 static func material(slot: String, livery: String) -> Material:
-	var key := slot + "|" + (livery if slot == "paint" else "")
+	var flake := VisualsManager.level("textures") >= 2   # metallic flake only from Quality textures up (budget phones: plain metallic)
+	var key := slot + "|" + (livery if slot == "paint" else "") + ("|f" if slot == "paint" and flake else "")
 	if _materials.has(key):
 		return _materials[key]
 	var m := StandardMaterial3D.new()
@@ -70,7 +75,7 @@ static func material(slot: String, livery: String) -> Material:
 			m.metallic = 0.0 if solid else 0.82
 			m.roughness = 0.3 if solid else 0.3
 			m.metallic_specular = 0.6
-			if not solid:
+			if not solid and flake:
 				# Metallic flake: a tileable micro-flake normal map (assets/models/cars/paint_flake_normal.png) under a
 				# mirror-smooth clear coat, mapped in object space so it needs no UVs. Highlights break into sparkle
 				# instead of a flat grey sheen; the clear coat keeps the sharp reflections of the softboxes and sky.

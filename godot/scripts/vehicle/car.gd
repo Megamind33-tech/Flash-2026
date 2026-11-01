@@ -18,6 +18,7 @@ signal impact(strength: float)
 @export var offroad_grip := 0.75
 
 var car_id := ""
+var power_speed := POWER_SPEED
 var tail_lights: StandardMaterial3D
 var wheels_on_ground := 4
 var pothole_hits := 0
@@ -28,6 +29,7 @@ var legacy_physics := false   # tests only: the pre-0.4 behaviour (body-axis dow
 var throttle := 0.0
 var brake_input := 0.0
 var steer_input := 0.0
+var handbrake_input := 0.0
 var input_enabled := false
 
 # Boost (N2O): charged by skills (race/skills.gd) and slowly over time; burns while held. Slipstream: set by Skills
@@ -52,11 +54,26 @@ var _skid: AudioStreamPlayer3D
 var _impact: AudioStreamPlayer3D
 
 const GEARS := 6
+## Deceleration when coasting (no pedal): tyre rolling resistance plus engine braking in the current gear, in m/s^2.
+## Aero drag comes on top (apply_central_force below). Measured by tests/drive_controls_test (Test C).
+const ROLLING_DECEL := 0.18
+const ENGINE_BRAKE_DECEL := 1.25   # in 1st gear; divided by the gear number (longer gears brake less)
+const STOPPED := 0.6               # m/s: below this the car counts as stationary for gear selection
+
+## Transmission state: +1 drive, -1 reverse. Reverse is a deliberate choice: come to a stop on the brake, release
+## it, then press it again (a fresh press while stationary). Holding the brake at a standstill just holds the car.
+var direction := 1
+var braking := false
+var _brk_was := false
+var _stopped_on_brake := false
 ## Per-kilogram baselines tuned on the 1100 kg prototype (0-100 km/h ~4.2 s, ~200 km/h top speed); scaling
 ## every force with mass keeps acceleration and top speed while giving the car real weight in contacts.
 const ACCEL_PER_KG := 4800.0 / 1100.0
 const BRAKE_PER_KG := 40.0 / 1100.0   # with the per-car "brakes" rating: 100-0 in ~33-42 m (tests/handling_test)
-const DRAG_PER_KG := 1.55 / 1100.0
+const DRAG_PER_KG := 0.0012     # aero drag, (m/s^2) per (m/s)^2: ~0.9 m/s^2 at 100 km/h, ~3 at 180
+## Power limit: full engine force up to this road speed (m/s), then force falls as 1/speed (constant power), as
+## in a real car. Sets the top speed against drag without the heavy drag the old constant-force engine needed.
+const POWER_SPEED := 18.0
 const DOWNFORCE_PER_KG := 0.95 / 1100.0
 const GRAVITY_SCALE := 1.35       # planted arcade feel: cars land fast instead of floating
 
@@ -69,9 +86,17 @@ func configure(spec: Dictionary) -> void:
 	drag_coefficient = DRAG_PER_KG * mass
 	downforce = DOWNFORCE_PER_KG * mass * float(spec["aero"])
 	grip = 1.35 * float(spec["grip"])
-	top_speed = float(spec.get("vmax", 58.0))   # m/s, per car (CarCatalogue shows it in km/h)
+	top_speed = float(spec.get("vmax", 58.0))
+	power_speed = float(spec.get("band", POWER_SPEED))
+	max_steer = 0.42 * clampf(float(spec.get("steer", 1.0)), 0.8, 1.2)
+	steer_speed = 2.4 * float(spec.get("steer", 1.0))   # m/s, per car (CarCatalogue shows it in km/h)
 	gravity_scale = GRAVITY_SCALE
 	angular_damp = 0.6
+	# No engine "linear damp": Godot's default (0.1/s) is a drag proportional to speed that made lifting off feel
+	# like braking at speed yet let the car crawl on for a minute at walking pace. Resistance is modelled
+	# explicitly instead: aero drag (v^2, below), tyre rolling resistance and engine braking (coast_brake).
+	linear_damp_mode = RigidBody3D.DAMP_MODE_REPLACE
+	linear_damp = 0.0
 	# No continuous collision detection: with VehicleBody3D it made car-to-car contacts explosive (46 m/s velocity
 	# changes; Great North Highway seed 7: 15 contacts with it, 0 without). Barrier containment holds without it
 	# (tests/barrier_test: 480 strikes at 200 km/h, 0 escapes; the 2.6 m collision walls stop ride-overs).
@@ -119,28 +144,7 @@ func _physics_process(delta: float) -> void:
 	var limit := max_steer * lerpf(1.0, 0.32, clampf(speed / 50.0, 0.0, 1.0))
 	steering = move_toward(steering, -str * limit, steer_speed * delta)
 
-	if not input_enabled:
-		engine_force = 0.0
-		brake = brake_force
-	elif brk > 0.05 and fwd_speed > 1.0:
-		engine_force = 0.0
-		# ABS: ease the pressure while a wheel locks (skid info near 0), so hard braking still steers and stops short.
-		var lock := 1.0
-		for w in _wheels:
-			lock = minf(lock, w.get_skidinfo())
-		brake = brake_force * brk * (0.62 if lock < 0.35 and speed > 4.0 else 1.0)
-	elif brk > 0.05:
-		brake = 0.0
-		engine_force = -engine_force_max * 0.45 * brk
-	else:
-		brake = 0.0 if thr > 0.01 else 1.5   # light engine braking when coasting
-		var f := engine_force_max * thr * (BOOST_FORCE if boosting else 1.0)
-		# Extra force at low speed for a punchy launch (from Truck Town).
-		if speed < 5.0 and thr > 0.01:
-			f *= 1.6
-		if fwd_speed > top_speed * (BOOST_TOP if boosting else 1.0):
-			f = 0.0
-		engine_force = f
+	_drive(thr, brk, fwd_speed, speed)
 
 	# Aero: drag limits top speed, downforce adds grip at speed. Downforce only exists while the floor
 	# faces the road: applying it along the car's -Y when tipped or upside down used to *lift* the car.
@@ -173,16 +177,24 @@ func _physics_process(delta: float) -> void:
 			pothole_hits += 1
 		_in_hole[wi] = hole
 		w.wheel_friction_slip = (offroad_grip if off else grip) * Weather.grip_at(speed) * (Potholes.GRIP if hole else 1.0)
+		if handbrake_input > 0.05 and input_enabled and not w.use_as_steering:
+			w.wheel_friction_slip *= lerpf(1.0, 0.55, handbrake_input)
 
 	_update_gearbox(fwd_speed, thr)
 	if tail_lights:
-		tail_lights.emission_energy_multiplier = 4.0 if (brk > 0.05 and fwd_speed > 1.0) or not input_enabled else 0.8
+		tail_lights.emission_energy_multiplier = 4.0 if braking or not input_enabled else 0.8
 
 	if _skid:
-		var slip := 1.0
-		for w in _wheels:
-			slip = minf(slip, w.get_skidinfo())
-		var squeal := clampf((0.7 - slip) * 2.5, 0.0, 1.0) if speed > 5.0 and not offroad else 0.0
+		# Squeal from the tyres' simulated slip (TyreFX: slip angle, wheelspin, lock), else Godot's grip state.
+		var fx := get_node_or_null("TyreFX")
+		var squeal := 0.0
+		if fx:
+			squeal = clampf((fx.max_slip - 0.15) * 1.6, 0.0, 1.0) if not offroad else 0.0
+		else:
+			var slip := 1.0
+			for w in _wheels:
+				slip = minf(slip, w.get_skidinfo())
+			squeal = clampf((0.7 - slip) * 2.5, 0.0, 1.0) if speed > 5.0 and not offroad else 0.0
 		_skid.volume_db = lerpf(-40.0, -6.0, squeal)
 	if absf(speed - _previous_speed) > 3.0:
 		impact.emit(absf(speed - _previous_speed))
@@ -190,6 +202,98 @@ func _physics_process(delta: float) -> void:
 			_impact.play()
 		Input.vibrate_handheld(80)
 	_previous_speed = speed
+
+
+## Pedal policy (one place, every controller: touch, gamepad, keyboard, AI):
+##   drive   GAS = throttle, BRAKE = brakes
+##   reverse BRAKE = reverse throttle, GAS = brakes (back to drive once stopped)
+##   The brake always wins over the throttle when both are held. Releasing the throttle cuts engine torque at once;
+##   the car then coasts down on rolling resistance, engine braking and drag (no creep: when it stops, rolling
+##   friction holds it). Braking works through the wheels (VehicleBody3D brake impulse), never by freezing the car.
+func _drive(thr: float, brk: float, fwd_speed: float, speed: float) -> void:
+	var stopped := absf(fwd_speed) < STOPPED
+	var brk_on := brk > 0.05
+	var thr_on := thr > 0.01
+	# Gear selection at a standstill.
+	if stopped:
+		if direction > 0 and brk_on and not _brk_was and not _stopped_on_brake:
+			direction = -1          # fresh brake press while stationary: reverse
+		elif direction < 0 and thr_on:
+			direction = 1
+	if brk_on and stopped and direction > 0:
+		_stopped_on_brake = true   # came to rest on the brake: keep holding, no reverse until released
+	if not brk_on:
+		_stopped_on_brake = false
+	_brk_was = brk_on
+	var go := thr if direction > 0 else brk
+	var stop := brk if direction > 0 else thr
+	if direction < 0 and thr_on and not brk_on:
+		stop = thr
+		go = 0.0
+	if direction > 0 and brk_on:
+		go = 0.0                   # brake beats throttle
+	braking = false
+	var tick := 60.0 / Engine.physics_ticks_per_second   # brake is an impulse per step: same force at any tick rate
+	if not input_enabled:
+		engine_force = 0.0
+		brake = brake_force * tick
+		braking = true
+	elif stop > 0.05:
+		engine_force = 0.0
+		braking = true
+		var lock := 1.0
+		for w in _wheels:
+			lock = minf(lock, w.get_skidinfo())
+		# ABS: ease the pressure while a wheel locks (skid info near 0), so hard braking still steers and stops short.
+		brake = brake_force * tick * stop * (0.62 if lock < 0.35 and speed > 4.0 else 1.0)
+		if stopped:
+			brake = brake_force * tick   # at rest: hold
+			_static_hold()
+	elif go > 0.01:
+		brake = 0.0
+		if direction > 0:
+			var f := engine_force_max * go * minf(1.0, power_speed / maxf(fwd_speed, 1.0)) * (BOOST_FORCE if boosting else 1.0)
+			if speed < 5.0:
+				f *= 1.6               # punchy launch (from Truck Town)
+			if fwd_speed > top_speed * (BOOST_TOP if boosting else 1.0):
+				f = 0.0                # rev limiter
+			engine_force = f
+		else:
+			engine_force = -engine_force_max * 0.45 * go if fwd_speed > -9.0 else 0.0   # reverse: ~32 km/h max
+	else:
+		engine_force = 0.0
+		brake = coast_brake(gear)
+	# Handbrake: locks the rear wheels (no drive torque there) and lets them slide.
+	for w in _wheels:
+		w.brake = brake
+		if not w.use_as_steering:
+			if handbrake_input > 0.05 and input_enabled:
+				w.engine_force = 0.0
+				w.brake = maxf(w.brake, brake_force * tick * 1.4 * handbrake_input)
+	if handbrake_input > 0.05:
+		braking = true
+
+
+## Static tyre friction at rest. Godot's vehicle solver brakes through a velocity-correcting impulse with no
+## static friction, so a stopped car on the brake crept at a steady ~6 cm/s (GT3, tests/drive_controls_test D).
+## This cancels the remaining ground-plane velocity while the brake is held at a standstill, never more than the
+## tyres could grip (mass x g x 0.9), so a big enough push still slides the car as it would in reality.
+func _static_hold() -> void:
+	if wheels_on_ground < 3:
+		return
+	var n := global_basis.y
+	var vh := linear_velocity - n * linear_velocity.dot(n)
+	var f := -vh * mass * Engine.physics_ticks_per_second * 0.5
+	apply_central_force(f.limit_length(mass * 9.81 * 0.9))
+
+
+## Brake value (VehicleBody3D impulse per wheel per physics step) that decelerates the car by `decel` m/s^2.
+func brake_for_decel(decel: float) -> float:
+	return decel * mass / (maxf(_wheels.size(), 1) * Engine.physics_ticks_per_second)
+
+
+func coast_brake(g: int) -> float:
+	return brake_for_decel(ROLLING_DECEL + ENGINE_BRAKE_DECEL / maxf(1.0, absf(g)))
 
 
 ## Keep the car on the road: no kerb or car-to-car contact may launch it, and an airborne car levels
@@ -212,17 +316,46 @@ func _stabilise(upright: float, delta: float) -> void:
 		angular_velocity = Vector3(keep.x, angular_velocity.y, keep.z)
 
 
+## Gearbox and engine speed from the drivetrain, not the speedometer: rpm follows the driven wheels' simulated
+## spin (TyreFX, so wheelspin revs the engine and a lock drops it), with upshifts later under full throttle than
+## when cruising, downshifts as the revs fall, and the clutch slipping up to launch revs when pulling away.
+var _shift_cool := 0.0
+
+
 func _update_gearbox(fwd_speed: float, thr: float) -> void:
-	if fwd_speed < -0.5:
+	var fx := get_node_or_null("TyreFX")
+	var drive_v := fwd_speed
+	if fx and fx.omega.size() == _wheels.size():
+		var sum := 0.0
+		var n := 0
+		for i in _wheels.size():
+			if _wheels[i].use_as_traction:
+				sum += fx.omega[i] * _wheels[i].wheel_radius
+				n += 1
+		if n > 0:
+			drive_v = sum / n
+	_shift_cool = maxf(0.0, _shift_cool - get_physics_process_delta_time())
+	var band := top_speed / GEARS
+	if direction < 0 or drive_v < -0.5:
 		gear = -1
-		rpm = clampf(-fwd_speed / 8.0, 0.1, 1.0)
+		rpm = clampf(absf(drive_v) / 8.0, 0.12, 1.0)
 	else:
-		var band := top_speed / GEARS
-		gear = clampi(1 + int(maxf(fwd_speed, 0.0) / band), 1, GEARS)
-		var low := (gear - 1) * band
-		rpm = clampf(0.18 + 0.82 * (maxf(fwd_speed, 0.0) - low) / band, 0.1, 1.0)
+		if gear < 1:
+			gear = 1
+		var v := maxf(drive_v, 0.0)
+		var r := 0.18 + 0.82 * (v - (gear - 1) * band) / band
+		var up_at := lerpf(0.78, 0.96, thr)
+		if r > up_at and gear < GEARS and _shift_cool <= 0.0:
+			gear += 1
+			_shift_cool = 0.35
+		elif r < 0.3 and gear > 1 and _shift_cool <= 0.0:
+			gear -= 1
+			_shift_cool = 0.35
+		rpm = clampf(0.18 + 0.82 * (v - (gear - 1) * band) / band, 0.1, 1.0)
+		if gear == 1 and thr > 0.05 and v < band * 0.5:
+			rpm = maxf(rpm, 0.18 + 0.45 * thr)   # clutch slipping at the launch
 		if thr < 0.05:
-			rpm *= 0.85
+			rpm *= 0.92
 	if _engine:
 		_engine.pitch_scale = lerpf(_engine.pitch_scale, 0.6 + rpm * 1.1, 0.2)
 		_engine.volume_db = lerpf(-14.0, -4.0, thr)
@@ -241,3 +374,4 @@ func place(xform: Transform3D) -> void:
 	angular_velocity = Vector3.ZERO
 	steering = 0.0
 	engine_force = 0.0
+	direction = 1

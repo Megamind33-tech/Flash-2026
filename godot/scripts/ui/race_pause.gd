@@ -83,10 +83,14 @@ func pause() -> void:
 	if race and race.phase == race.Phase.RESULTS:
 		return
 	super.pause()
+	if race and race.hud:
+		race.hud.release_controls()
 
 
 func resume() -> void:
 	super.resume()
+	if race and race.hud:
+		race.hud.release_controls()
 	if race and race.has_method("reset_dynamic_resolution"):
 		race.reset_dynamic_resolution()
 
