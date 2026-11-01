@@ -136,6 +136,52 @@ Full write-up: `docs/GR27_REPORT.md`.
 - **Race-start test:** `tests/race_start_test.tscn -- --autotest 1 --seed 4`. It needs the `--autotest` flags or the
   player does not drive.
 
+### Effects pass (trees, skid marks, smoke, rain)
+
+- **Trees:** jacaranda leaf textures regraded brighter (`assets/world/trees/jacaranda_tree_{a,b}.png`); leaf normals
+  bent upward and a warm backlight so canopies are lit, not black.
+- **Skid marks:** soft-edged procedural texture, darker rubber, per-segment opacity variation (`tyre_fx.gd`).
+- **Tyre smoke:** emitted at every slipping wheel's contact patch (each axle, both sides), per-pixel lit noise puffs
+  that grow and drift back; amount scales with slip.
+- **Rain:** thin textured drops instead of lines, plus small splash particles on the road around the camera
+  (`weather.gd` `_rain_splashes`), scaled with the rain amount.
+- Check renders: see `docs/evidence/fx/` (launch clear / rain, wheel close-up, front in rain).
+
+## Online multiplayer (1v1, 3v3, 5v5, voice, leagues)
+
+- **Files:** `scripts/net/net.gd` (autoload `Net`), `scripts/net/voice.gd` (autoload `Voice`),
+  `scripts/net/competition.gd` (`Competition`), `scripts/ui/online_screen.gd` (main menu › ONLINE).
+- **Topology:** Godot ENet high-level multiplayer. Peer 1 is the authority: a dedicated server or a player who hosts.
+  Clients talk only to the server, which relays car states (20 Hz, unreliable ordered, channel 1) and voice
+  (channel 2), runs the lobby, starts matches, collects finish times and scores them.
+- **Dedicated server:** `godot --headless --path godot -- --server --port 27027`. It keeps the competition in
+  `user://server/competition.json`.
+- **Match flow:** lobby (teams A/B, ready) → `_start` → every client loads → synchronised countdown → states →
+  finish reports → server result (F1 points 25-18-15-…, summed per team) → back to the lobby. A driver who leaves
+  mid-race is a DNF; the rest are classified DNF 60 s after the first finisher. Clients stay in the race until the
+  server's result arrives, so a finish report is never lost.
+- **Remote cars:** kinematic, placed from snapshots interpolated 100 ms behind (extrapolated up to 250 ms).
+- **Voice:** microphone → 16 kHz mono → mu-law 8-bit, 40 ms frames (about 128 kbit/s). Push-to-talk or open mic,
+  team-only or everyone, per-player mute. Android asks for RECORD_AUDIO the first time voice is enabled.
+- **Competition structure:**
+  - Each country has a league pyramid: tier 1 is one division of 20, tier t has 2^(t-1) divisions; new players
+    enter the lowest tier with room. Each 30-day season closes automatically on the server (on start and with each result): 3 up and 3 down per division.
+  - A club can have members from any country and any league, so one team can mix countries and leagues.
+  - Every ranked match also scores the monthly national tournament (30 days). The best 4 per country over a
+    quarter qualify for the continental finals every 3 months; the best 8 per continent over a half-year qualify
+    for the World Cup finals every 6 months.
+- **No fake data:** the Online screen shows lobbies, leagues and standings only from the server; offline it shows
+  none.
+- **Tests:** `competition_test` (COMPETITION PASS), `net_test` (dedicated server + 2 real client processes race a
+  1v1 on autopilot; NET PASS), `online_screen_test` (ONLINE UI PASS, captures in `docs/evidence/online/`).
+- **Not done yet:**
+  - No public server or matchmaking: players type an address, or host on the LAN. Hosting over the internet needs
+    port forwarding or a hosted dedicated server.
+  - No accounts or authentication: the player id is a random id stored on the device, so a server trusts what
+    clients report. Make the server authoritative over physics (or validate laps) before a ranked public release.
+  - Voice uses mu-law, not Opus. That is fine on Wi-Fi, but heavy on mobile data; add an Opus GDExtension.
+  - Not tested on Android devices or over a real internet connection.
+
 ## Known open items
 
 - **Real Android testing.** Not done. Settings › Display › Run benchmark produces a copyable report (FPS, 1 % low,

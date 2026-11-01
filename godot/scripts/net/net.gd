@@ -80,6 +80,7 @@ func host(port := DEFAULT_PORT, as_dedicated := false) -> bool:
 	multiplayer.multiplayer_peer = peer
 	dedicated = as_dedicated
 	competition = Competition.load_from(SAVE_PATH)
+	_close_finished_seasons()
 	lobby["players"] = {}
 	lobby["phase"] = "lobby"
 	_set_state("online", "Server on port %d" % port)
@@ -459,6 +460,7 @@ func _check_results() -> void:
 		if x["ms"] < 0: return false
 		if y["ms"] < 0: return true
 		return x["ms"] < y["ms"])
+	_close_finished_seasons()
 	var result := competition.record_match(str(match_cfg["format"]), rows, int(Time.get_unix_time_from_system()), true)
 	competition.save(SAVE_PATH)
 	lobby["phase"] = "lobby"
@@ -466,6 +468,14 @@ func _check_results() -> void:
 		p["ready"] = false
 	_results.rpc(result)
 	_broadcast_lobby()
+
+
+## Promotion / relegation for every season that ended since the last one closed (checked on start and per result).
+func _close_finished_seasons() -> void:
+	var cur := competition.season_of(int(Time.get_unix_time_from_system()))
+	for season in range(competition.season_closed + 1, cur):
+		competition.close_season(season)
+		print("[NET] season %d closed: promotion and relegation applied" % season)
 
 
 @rpc("authority", "reliable", "call_local")
