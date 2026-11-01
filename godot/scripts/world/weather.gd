@@ -182,6 +182,9 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 	var rain_sky: float = {"rain": 0.55, "clearing": 0.55, "storm": 0.42}.get(kind, 0.0)
 	if rain_sky > 0.0 and time_of_day != "night":
 		pano.energy_multiplier = rain_sky
+	var wet_dusk := kind == "after_rain" and time_of_day == "dusk"
+	if wet_dusk:   # dusk after rain: a darker sky, so the low sun and the wet glare carry the light
+		pano.energy_multiplier = 0.7
 	sky.sky_material = pano
 	sky.radiance_size = Sky.RADIANCE_SIZE_64 if Game.quality() == 0 else Sky.RADIANCE_SIZE_128
 	env.background_mode = Environment.BG_SKY
@@ -193,10 +196,12 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 	env.ambient_light_energy = {"day": (0.68 if wet_day else 0.85) if overcast else 0.55, "dusk": 0.6, "night": 0.45}[time_of_day]
 	if rain_sky > 0.0 and time_of_day != "night":
 		env.ambient_light_energy *= 0.85 / rain_sky   # same light on surfaces from a darker sky
+	if wet_dusk:
+		env.ambient_light_energy = 0.42   # cool, dim shade; warm direct sun (below) for contrast
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
 	# A clear dusk is lifted to keep its glow; a rainy or overcast dusk is already bright with haze (it washed out).
-	env.tonemap_exposure = {"day": 1.0, "dusk": 0.95 if overcast else 1.3, "night": 1.3}[time_of_day]
+	env.tonemap_exposure = {"day": 1.0, "dusk": 0.95 if overcast else (1.05 if kind == "after_rain" else 1.3), "night": 1.3}[time_of_day]
 	env.adjustment_enabled = true
 	env.adjustment_contrast = 1.12
 	env.adjustment_saturation = 0.92 if overcast else (1.18 if time_of_day == "dusk" else 1.08)
@@ -249,7 +254,7 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 		"dusk":
 			sun.rotation_degrees = Vector3(-9, -70, 0)
 			sun.light_color = Color(1.0, 0.68, 0.42)
-			sun.light_energy = float(p["sun"]) * 0.8
+			sun.light_energy = float(p["sun"]) * (1.2 if kind == "after_rain" else 0.8)
 		"night":
 			sun.rotation_degrees = Vector3(-55, 40, 0)
 			sun.light_color = Color(0.62, 0.7, 0.95)

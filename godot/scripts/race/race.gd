@@ -518,7 +518,7 @@ func _dress_cars() -> void:
 ## edges on the cars, facades raked from the side) instead of the road sitting in the buildings' shadow under a
 ## blue sky fill. The straight's direction is averaged over its first 250 m.
 func _aim_sun() -> void:
-	if Weather.time_of_day != "day" or _env.is_empty() or not _env.has("sun") or "--no-aim-sun" in OS.get_cmdline_user_args():
+	if not (Weather.time_of_day in ["day", "dusk"]) or _env.is_empty() or not _env.has("sun") or "--no-aim-sun" in OS.get_cmdline_user_args():
 		return
 	var sun: DirectionalLight3D = _env["sun"]
 	var t := Vector3.ZERO
@@ -527,8 +527,11 @@ func _aim_sun() -> void:
 	t.y = 0.0
 	if t.length() < 0.1:
 		return
-	var toward_cam := (-t.normalized()).rotated(Vector3.UP, deg_to_rad(28.0))
-	var dir := (toward_cam * cos(deg_to_rad(18.0)) + Vector3.DOWN * sin(deg_to_rad(18.0))).normalized()
+	# dusk (GR27): a low sun (8 degrees) from the side: long building shadows across the street, warm light on one
+	var dusk := Weather.time_of_day == "dusk"
+	var toward_cam := (-t.normalized()).rotated(Vector3.UP, deg_to_rad(65.0 if dusk else 28.0))   # dusk: side light, long shadows across the street
+	var elev := deg_to_rad(8.0 if dusk else 18.0)
+	var dir := (toward_cam * cos(elev) + Vector3.DOWN * sin(elev)).normalized()
 	sun.global_basis = Basis.looking_at(dir, Vector3.UP)
 
 
