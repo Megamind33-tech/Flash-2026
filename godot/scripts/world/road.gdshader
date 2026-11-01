@@ -21,6 +21,8 @@ uniform float road_half = 7.1;       // half width covered by the mesh (to the b
 uniform float lap_length = 3000.0;
 uniform float wear = 0.6;
 uniform float wet = 0.0;
+uniform float crack_fade = 0.0;      // 0 = the scan as is; 1 = cracks lifted to the surrounding tone (resurfaced race venue)
+uniform float anti_tile = 1.0;       // blends a second, rotated, differently scaled sample so the 4 m tile never repeats visibly
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -36,9 +38,18 @@ float vnoise(vec2 p) {
 void fragment() {
 	vec2 m = UV;
 	vec2 t = m / tile;
-	vec3 base = texture(albedo_tex, t).rgb * tint;
-	float rough = texture(rough_tex, t).r;
-	float h = texture(height_tex, t).r;
+	// anti-tiling: a second sample, rotated ~37 degrees and 1.37x the scale, mixed in by low-frequency noise
+	vec2 t2 = mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8)) * (m / (tile * 1.37)) + vec2(0.37, 0.71);
+	float mixw = anti_tile * smoothstep(0.3, 0.7, vnoise(m * 0.09));
+	vec3 base = mix(texture(albedo_tex, t).rgb, texture(albedo_tex, t2).rgb, mixw) * tint;
+	float rough = mix(texture(rough_tex, t).r, texture(rough_tex, t2).r, mixw);
+	float h = mix(texture(height_tex, t).r, texture(height_tex, t2).r, mixw);
+	// crack fade: pixels much darker than their neighbourhood (the cracks in the scan) are lifted toward it
+	if (crack_fade > 0.0) {
+		vec3 local = mix(textureLod(albedo_tex, t, 5.0).rgb, textureLod(albedo_tex, t2, 5.0).rgb, mixw) * tint;
+		float dark = clamp((dot(local, vec3(0.333)) - dot(base, vec3(0.333))) * 11.0, 0.0, 1.0);
+		base = mix(base, local, dark * crack_fade);
+	}
 	// large-scale tonal variation from the same height map (resurfacing / sun-bleached lanes)
 	float big = texture(height_tex, m / 37.0 + vec2(0.31, 0.17)).r;
 	base *= mix(1.0, 0.82 + 0.36 * big, wear);
@@ -50,7 +61,8 @@ void fragment() {
 	base *= 1.0 - 0.22 * mask.r * wear - 0.35 * mask.g;
 	rough = mix(rough, rough * 0.8, mask.r);
 	// rain: the whole road darkens and goes satin; puddles stand in shallow dips toward the gutters
-	vec3 nm = texture(normal_tex, t).rgb;
+	vec3 nm = mix(texture(normal_tex, t).rgb, texture(normal_tex, t2).rgb, mixw);
+	nm = mix(nm, vec3(0.5, 0.5, 1.0), crack_fade * 0.45);
 	float puddle = 0.0;
 	vec2 ripple = vec2(0.0);
 	if (wet > 0.0) {

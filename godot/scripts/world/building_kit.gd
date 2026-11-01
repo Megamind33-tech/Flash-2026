@@ -79,6 +79,9 @@ static func build(root: Node3D, data: Dictionary, style: Dictionary, clad: Dicti
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(data["id"]) + "/building_kit")
 	var xf := {}                       # piece -> Array[Transform3D]
+	var cols := {}                     # piece -> Array[Color] (painted cities: one colour per building)
+	var painted: bool = style.get("painted", false)
+	var palette: Array = style.get("paint_palette", [])
 	var bays := 0
 	var buildings: Array = data.get("buildings", [])
 	for bi in clad:
@@ -94,6 +97,7 @@ static func build(root: Node3D, data: Dictionary, style: Dictionary, clad: Dicti
 			sy = clampf(sy, 0.8, 1.3)
 			full = false
 		var upper: String = ["bay_window_a", "bay_window_b", "bay_window_c"][rng.randi() % 3]
+		var bcol := Color(str(palette[rng.randi() % palette.size()])) if painted and not palette.is_empty() else Color.WHITE
 		for i in (clad[bi] as Dictionary):
 			var p0 := poly[i]
 			var p1 := poly[(i + 1) % poly.size()]
@@ -123,20 +127,28 @@ static func build(root: Node3D, data: Dictionary, style: Dictionary, clad: Dicti
 					elif quality <= 1 and r >= 2:
 						piece = upper + "_lo"            # upper storeys on Medium: same bay, ~300 triangles
 					(xf.get_or_add(piece, []) as Array).append(Transform3D(basis, base + Vector3.UP * (r * BAY * sy)))
+					(cols.get_or_add(piece, []) as Array).append(bcol)
 					bays += 1
 				(xf.get_or_add("strip_cornice", []) as Array).append(Transform3D(flat, base + Vector3.UP * (BAY * sy - 0.1)))
+				(cols.get_or_add("strip_cornice", []) as Array).append(bcol.lightened(0.25))
 				if full:
 					(xf.get_or_add("strip_crown", []) as Array).append(Transform3D(flat, base + Vector3.UP * (h - 0.6)))
+					(cols.get_or_add("strip_crown", []) as Array).append(bcol.lightened(0.25))
 				else:
 					(xf.get_or_add("strip_cornice", []) as Array).append(Transform3D(flat, base + Vector3.UP * (rows * BAY - 0.1)))
+					(cols.get_or_add("strip_cornice", []) as Array).append(bcol.lightened(0.25))
 	for piece in xf:
-		var a := _piece(kit, piece, tint)
+		var a := _piece(kit, piece, Color.WHITE if painted else tint, painted)
 		if a.is_empty():
 			continue
 		var chunks := {}
-		for t: Transform3D in xf[piece]:
+		var ccol := {}
+		var plist: Array = xf[piece]
+		for j in plist.size():
+			var t: Transform3D = plist[j]
 			var key := Vector2i(floori(t.origin.x / CityWorld.CHUNK), floori(t.origin.z / CityWorld.CHUNK))
 			(chunks.get_or_add(key, []) as Array).append(t)
+			(ccol.get_or_add(key, []) as Array).append(cols[piece][j])
 		for key in chunks:
 			var list: Array = chunks[key]
 			var centre := Vector3.ZERO
@@ -145,11 +157,14 @@ static func build(root: Node3D, data: Dictionary, style: Dictionary, clad: Dicti
 			centre /= list.size()
 			var mm := MultiMesh.new()
 			mm.transform_format = MultiMesh.TRANSFORM_3D
+			mm.use_colors = painted
 			mm.mesh = a["mesh"]
 			mm.instance_count = list.size()
 			for j in list.size():
 				var t: Transform3D = list[j]
 				mm.set_instance_transform(j, Transform3D(t.basis, t.origin - centre) * (a["xf"] as Transform3D))
+				if painted:
+					mm.set_instance_color(j, ccol[key][j])
 			var mmi := MultiMeshInstance3D.new()
 			mmi.name = "Facade_%s_%d_%d" % [piece, key.x, key.y]
 			mmi.multimesh = mm
@@ -168,8 +183,10 @@ static func build(root: Node3D, data: Dictionary, style: Dictionary, clad: Dicti
 
 
 ## Mesh of one kit piece; the plaster of the urban kit takes the city's wall colour.
-static func _piece(kit: String, piece: String, tint: Color) -> Dictionary:
-	var key := "%s/%s/%s" % [kit, piece, tint.to_html()]
+## painted: brick surfaces become painted render (plaster texture) and every plaster / render surface takes the
+## per-building instance colour (Lusaka: painted streets, not European brick).
+static func _piece(kit: String, piece: String, tint: Color, painted := false) -> Dictionary:
+	var key := "%s/%s/%s/%s" % [kit, piece, tint.to_html(), painted]
 	if _pieces.has(key):
 		return _pieces[key]
 	var scene := load("res://assets/buildings/%s/%s.gltf" % [kit, piece]) as PackedScene
@@ -193,7 +210,20 @@ static func _piece(kit: String, piece: String, tint: Color) -> Dictionary:
 		mesh = mesh.duplicate()
 		for s in mesh.get_surface_count():
 			var m := mesh.surface_get_material(s) as BaseMaterial3D
-			if m and m.resource_name.contains("plaster"):
+			if m == null:
+				continue
+			var rn := m.resource_name.to_lower()
+			if painted and (rn.contains("brick") or rn.contains("plaster")):
+				var pm := m.duplicate() as BaseMaterial3D
+				pm.albedo_texture = load(CityWorld.CITY + "plaster_rough_albedo.jpg")
+				pm.normal_texture = load(CityWorld.CITY + "plaster_rough_normal.jpg")
+				pm.normal_enabled = true
+				pm.uv1_scale = Vector3(0.6, 0.6, 1)
+				pm.albedo_color = Color.WHITE
+				pm.vertex_color_use_as_albedo = true   # MultiMesh instance colour = the building's paint
+				pm.roughness = 0.88
+				mesh.surface_set_material(s, pm)
+			elif m.resource_name.contains("plaster"):
 				var mm := m.duplicate() as BaseMaterial3D
 				mm.albedo_color = tint
 				mesh.surface_set_material(s, mm)

@@ -54,6 +54,17 @@ func _ready() -> void:
 	TeamOwner.advance_week()
 	check(TeamOwner.money() == 0 and (TeamOwner.state()["drivers"] as Array).is_empty() and str(TeamOwner.state()["last_week_note"]).begins_with("Contracts ended"), "unpaid wages end the contract; wallet stays at $0")
 	check(TeamOwner.next_step().contains("Driver Career"), "a broke owner is pointed at Driver Career races: " + TeamOwner.next_step())
+	# rewards: the daily double prize pays once per day; a replay pays the normal rate
+	Game.save = Game.new_save()
+	var daily := Career.daily_event()
+	var first := Game.prize_for(1, Game.payable_event(daily))
+	Game.progress()["daily"] = daily["daily"]
+	var again := Game.prize_for(1, Game.payable_event(daily))
+	check(first > 0 and again * 2 == first, "daily double prize once per day ($%d first, $%d replay)" % [first, again])
+	var m0 := TeamOwner.money()
+	Game.apply_result(Game.EVENTS[0], 1, 5, 90000, true)
+	var m1 := TeamOwner.money()
+	check(m1 > m0 and Game.save["career"]["ledger"].size() == 3, "one race result books prize + fastest lap once")
 	Game.save = saved
 	print("ECONOMY %s failures=%d" % ["PASS" if fails == 0 else "FAIL", fails])
 	get_tree().quit(0 if fails == 0 else 1)

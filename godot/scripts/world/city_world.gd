@@ -53,6 +53,7 @@ static func road_mat(style: Dictionary, half_width: float, track: TrackPath = nu
 	m.set_shader_parameter("tint", Color.WHITE.lerp(Color(str(style["road_tint"])) * 1.25, 0.35))
 	m.set_shader_parameter("wear", float(style.get("wear", style.get("stains", 0.6))))
 	m.set_shader_parameter("wet", float(Weather.PRESET[Weather.kind]["wet"]))
+	m.set_shader_parameter("crack_fade", float(style.get("crack_fade", 0.0)))
 	var rh := road_half if road_half > 0.0 else half_width + BARRIER
 	m.set_shader_parameter("road_half", rh)
 	if track:
@@ -182,13 +183,17 @@ static func build(parent: Node3D, data: Dictionary, style: Dictionary, track: Tr
 		print("[GRIDLINE] street props %s" % JSON.stringify(street))
 	barrier_ads(root, track, track.half_width + BARRIER, 0.6)
 	race_furniture(root, track, track.half_width + BARRIER)
+	if data.has("venue"):   # Lusaka event venue: streetscape, paddock, grandstand, road details (lusaka_venue.gd)
+		print("[GRIDLINE] venue %s" % JSON.stringify(LusakaVenue.build(root, data, track)))
 	_landmark(root, data, track)
 	CityTraffic.build(root, data, track)
 	People.spectators(root, track, track.half_width + BARRIER + 0.3)
 	People.pedestrians(root, data, track)   # gate G9: parked cars, side-street traffic, flags
 	# Potholes on the worn roads (none on smooth European asphalt below wear 0.5).
 	var wear := float(style.get("wear", style.get("stains", 0.6)))
-	Potholes.place(root, track, int(maxf(0.0, wear - 0.4) * 24.0), hash(str(data["id"]) + "holes"))
+	# A resurfaced race venue (crack_fade, e.g. Lusaka) has no potholes.
+	var holes := 0 if float(style.get("crack_fade", 0.0)) > 0.5 else int(maxf(0.0, wear - 0.4) * 24.0)
+	Potholes.place(root, track, holes, hash(str(data["id"]) + "holes"))
 	AdPlacementManager.instance = null
 	# Advertising system: validated on Lusaka first (see docs); --no-ads gives the before/after baseline.
 	if str(data["id"]) in ["lusaka"] and not "--no-ads" in OS.get_cmdline_user_args():
@@ -228,6 +233,7 @@ static func _circuit(root: Node3D, style: Dictionary, track: TrackPath) -> void:
 	var pave := Bucket.new()
 	var barrier := Bucket.new()
 	var fence := Bucket.new()
+	var fence_posts := []
 	var faces := PackedVector3Array()
 	var dash := 0.0
 	for i in n:
@@ -272,10 +278,13 @@ static func _circuit(root: Node3D, style: Dictionary, track: TrackPath) -> void:
 				var c2 := b + rb * s * p1.x + up * p1.y
 				var c3 := b + rb * s * p0.x + up * p0.y
 				barrier.quad(c0, c1, c2, c3, nrm, Vector2(da, p0.y + q), Vector2(da, p1.y + q), Vector2(db, p1.y + q), Vector2(db, p0.y + q))
+			# catch fence: mesh panels to 4 m on steel posts every 4 m (motorsport debris fencing)
 			var f0 := a + ra * s * (hw + BARRIER + 0.3)
 			var f1 := b + rb * s * (hw + BARRIER + 0.3)
-			fence.quad(f0 + up * 0.95, f0 + up * 3.1, f1 + up * 3.1, f1 + up * 0.95, -ra * s,
-				Vector2(da, 0.95), Vector2(da, 3.1), Vector2(db, 3.1), Vector2(db, 0.95))
+			fence.quad(f0 + up * 0.95, f0 + up * 4.0, f1 + up * 4.0, f1 + up * 0.95, -ra * s,
+				Vector2(da, 0.95), Vector2(da, 4.0), Vector2(db, 4.0), Vector2(db, 0.95))
+			if int(da / 4.0) != int(db / 4.0):
+				fence_posts.append(Transform3D(Basis(), f0 + up * 2.45))
 			# collision: inner barrier face, tall enough that nothing climbs it
 			var w0 := a + ra * s * (hw + BARRIER)
 			var w1 := b + rb * s * (hw + BARRIER)
@@ -308,6 +317,16 @@ static func _circuit(root: Node3D, style: Dictionary, track: TrackPath) -> void:
 	cs.shape = shape
 	body.add_child(cs)
 	root.add_child(body)
+	var fp := CylinderMesh.new()
+	fp.top_radius = 0.045
+	fp.bottom_radius = 0.05
+	fp.height = 3.1
+	fp.radial_segments = 6
+	fp.rings = 1
+	var steel := _paint(Color(0.55, 0.57, 0.6))
+	steel.metallic = 0.7
+	steel.roughness = 0.45
+	_multimesh(root, fp, steel, fence_posts, "CatchFencePosts", false)
 	_gantry(root, track)
 
 
@@ -778,9 +797,31 @@ static func race_furniture(root: Node3D, track: TrackPath, offset: float) -> voi
 		var side := 1.0 if int(d2 / 400.0) % 2 == 0 else -1.0
 		booths.append(Transform3D(Basis(Vector3.UP, track.tangent_at(d2).signed_angle_to(Vector3.FORWARD, Vector3.DOWN)), track.position_at(d2) + track.right_at(d2) * side * (offset + 1.6) + Vector3.UP * 1.2))
 		d2 += 400.0
-	var booth := BoxMesh.new()
-	booth.size = Vector3(1.6, 2.4, 1.6)
-	_multimesh(root, booth, _paint(Color(1.0, 0.45, 0.05)), booths, "MarshalPosts")
+	# marshal posts: white cabin, dark window band facing the track, orange roof, a digital flag panel on a post
+	var cabin := Bucket.new()
+	var panels := Bucket.new()
+	for bx: Transform3D in booths:
+		var o := bx.origin - Vector3.UP * 1.2
+		var fx := bx.basis.x.normalized()
+		var fz := bx.basis.z.normalized()
+		LusakaVenue._box(cabin, o + Vector3.UP * 1.1, Vector3(0.85, 1.1, 0.85), fx, fz, Color(0.93, 0.93, 0.91))
+		LusakaVenue._box(cabin, o + Vector3.UP * 1.45, Vector3(0.87, 0.28, 0.87), fx, fz, Color(0.12, 0.14, 0.16))
+		LusakaVenue._box(cabin, o + Vector3.UP * 2.3, Vector3(1.05, 0.1, 1.05), fx, fz, Color(1.0, 0.45, 0.05))
+		LusakaVenue._box(panels, o + Vector3.UP * 3.0 + fx * 0.7, Vector3(0.32, 0.32, 0.04), fx, fz, Color(1.0, 0.85, 0.1))
+	var pm := _paint(Color.WHITE)
+	pm.vertex_color_use_as_albedo = true
+	pm.emission_enabled = true
+	pm.emission = Color(0.9, 0.75, 0.1)
+	pm.emission_energy_multiplier = 0.8
+	var cm2 := _paint(Color.WHITE)
+	cm2.vertex_color_use_as_albedo = true
+	var bmesh := ArrayMesh.new()
+	cabin.commit(bmesh, cm2)
+	panels.commit(bmesh, pm)
+	var bmi := MeshInstance3D.new()
+	bmi.name = "MarshalPosts"
+	bmi.mesh = bmesh
+	root.add_child(bmi)
 
 
 static func _board_texture() -> Texture2D:

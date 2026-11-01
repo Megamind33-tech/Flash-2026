@@ -560,6 +560,16 @@ func enter_race(ev: Dictionary) -> Dictionary:
 	return receipt
 
 
+## The event as it pays out now: the Daily Challenge's double prize only for the first finish of that day (replays
+## pay the normal rate, so it cannot be farmed).
+func payable_event(ev: Dictionary) -> Dictionary:
+	if ev.has("daily") and str(progress().get("daily", "")) == str(ev["daily"]):
+		var e := ev.duplicate()
+		e["prize_mult"] = float(ev["prize_mult"]) / 2.0
+		return e
+	return ev
+
+
 func apply_result(ev: Dictionary, position: int, field: int, best_lap_ms: int, fastest_lap: bool) -> Dictionary:
 	var career: Dictionary = save["career"]
 	var rep_table: Array = economy["reputationByPosition"]

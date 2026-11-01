@@ -300,6 +300,12 @@ func _hub() -> void:
 	row.add_child(_mode_card("LIVE CAREER", "res://assets/ui/cars/arden_gt3.png",
 		"Join a club by request or invitation, race for it, switch clubs, or open your own and lead it in club competitions.", club_line,
 		"clubs", func(): mode = "clubs"; tab = ""; _render()))
+	# Fit the three 540 x 760 cards to the visible area (UI scale up to 130 %, 4:3 and 20:9) and centre them.
+	var vis := get_viewport_rect().size
+	var natural := Vector2(3 * 540 + 2 * 40, 760)
+	var f := minf(1.0, minf((vis.x - 160.0) / natural.x, (vis.y - 230.0) / natural.y))
+	row.scale = Vector2(f, f)
+	row.position = Vector2((vis.x - natural.x * f) * 0.5, 190.0)
 
 
 func _mode_card(title: String, img: String, text: String, status: String, gate: String, cb: Callable) -> Control:

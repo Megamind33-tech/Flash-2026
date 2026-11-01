@@ -64,7 +64,8 @@ func _ready() -> void:
 	row.add_theme_constant_override("separation", 24)
 	col.add_child(row)
 	_rail = VBoxContainer.new()
-	_rail.custom_minimum_size = Vector2(300, 0)
+	# narrower rail when the UI is scaled up or the screen is narrow (130 % UI scale on 16:9 leaves ~1480 px)
+	_rail.custom_minimum_size = Vector2(300 if get_viewport_rect().size.x >= 1700 else 210, 0)
 	_rail.add_theme_constant_override("separation", 8)
 	row.add_child(_rail)
 	var scroll := ScrollContainer.new()
@@ -157,11 +158,14 @@ func _row(title: String, note := "") -> HBoxContainer:
 	p.add_child(h)
 	var v := VBoxContainer.new()
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	v.custom_minimum_size = Vector2(360, 0)
+	v.custom_minimum_size = Vector2(360 if get_viewport_rect().size.x >= 1700 else 270, 0)
 	h.add_child(v)
 	v.add_child(UiStyle.label("  " + title, UiStyle.body(), 30, UiStyle.TEXT, HORIZONTAL_ALIGNMENT_LEFT, false))
 	if note != "":
-		v.add_child(UiStyle.label("  " + note, UiStyle.cond(), 20, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false))
+		var nl := UiStyle.label("  " + note, UiStyle.cond(), 20, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT, false)
+		nl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		nl.custom_minimum_size = Vector2(v.custom_minimum_size.x, 0)
+		v.add_child(nl)
 	return h
 
 
@@ -196,7 +200,7 @@ func _choice(title: String, options: Array, selected: int, on_pick: Callable, no
 		var b := Button.new()
 		b.text = str(options[i])
 		b.focus_mode = Control.FOCUS_NONE
-		b.custom_minimum_size = Vector2(118, 60)
+		b.custom_minimum_size = Vector2(84, 60)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var on := i == selected
 		b.add_theme_font_override("font", UiStyle.cond_bold())

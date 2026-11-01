@@ -855,7 +855,7 @@ func _complete() -> void:
 		ap.play()
 	if Game.session["affects_career"]:
 		var pos := _result_position()
-		reward = Game.apply_result(event, pos, racers.size(), player.laps.best_lap_ms, fastest_id == "player")
+		reward = Game.apply_result(Game.payable_event(event), pos, racers.size(), player.laps.best_lap_ms, fastest_id == "player")
 		if skill_bonus > 0:
 			Game._post(Game.save["career"], skill_bonus, "skills", "Skill chains")
 			reward["skills"] = skill_bonus
