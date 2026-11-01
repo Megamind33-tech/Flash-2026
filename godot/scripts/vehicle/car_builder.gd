@@ -111,7 +111,9 @@ static func material(slot: String, livery: String) -> Material:
 			m.rim = 0.25
 			m.rim_tint = 0.6
 			if wetness > 0.0:
-				_wet_layer(m, "res://assets/models/cars/wet_beads_normal.png", 1.0)
+				# 3 repeats per metre: the baked 1.8-16 px drops become 1-10 mm beads (mostly 1-6 mm), as on waxed paint.
+				# At 1 repeat per metre they were 4-32 mm craters (GR27 owner review).
+				_wet_layer(m, "res://assets/models/cars/wet_beads_normal.png", 3.0, 0.75)
 				m.albedo_color = m.albedo_color.darkened(0.06 * wetness)   # a water film deepens the colour
 				m.roughness = minf(m.roughness, 0.14)
 				m.clearcoat_roughness = 0.03
@@ -122,7 +124,7 @@ static func material(slot: String, livery: String) -> Material:
 			m.metallic_specular = 0.45   # full specular turned the glass pale grey under a bright sky
 			m.roughness = 0.03
 			if wetness > 0.0:   # drops and run-off streaks on the windscreen and windows
-				_wet_layer(m, "res://assets/models/cars/wet_glass_normal.png", 1.2)
+				_wet_layer(m, "res://assets/models/cars/wet_glass_normal.png", 3.0, 0.7)
 		"chrome":
 			m.albedo_color = Color(0.9, 0.9, 0.92)
 			m.metallic = 1.0
@@ -317,13 +319,13 @@ static var _tyre_wet: ORMMaterial3D
 
 ## Rain on a car: a tileable water normal (beaded drops, or drops and run-off on glass). Baked by
 ## tools/cars/make_wet_textures.py.
-static func _wet_layer(m: BaseMaterial3D, tex: String, repeats_per_m: float) -> void:
+static func _wet_layer(m: BaseMaterial3D, tex: String, repeats_per_m: float, strength := 1.0) -> void:
 	# The water normal is the material's own normal map (Godot's detail-normal layer did not show on this renderer):
 	# wet paint gives up the metallic-flake normal for it, glass has none. Triplanar in car space, so drops keep a real
-	# 1-15 mm size on every panel.
+	# millimetre size on every panel.
 	m.normal_enabled = true
 	m.normal_texture = load(tex)
-	m.normal_scale = 1.0
+	m.normal_scale = strength
 	m.uv1_triplanar = true
 	m.uv1_scale = Vector3.ONE * repeats_per_m
 

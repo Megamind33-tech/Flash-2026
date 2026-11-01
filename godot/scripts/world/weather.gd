@@ -4,9 +4,9 @@
 class_name Weather
 extends RefCounted
 
-const KINDS := ["clear", "cloudy", "after_rain", "rain", "storm", "fog", "dust"]
+const KINDS := ["clear", "cloudy", "after_rain", "rain", "clearing", "storm", "fog", "dust"]
 const TIMES := ["day", "dusk", "night"]
-const LABEL := {"clear": "Clear", "cloudy": "Overcast", "after_rain": "After rain", "rain": "Rain", "storm": "Thunderstorm", "fog": "Fog", "dust": "Dust storm"}
+const LABEL := {"clear": "Clear", "cloudy": "Overcast", "after_rain": "After rain", "rain": "Rain", "clearing": "Rain, clearing", "storm": "Heavy rain", "fog": "Fog", "dust": "Dust storm"}
 ## grip: tyre grip multiplier · aqua: extra grip loss per m/s above 25 m/s · wind: crosswind accel (m/s^2)
 ## fog: depth fog density · rain: particle share · wet: road/wall wetness · sun: light energy
 const PRESET := {
@@ -14,11 +14,69 @@ const PRESET := {
 	"cloudy": {"grip": 0.99, "aqua": 0.0, "wind": 0.0, "fog": 0.0016, "rain": 0.0, "wet": 0.0, "sun": 0.7, "sky": "partly"},
 	# the shower has passed: low sun on wet streets (reflections, beaded cars), nothing falling
 	"after_rain": {"grip": 0.88, "aqua": 0.001, "wind": 0.0, "fog": 0.0008, "rain": 0.0, "wet": 0.7, "sun": 1.25, "sky": "partly"},
-	"rain":   {"grip": 0.8, "aqua": 0.004, "wind": 0.0, "fog": 0.004, "rain": 0.55, "wet": 0.8, "sun": 0.42, "sky": "overcast"},
-	"storm":  {"grip": 0.66, "aqua": 0.008, "wind": 0.35, "fog": 0.008, "rain": 1.0, "wet": 1.0, "sun": 0.3, "sky": "overcast"},
+	"rain":   {"grip": 0.8, "aqua": 0.004, "wind": 0.0, "fog": 0.0022, "rain": 0.55, "wet": 0.8, "sun": 0.42, "sky": "overcast"},
+	# a shower that stops during the race: rain for STOP_AT seconds, then the road drains and dries (see state_at)
+	"clearing": {"grip": 0.8, "aqua": 0.004, "wind": 0.0, "fog": 0.0022, "rain": 0.55, "wet": 0.8, "sun": 0.42, "sky": "overcast"},
+	"storm":  {"grip": 0.66, "aqua": 0.008, "wind": 0.35, "fog": 0.0042, "rain": 1.0, "wet": 1.0, "sun": 0.3, "sky": "overcast"},
 	"fog":    {"grip": 0.95, "aqua": 0.0, "wind": 0.0, "fog": 0.011, "rain": 0.0, "wet": 0.35, "sun": 0.45, "sky": "misty"},
 	"dust":   {"grip": 0.88, "aqua": 0.0, "wind": 0.45, "fog": 0.009, "rain": 0.0, "wet": 0.0, "sun": 0.85, "sky": "clear"},
 }
+
+## Weather state over a race. Each kind defines falling rain, standing water and the surface film as curves in
+## race time: [rain, water_start, water_end, water_tau_s, film_start, film_end, film_tau_s]. Water fills the low
+## spots first and drains from the exposed surface first (the road shader thresholds a drainage map with it), so
+## a drying road dries unevenly. Values are a pure function of (kind, race time): every client and every ghost
+## replay sees the same road and the same grip without syncing anything.
+const STATE := {
+	"clear": [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0], "cloudy": [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0],
+	"dust": [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0], "fog": [0.0, 0.0, 0.0, 1.0, 0.35, 0.35, 1.0],
+	"rain": [0.55, 0.32, 0.70, 80.0, 0.85, 0.85, 1.0],
+	"storm": [1.0, 0.55, 1.0, 60.0, 1.0, 1.0, 1.0],
+	"after_rain": [0.0, 0.60, 0.10, 140.0, 0.85, 0.22, 200.0],
+	"clearing": [0.55, 0.32, 0.70, 80.0, 0.85, 0.85, 1.0],   # then after STOP_AT: drains like after_rain
+}
+const STOP_AT := 50.0      # "clearing": rain stops after this many seconds, fading out over RAIN_FADE
+const RAIN_FADE := 25.0
+static var rain := 0.0     # falling rain now, 0..1
+static var water := 0.0    # standing water now, 0..1
+static var film := 0.0     # surface wetness now, 0..1
+static var base_grip := 1.0   # surface and time of day, before water
+
+
+## (rain, water, film) at race time t for a weather kind.
+static func state_at(k: String, t: float) -> Vector3:
+	var c: Array = STATE.get(k, STATE["clear"])
+	var r := float(c[0])
+	var w := float(c[2]) + (float(c[1]) - float(c[2])) * exp(-maxf(t, 0.0) / float(c[3]))
+	var f := float(c[5]) + (float(c[4]) - float(c[5])) * exp(-maxf(t, 0.0) / float(c[6]))
+	if k == "clearing" and t > STOP_AT:
+		var dry: Array = STATE["after_rain"]
+		var ts := t - STOP_AT
+		r *= clampf(1.0 - ts / RAIN_FADE, 0.0, 1.0)
+		var w0 := float(c[2]) + (float(c[1]) - float(c[2])) * exp(-STOP_AT / float(c[3]))
+		# water keeps rising a little while it still rains, then drains toward the after-rain floor
+		w = float(dry[2]) + (w0 - float(dry[2])) * exp(-maxf(ts - RAIN_FADE * 0.5, 0.0) / float(dry[3]))
+		f = float(dry[5]) + (f - float(dry[5])) * exp(-maxf(ts - RAIN_FADE, 0.0) / float(dry[6]))
+	return Vector3(r, w, f)
+
+
+## Advance the weather to race time t: physics grip, aquaplaning and the road's shader globals all follow.
+## Grip loss is physical, not visual: a water film costs up to 25 % (wet asphalt friction is ~0.7-0.75 of dry) and
+## standing water up to another 15 %, and standing water makes grip fall further with speed (aquaplaning, grip_at).
+## Called by the race every physics tick.
+static func update(t: float) -> void:
+	var st := state_at(kind, t)
+	rain = st.x
+	water = st.y
+	film = st.z
+	grip = base_grip * clampf(1.0 - 0.25 * film - 0.15 * water, 0.5, 1.0)
+	if kind == "storm":
+		grip *= 0.97   # heavy rain: water sheeting across the whole surface
+	aquaplane = 0.009 * water
+	RenderingServer.global_shader_parameter_set("road_wet", film)
+	RenderingServer.global_shader_parameter_set("road_water", water)
+	RenderingServer.global_shader_parameter_set("road_rain", rain)
+
 
 # Physics state read by RaceCarBody every tick.
 static var kind := "clear"
@@ -70,8 +128,12 @@ static func configure(p_kind: String, p_time: String, surface_grip: float, wind_
 	kind = p_kind if PRESET.has(p_kind) else "clear"
 	time_of_day = p_time if p_time in TIMES else "day"
 	var p: Dictionary = PRESET[kind]
-	grip = float(p["grip"]) * surface_grip * (0.97 if time_of_day == "night" else 1.0)
-	aquaplane = float(p["aqua"])
+	base_grip = surface_grip * (0.97 if time_of_day == "night" else 1.0)
+	if kind == "dust":
+		base_grip *= 0.88   # loose sand over the surface
+	elif kind == "fog":
+		base_grip *= 0.98
+	update(0.0)
 	wind_accel = float(p["wind"])
 	var rng := RandomNumberGenerator.new()
 	rng.seed = wind_seed
@@ -114,19 +176,32 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 	# Day sky 0.85 (was 1.1): the panorama was the brightest thing on screen and clipped toward white behind the
 	# skyline; the sun and the lit facades should carry the brightness, not the backdrop.
 	pano.energy_multiplier = {"night": 0.12, "sunset": 1.0}.get(sky_name, 0.85)
+	# GR27: rain cloud is heavier than a bright overcast - the sky (and so its reflection in a wet road) drops while
+	# the ambient multiplier below keeps lit surfaces as bright as before. With the sky at full energy the wet film
+	# mirrored it and the wet road measured brighter than the dry one (near road 86 vs 57).
+	var rain_sky: float = {"rain": 0.55, "clearing": 0.55, "storm": 0.42}.get(kind, 0.0)
+	if rain_sky > 0.0 and time_of_day != "night":
+		pano.energy_multiplier = rain_sky
+	var wet_dusk := kind == "after_rain" and time_of_day == "dusk"
+	if wet_dusk:   # dusk after rain: a darker sky, so the low sun and the wet glare carry the light
+		pano.energy_multiplier = 0.7
 	sky.sky_material = pano
 	sky.radiance_size = Sky.RADIANCE_SIZE_64 if Game.quality() == 0 else Sky.RADIANCE_SIZE_128
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	# Sunny scenes get less sky fill so shadows keep their depth; overcast light is soft and comes from the sky.
-	var overcast: bool = kind in ["cloudy", "rain", "storm", "fog"]
-	var wet_day: bool = kind in ["rain", "storm"]
+	var overcast: bool = kind in ["cloudy", "rain", "storm", "fog", "clearing"]
+	var wet_day: bool = kind in ["rain", "storm", "clearing"]
 	env.ambient_light_energy = {"day": (0.68 if wet_day else 0.85) if overcast else 0.55, "dusk": 0.6, "night": 0.45}[time_of_day]
+	if rain_sky > 0.0 and time_of_day != "night":
+		env.ambient_light_energy *= 0.85 / rain_sky   # same light on surfaces from a darker sky
+	if wet_dusk:
+		env.ambient_light_energy = 0.42   # cool, dim shade; warm direct sun (below) for contrast
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
 	# A clear dusk is lifted to keep its glow; a rainy or overcast dusk is already bright with haze (it washed out).
-	env.tonemap_exposure = {"day": 1.0, "dusk": 0.95 if overcast else 1.3, "night": 1.3}[time_of_day]
+	env.tonemap_exposure = {"day": 1.0, "dusk": 0.95 if overcast else (1.05 if kind == "after_rain" else 1.3), "night": 1.3}[time_of_day]
 	env.adjustment_enabled = true
 	env.adjustment_contrast = 1.12
 	env.adjustment_saturation = 0.92 if overcast else (1.18 if time_of_day == "dusk" else 1.08)
@@ -135,7 +210,9 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 	var haze := Color(str(style.get("haze", "#c0c4c8")))
 	if kind == "dust":
 		haze = Color(0.78, 0.6, 0.4)
-	elif kind in ["rain", "storm", "fog"]:
+	elif kind in ["rain", "storm", "clearing"]:
+		haze = Color(0.46, 0.5, 0.55)   # rain haze is blue-grey and darker than the cloud (it was near-white)
+	elif kind == "fog":
 		haze = Color(0.62, 0.65, 0.68)
 	if time_of_day == "night":
 		haze = haze.darkened(0.85)
@@ -177,7 +254,7 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 		"dusk":
 			sun.rotation_degrees = Vector3(-9, -70, 0)
 			sun.light_color = Color(1.0, 0.68, 0.42)
-			sun.light_energy = float(p["sun"]) * 0.8
+			sun.light_energy = float(p["sun"]) * (1.2 if kind == "after_rain" else 0.8)
 		"night":
 			sun.rotation_degrees = Vector3(-55, 40, 0)
 			sun.light_color = Color(0.62, 0.7, 0.95)
@@ -254,7 +331,7 @@ static func attach_particles(camera: Node3D) -> GPUParticles3D:
 	var p: Dictionary = PRESET[kind]
 	var amount := 0
 	if float(p["rain"]) > 0.0:
-		amount = int(lerpf(900.0, 2600.0, float(p["rain"])) * (0.5 if VisualsManager.level("effects") == 0 else 1.0))
+		amount = int(lerpf(900.0, 3200.0, float(p["rain"])) * (0.5 if VisualsManager.level("effects") == 0 else 1.0))
 	elif kind == "dust":
 		amount = 220
 	if amount == 0:
@@ -294,6 +371,10 @@ static func attach_particles(camera: Node3D) -> GPUParticles3D:
 		pm.color = Color(0.8, 0.84, 0.9, 0.32)
 		quad.size = Vector2(0.025, 0.75)
 		mat.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
+		# GR27: a drop passing right in front of the lens was drawn as a huge white bar across the frame
+		mat.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_ALPHA
+		mat.distance_fade_min_distance = 1.5
+		mat.distance_fade_max_distance = 4.0
 	parts.process_material = pm
 	quad.material = mat
 	parts.draw_pass_1 = quad
@@ -301,27 +382,36 @@ static func attach_particles(camera: Node3D) -> GPUParticles3D:
 	return parts
 
 
-## Road spray behind a car on a wet track; emission is driven by speed from race.gd.
-static func make_spray() -> GPUParticles3D:
-	if float(PRESET[kind]["wet"]) < 0.5 or not VisualsManager.effective()["effects"]["spray"]:
+## Tyre spray at one rear wheel's contact patch on a wet track. race.gd drives it every frame from the car's speed
+## and the standing water (amount_ratio), so it fades as the road drains and stops on a dry road.
+static func make_spray(at := Vector3(0, 0.15, -1.3)) -> GPUParticles3D:
+	if (STATE.get(kind, STATE["clear"])[4] < 0.5 and kind != "clearing") or not VisualsManager.effective()["effects"]["spray"]:
 		return null
 	var parts := GPUParticles3D.new()
 	parts.name = "Spray"
-	parts.amount = 36
-	parts.lifetime = 0.45
+	parts.amount = 28 if VisualsManager.level("effects") == 0 else 44
+	parts.lifetime = 0.5
 	parts.local_coords = false
-	parts.position = Vector3(0, 0.35, -2.3)
+	parts.position = at
 	var pm := ParticleProcessMaterial.new()
 	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	pm.emission_box_extents = Vector3(0.8, 0.1, 0.2)
-	pm.direction = Vector3(0, 0.45, -1)
-	pm.spread = 22.0
-	pm.initial_velocity_min = 3.0
-	pm.initial_velocity_max = 7.0
-	pm.gravity = Vector3(0, -5, 0)
+	pm.emission_box_extents = Vector3(0.12, 0.04, 0.12)   # the tyre's contact patch
+	pm.direction = Vector3(0, 0.55, -1)
+	pm.spread = 18.0
+	pm.initial_velocity_min = 3.5
+	pm.initial_velocity_max = 8.0
+	pm.gravity = Vector3(0, -6, 0)
+	pm.damping_min = 2.0
+	pm.damping_max = 4.0
+	var grow := Curve.new()   # a mist that widens as it trails off
+	grow.add_point(Vector2(0, 0.35))
+	grow.add_point(Vector2(1, 1.6))
+	var ct := CurveTexture.new()
+	ct.curve = grow
+	pm.scale_curve = ct
 	pm.scale_min = 0.6
-	pm.scale_max = 1.6
-	pm.color = Color(0.8, 0.82, 0.85, 0.045)
+	pm.scale_max = 1.2
+	pm.color = Color(0.82, 0.84, 0.87, 0.07)
 	parts.process_material = pm
 	var quad := QuadMesh.new()
 	quad.size = Vector2(0.8, 0.8)
@@ -335,3 +425,31 @@ static func make_spray() -> GPUParticles3D:
 	parts.draw_pass_1 = quad
 	parts.emitting = false
 	return parts
+
+
+## Wet-road reflection of a car's tail lights (GR27): two long soft red streaks on the road behind the lamps, the
+## way lights smear on wet asphalt. The Mobile renderer has no screen-space reflections and the street probes
+## leave cars out, so without this a wet road never shows the lights of the car ahead. race.gd scales the
+## streaks with the road film and brightens them under braking; on a dry road they are off.
+static func make_light_streaks(car: VehicleBody3D) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	mat.albedo_texture = soft_glow()
+	mat.albedo_color = Color(0, 0, 0)
+	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	var rl := car.get_node_or_null("Wheel_RL") as VehicleWheel3D
+	var half := absf(rl.position.x) - 0.15 if rl else 0.7
+	var z := (rl.position.z - rl.wheel_radius if rl else -1.4) - 2.2
+	for sx: float in [-1.0, 1.0]:
+		var mi := MeshInstance3D.new()
+		var q := QuadMesh.new()
+		q.size = Vector2(0.45, 4.2)
+		q.orientation = PlaneMesh.FACE_Y
+		mi.mesh = q
+		var road_y: float = (rl.position.y - rl.wheel_rest_length - rl.wheel_radius) if rl else -0.35
+		mi.position = Vector3(sx * half, road_y + 0.05, z)   # on the road under the suspension's rest height
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		car.add_child(mi)
+	return mat

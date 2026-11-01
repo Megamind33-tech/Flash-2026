@@ -37,6 +37,10 @@ pointing/emulate_mouse_from_touch=true
 common/physics_ticks_per_second=60
 common/max_physics_steps_per_frame=4
 
+[threading]
+
+worker_pool/max_threads=32
+
 [rendering]
 
 renderer/rendering_method="mobile"
@@ -48,7 +52,25 @@ lights_and_shadows/directional_shadow/size=2048
 lights_and_shadows/directional_shadow/size.mobile=1024
 lights_and_shadows/directional_shadow/soft_shadow_filter_quality.mobile=1
 environment/defaults/default_clear_color=Color(0.55, 0.62, 0.7, 1)
+reflections/reflection_atlas/reflection_size=256
+reflections/reflection_atlas/reflection_size.mobile=128
+reflections/reflection_atlas/reflection_count=4
 
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/settings_menus/plugin.cfg")
+
+[shader_globals]
+
+road_wet={
+"type": "float",
+"value": 0.0
+}
+road_water={
+"type": "float",
+"value": 0.0
+}
+road_rain={
+"type": "float",
+"value": 0.0
+}

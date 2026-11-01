@@ -46,6 +46,12 @@ var city_id := "lusaka"
 var track_name := ""
 var _env := {}
 var _sprays := []
+var _rain_parts: GPUParticles3D
+var _wet_refl: WetReflections
+var _rain_audio: AudioStreamPlayer
+var _streaks := []   # [material, car]: wet-road tail-light reflections
+var _weather_offset := 0.0   # evidence only: --weather-t S shows the weather S seconds into a race
+var _weather_speed := 1.0    # evidence only: --weather-speed K runs the weather clock K x (time-lapse of a transition)
 var _flash := 0.0
 var format := "race"
 var medals: Array = []          # time attack targets (ms): gold, silver, bronze
@@ -62,6 +68,12 @@ var _stability := {}   # autotest: per car [airborne seconds, longest airborne s
 func _ready() -> void:
 	CityWorld.lp("race scene loaded")
 	var args := OS.get_cmdline_user_args()
+	var wti := args.find("--weather-t")
+	if wti >= 0 and wti + 1 < args.size():
+		_weather_offset = float(args[wti + 1])
+	var wsi := args.find("--weather-speed")
+	if wsi >= 0 and wsi + 1 < args.size():
+		_weather_speed = float(args[wsi + 1])
 	autotest = "--autotest" in args
 	if autotest:
 		Game.session["autopilot"] = true
@@ -139,7 +151,17 @@ func _ready() -> void:
 	camera.far = 1500.0
 	add_child(camera)
 	camera.make_current()
-	Weather.attach_particles(camera)
+	_rain_parts = Weather.attach_particles(camera)
+	if float(Weather.STATE.get(Weather.kind, Weather.STATE["clear"])[0]) > 0.0:   # rainfall ambience (GR27)
+		_rain_audio = AudioStreamPlayer.new()
+		var rs: AudioStreamWAV = load("res://assets/audio/rain_loop.wav").duplicate()
+		rs.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		rs.loop_end = int(rs.get_length() * rs.mix_rate)
+		_rain_audio.stream = rs
+		_rain_audio.bus = "SFX"
+		_rain_audio.volume_db = -80.0
+		add_child(_rain_audio)
+		_rain_audio.play()
 	_log_overlaps = "--log-overlaps" in args
 	for rr in racers:   # racecraft metric: car-to-car contacts (impact with another car within 6 m)
 		rr.car.impact.connect(func(strength: float):
@@ -340,6 +362,7 @@ func _ready() -> void:
 			camera.set_physics_process(false)
 			break
 	_dress_cars()
+	_wet_refl = WetReflections.build(self, track, player.car)   # wet weather, Balanced tier and up
 	if not autotest or DisplayServer.get_name() != "headless":
 		hud = RaceHud.new()
 		add_child(hud)
@@ -448,11 +471,19 @@ func _result_position() -> int:
 
 ## Wet-road spray on every car; headlights on the player's car when it is dark or the weather closes in.
 func _dress_cars() -> void:
-	for r in racers:
-		var sp := Weather.make_spray()
-		if sp:
-			r.car.add_child(sp)
-			_sprays.append([sp, r.car])
+	if float(Weather.STATE.get(Weather.kind, Weather.STATE["clear"])[4]) > 0.3:   # wet: tail lights smear on the road
+		for r in racers:
+			_streaks.append([Weather.make_light_streaks(r.car), r.car])
+	for r in racers:   # spray from each rear tyre's contact patch
+		for wn in ["Wheel_RL", "Wheel_RR"]:
+			var w := r.car.get_node_or_null(wn) as VehicleWheel3D
+			var at := Vector3(0, 0.15, -1.3)
+			if w:
+				at = Vector3(w.position.x, w.position.y - w.wheel_radius + 0.08, w.position.z - w.wheel_radius * 0.7)
+			var sp := Weather.make_spray(at)
+			if sp:
+				r.car.add_child(sp)
+				_sprays.append([sp, r.car])
 	if Weather.time_of_day != "day" or Weather.kind in ["storm", "fog", "dust"]:
 		for s in [-0.6, 0.6]:
 			var lamp := SpotLight3D.new()
@@ -487,7 +518,7 @@ func _dress_cars() -> void:
 ## edges on the cars, facades raked from the side) instead of the road sitting in the buildings' shadow under a
 ## blue sky fill. The straight's direction is averaged over its first 250 m.
 func _aim_sun() -> void:
-	if Weather.time_of_day != "day" or _env.is_empty() or not _env.has("sun") or "--no-aim-sun" in OS.get_cmdline_user_args():
+	if not (Weather.time_of_day in ["day", "dusk"]) or _env.is_empty() or not _env.has("sun") or "--no-aim-sun" in OS.get_cmdline_user_args():
 		return
 	var sun: DirectionalLight3D = _env["sun"]
 	var t := Vector3.ZERO
@@ -496,8 +527,11 @@ func _aim_sun() -> void:
 	t.y = 0.0
 	if t.length() < 0.1:
 		return
-	var toward_cam := (-t.normalized()).rotated(Vector3.UP, deg_to_rad(28.0))
-	var dir := (toward_cam * cos(deg_to_rad(18.0)) + Vector3.DOWN * sin(deg_to_rad(18.0))).normalized()
+	# dusk (GR27): a low sun (8 degrees) from the side: long building shadows across the street, warm light on one
+	var dusk := Weather.time_of_day == "dusk"
+	var toward_cam := (-t.normalized()).rotated(Vector3.UP, deg_to_rad(65.0 if dusk else 28.0))   # dusk: side light, long shadows across the street
+	var elev := deg_to_rad(8.0 if dusk else 18.0)
+	var dir := (toward_cam * cos(elev) + Vector3.DOWN * sin(elev)).normalized()
 	sun.global_basis = Basis.looking_at(dir, Vector3.UP)
 
 
@@ -741,8 +775,27 @@ func _physics_process(delta: float) -> void:
 					(_rec.get_or_add(r.id, []) as Array).append(Ghosts.sample(r.car.global_transform))
 		if ghost_car and not player.laps.finished:
 			ghost_car.global_transform = Ghosts.at(ghost["frames"], player.laps.current_lap_elapsed(race_time))
+	# Weather state follows the race clock (identical on every client); spray, rain and light follow the state.
+	Weather.update(race_time * _weather_speed + _weather_offset)
+	var spray_k := clampf(Weather.water * 1.3 + 0.25 * Weather.film, 0.0, 1.0)
 	for sp in _sprays:
-		sp[0].emitting = (sp[1] as RaceCarBody).speed_kmh > 45.0
+		var v := (sp[1] as RaceCarBody).speed_kmh
+		sp[0].emitting = v > 35.0 and spray_k > 0.12
+		sp[0].amount_ratio = clampf(v / 180.0, 0.2, 1.0) * spray_k
+	for st in _streaks:   # brighter on a wetter road and under braking
+		var c := st[1] as RaceCarBody
+		var k := clampf(Weather.film * 0.8 + Weather.water * 0.5, 0.0, 1.0) * (1.0 if c.braking or not c.input_enabled else 0.35)
+		(st[0] as StandardMaterial3D).albedo_color = Color(0.9, 0.08, 0.05) * k * 0.55
+	if _rain_audio:
+		_rain_audio.volume_db = -80.0 if Weather.rain < 0.01 else lerpf(-26.0, -8.0, Weather.rain)
+	if _rain_parts and is_instance_valid(_rain_parts):
+		_rain_parts.amount_ratio = clampf(Weather.rain / maxf(float(Weather.PRESET[Weather.kind]["rain"]), 0.01), 0.0, 1.0)
+		_rain_parts.emitting = Weather.rain > 0.005
+	if Weather.kind == "clearing" and _env.has("sun"):   # the shower passes: light and visibility come back
+		var k := 1.0 - Weather.rain / float(Weather.PRESET["clearing"]["rain"])
+		var e: Environment = _env["env"]
+		e.fog_density = lerpf(float(Weather.PRESET["clearing"]["fog"]), float(Weather.PRESET["after_rain"]["fog"]), k)
+		(_env["sun"] as DirectionalLight3D).light_energy = lerpf(float(Weather.PRESET["clearing"]["sun"]), float(Weather.PRESET["after_rain"]["sun"]), k) * 1.12
 	if Weather.kind == "storm" and _env.has("sun"):
 		_flash -= delta
 		var sun: DirectionalLight3D = _env["sun"]
@@ -997,6 +1050,7 @@ func _complete() -> void:
 	print("[GRIDLINE] potholes=%d player_hits=%d all_hits=%d" % [Potholes.holes.size(), player.car.pothole_hits, Potholes.events])
 	print("[GRIDLINE] format=%s city=%s weather=%s/%s grip=%.2f eliminated=%d medal=%d ghost=%s" % [format, city_id, Weather.kind, Weather.time_of_day, Weather.grip, _eliminations, medal, str(not ghost.is_empty())])
 	print("[GRIDLINE] race complete seed=%d event=%s laps=%d player=P%d race_time=%.1fs avg_fps=%.1f worst_frame_ms=%.1f" % [race_seed, event["id"], total_laps, player.position, race_time, avg_fps, _worst_frame * 1000.0])
+	print("[GRIDLINE] weather=%s rain=%.2f water=%.2f film=%.2f grip=%.3f wet_probe_captures=%d" % [Weather.kind, Weather.rain, Weather.water, Weather.film, Weather.grip, _wet_refl.captures if _wet_refl else 0])
 	var gaps := []
 	for i in range(1, standings.size()):
 		gaps.append("%.1f" % ((racers.filter(func(x): return x.id == standings[i]["id"])[0].laps.finish_time - racers.filter(func(x): return x.id == standings[i - 1]["id"])[0].laps.finish_time)))

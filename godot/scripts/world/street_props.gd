@@ -87,11 +87,9 @@ static func place(root: Node3D, data: Dictionary, style: Dictionary, track: Trac
 	var blocked := _building_index(data)
 	var used := {-1: [], 1: []}          # pavement distances already taken, per side
 	var out := {}                        # slug -> Array[Transform3D]
-	var wet := float(Weather.PRESET[Weather.kind]["wet"])
 	var road := _average(load(CityWorld.CITY + str(style["road"]) + "_albedo.jpg")) * Color(str(style["road_tint"]))
 	for slug in ROAD_PATCHES:
 		for m: ShaderMaterial in asset(slug).get("decal_mats", []):
-			m.set_shader_parameter("wet", wet)
 			var scan := _average(m.get_shader_parameter("albedo_tex"))
 			m.set_shader_parameter("colour_match", Vector3(
 				clampf(road.r / maxf(scan.r, 0.01), 0.3, 1.5),
@@ -100,21 +98,26 @@ static func place(root: Node3D, data: Dictionary, style: Dictionary, track: Trac
 
 	# --- road surface: cracks and manholes, flush with the asphalt, off the racing line
 	if quality >= 1:
-		var per_km := 5.0 + 12.0 * wear
+		# GR27: fewer patches (randomly scattered round scans read as stamped puddles in the wet), and manholes on a
+		# lane line at street-like spacing instead of anywhere across the road.
+		var per_km := 3.0 + 5.0 * wear
 		var count := int(per_km * length / 1000.0)
+		var lane := hw * 0.5 * (1.0 if rng.randf() < 0.5 else -1.0)
 		for k in count:
 			var d := rng.randf_range(160.0, length - 60.0)          # clear of the grid and the gantry
 			var line := track.line_offset_at(d)
+			var manhole := rng.randf() < 0.4
+			var slug: String = ROAD_PATCHES[1 + rng.randi() % 2] if manhole else ROAD_PATCHES[0]
 			var off := 0.0
 			var ok := false
 			for attempt in 6:
-				off = rng.randf_range(-hw + 1.3, hw - 1.3)
+				off = lane + rng.randf_range(-0.3, 0.3) if manhole else rng.randf_range(-hw + 1.3, hw - 1.3)
 				if absf(off - line) > 2.6:
 					ok = true
 					break
+				lane = -lane
 			if not ok:
 				continue
-			var slug: String = ROAD_PATCHES[rng.randi() % ROAD_PATCHES.size()]
 			var a := asset(slug)
 			if a.is_empty():
 				continue
