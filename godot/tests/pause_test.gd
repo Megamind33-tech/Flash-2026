@@ -37,7 +37,8 @@ func _ready() -> void:
 		var ev := InputEventScreenTouch.new()
 		ev.index = 3
 		ev.pressed = true
-		ev.position = gas.get_viewport().get_screen_transform() * gas.get_global_transform_with_canvas().origin
+		var centre := gas.texture_normal.get_size() * 0.5 if gas.texture_normal else Vector2.ZERO
+		ev.position = gas.get_viewport().get_screen_transform() * (gas.get_global_transform_with_canvas() * centre)
 		Input.parse_input_event(ev)
 		await tree.process_frame
 		await tree.process_frame

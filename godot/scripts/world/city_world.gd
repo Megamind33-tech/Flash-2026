@@ -54,6 +54,7 @@ static func road_mat(style: Dictionary, half_width: float, track: TrackPath = nu
 	m.set_shader_parameter("wear", float(style.get("wear", style.get("stains", 0.6))))
 	m.set_shader_parameter("wet", float(Weather.PRESET[Weather.kind]["wet"]))
 	m.set_shader_parameter("crack_fade", float(style.get("crack_fade", 0.0)))
+	m.set_shader_parameter("damp", float(style.get("damp", 0.0)) if Weather.time_of_day != "night" else 0.0)
 	var rh := road_half if road_half > 0.0 else half_width + BARRIER
 	m.set_shader_parameter("road_half", rh)
 	if track:
@@ -214,6 +215,7 @@ static func build(parent: Node3D, data: Dictionary, style: Dictionary, track: Tr
 	CityTraffic.build(root, data, track)
 	await stage("venue+landmark+traffic", "Paddock, grandstands and traffic", 0.78)
 	People.spectators(root, track, track.half_width + BARRIER + 0.3)
+	print("[GRIDLINE] lap crowd %d" % People.lap_crowds(root, track, track.half_width + BARRIER + 0.3, data))
 	People.pedestrians(root, data, track)   # gate G9: parked cars, side-street traffic, flags
 	await stage("spectators+pedestrians", "Spectators", 0.9)
 	# Potholes on the worn roads (none on smooth European asphalt below wear 0.5).
@@ -1152,6 +1154,15 @@ static func _props(root: Node3D, data: Dictionary, style: Dictionary, track: Tra
 			var q := bounds.position + Vector2(rng.randf() * bounds.size.x, rng.randf() * bounds.size.y)
 			if Geometry2D.is_point_in_polygon(q, poly):
 				trees.append(Vector3(q.x, 0, q.y))
+	# Start straight: an avenue of trees on both pavements (the broadcast view of the grid and the run to turn 1).
+	if Game.quality() > 0:
+		d = -120.0
+		var side2 := 1.0
+		while d < 400.0:   # staggered, 24 m apart per side: an avenue that frames the facades instead of hiding them
+			var dd := track.wrapd(d + rng.randf_range(-2.0, 2.0))
+			trees.append(track.position_at(dd) + track.right_at(dd) * side2 * (hw + BARRIER + rng.randf_range(3.2, 4.4)))
+			side2 = -side2
+			d += 12.0
 	d = 9.0
 	while d < track.length:
 		if rng.randf() < 0.45 * density:
@@ -1181,6 +1192,6 @@ static func _props(root: Node3D, data: Dictionary, style: Dictionary, track: Tra
 	(tmat as StandardMaterial3D).albedo_color = tint
 	var xf := []
 	for t in trees.slice(0, 1400):
-		var sc := rng.randf_range(0.38, 0.6)
+		var sc := rng.randf_range(0.34, 0.5)
 		xf.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), t))
 	_multimesh(root, tmesh, tmat, xf, "Trees")

@@ -20,30 +20,42 @@ static func build(parent: Node3D, track: TrackPath, trees := true) -> Node3D:
 	return root
 
 
+## Tree impostor: three crossed planes (0 / 60 / 120 degrees) of the jacaranda renders, LIT, with spherical normals
+## around the canopy centre so the crown shades as a volume (sunlit side bright, far side darker) and backlight
+## translucency so leaves glow against a low sun. Was two unshaded planes: flat cut-outs that ignored the light.
 static func _tree_mesh(prefix: String, height: float) -> ArrayMesh:
 	var mesh := ArrayMesh.new()
-	for view in ["a", "b"]:
+	var crown := Vector3.UP * height * 0.62
+	var k := 0
+	for view in ["a", "b", "a"]:
 		var tex: Texture2D = load("res://assets/world/trees/%s_%s.png" % [prefix, view])
 		var w := height * float(tex.get_width()) / float(tex.get_height())
 		var st := SurfaceTool.new()
 		st.begin(Mesh.PRIMITIVE_TRIANGLES)
-		var axis := Vector3.RIGHT if view == "a" else Vector3.BACK
+		var axis := Vector3.RIGHT.rotated(Vector3.UP, deg_to_rad(60.0 * k))
 		var corners := [-axis * w * 0.5, axis * w * 0.5, axis * w * 0.5 + Vector3.UP * height, -axis * w * 0.5 + Vector3.UP * height]
 		var uvs := [Vector2(0, 1), Vector2(1, 1), Vector2(1, 0), Vector2(0, 0)]
 		for idx in [0, 1, 2, 0, 2, 3]:
-			st.set_normal(Vector3.UP)
+			var c: Vector3 = corners[idx]
+			var n := (c - crown).normalized().lerp(Vector3.UP, 0.25).normalized()
+			st.set_normal(n)
 			st.set_uv(uvs[idx])
-			st.add_vertex(corners[idx])
+			st.add_vertex(c)
 		var m := StandardMaterial3D.new()
 		m.albedo_texture = tex
-		m.albedo_color = Color(0.86, 0.9, 0.86)
+		m.albedo_color = Color(1.05, 1.08, 1.02)
 		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
 		m.alpha_scissor_threshold = 0.5
+		m.alpha_antialiasing_mode = BaseMaterial3D.ALPHA_ANTIALIASING_ALPHA_TO_COVERAGE   # softer leaf edges with MSAA
 		m.cull_mode = BaseMaterial3D.CULL_DISABLED
-		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.roughness = 0.85
+		m.metallic_specular = 0.2
+		m.backlight_enabled = true
+		m.backlight = Color(0.5, 0.55, 0.34)
 		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 		st.set_material(m)
 		st.commit(mesh)
+		k += 1
 	return mesh
 
 

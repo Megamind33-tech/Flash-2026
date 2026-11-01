@@ -4,6 +4,7 @@ class_name RaceHud
 extends CanvasLayer
 
 const RPM_SEGMENTS := 22
+const HUD27 := "res://assets/ui/hud27/"
 const TEAM_COLORS := {"player": UiStyle.GOLD}
 
 var race
@@ -32,6 +33,7 @@ var boost_label: Label
 var skill_box: VBoxContainer
 var chain_label: Label
 var _chime: AudioStreamPlayer
+var _last_pos := 0
 
 
 func bind(p_race) -> void:
@@ -83,34 +85,42 @@ func _anchor(c: Control, preset: int, pos: Vector2, sz: Vector2) -> void:
 		c.offset_bottom = -pos.y
 
 
+## Minimap (top right, under the timer): the GRINDLINE 27 grid plate with the live track and car dots drawn in it,
+## then the rpm / lap-progress bars.
 func _build_radar() -> void:
-	var box := Panel.new()
-	box.add_theme_stylebox_override("panel", UiStyle.box(Color(0, 0, 0, 0.38), 1, Color(1, 1, 1, 0.12), 12))
+	var box := TextureRect.new()
+	box.texture = load(HUD27 + "minimap_clean.png")
+	box.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	box.stretch_mode = TextureRect.STRETCH_SCALE
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud_layer.add_child(box)
-	_anchor(box, Control.PRESET_TOP_RIGHT, Vector2(28, 24), Vector2(250, 170))
+	_anchor(box, Control.PRESET_TOP_RIGHT, Vector2(24, 172), Vector2(300, 201))
 	map = TrackMap.new()
-	map.set_anchors_preset(Control.PRESET_FULL_RECT)
+	map.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	map.offset_left = 26
+	map.offset_top = 14
+	map.offset_right = -14
+	map.offset_bottom = -14
 	map.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	map.set_track(race.track)
 	box.add_child(map)
 	for i in 2:
 		var bg := ColorRect.new()
-		bg.color = Color(0, 0, 0, 0.7)
+		bg.color = Color(0, 0, 0, 0.55)
 		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		hud_layer.add_child(bg)
-		_anchor(bg, Control.PRESET_TOP_RIGHT, Vector2(28 + (1 - i) * 127.5, 200), Vector2(122.5, 6))
+		_anchor(bg, Control.PRESET_TOP_RIGHT, Vector2(30 + (1 - i) * 141.0, 378), Vector2(136.0, 5))
 		var fill := ColorRect.new()
 		fill.color = UiStyle.MONEY if i == 0 else UiStyle.BLUE
-		fill.size = Vector2(0, 6)
+		fill.size = Vector2(0, 5)
 		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		bg.add_child(fill)
 		if i == 0:
 			rpm_fill = fill
 		else:
 			progress_fill = fill
-	fps_label = UiStyle.label("", UiStyle.cond(), 22, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_RIGHT)
-	_anchor(fps_label, Control.PRESET_TOP_RIGHT, Vector2(28, 300), Vector2(560, 28))
+	fps_label = UiStyle.label("", UiStyle.cond(), 22, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_LEFT)
+	_anchor(fps_label, Control.PRESET_BOTTOM_LEFT, Vector2(28, 8), Vector2(700, 28))
 	hud_layer.add_child(fps_label)
 
 
@@ -141,94 +151,98 @@ func _info_row(parent: Control, y: float, title: String, value_size: int) -> Lab
 	return v
 
 
-## Top-centre race strip: position · lap · lap time · best lap (one compact glass bar).
-## Top-centre timing: current lap time, last lap and best lap (purple when it is the fastest of the race).
+## Timer strip (top right, under the camera / pause / settings buttons): the GRINDLINE 27 plate (stopwatch, Best,
+## Last printed) with the running lap time and the best / last laps as live labels. Best turns purple when it is the
+## fastest lap of the race.
 func _build_info() -> void:
-	var bar := PanelContainer.new()
-	bar.add_theme_stylebox_override("panel", UiStyle.box(Color(0, 0, 0, 0.5), 0, Color.TRANSPARENT, 6))
-	bar.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	bar.offset_left = -270
-	bar.offset_right = 270
-	bar.offset_top = 22
-	bar.offset_bottom = 92
-	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hud_layer.add_child(bar)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 0)
-	bar.add_child(row)
-	for spec in [["time", "LAP TIME", 200], ["last", "LAST", 170], ["best", "BEST", 170]]:
-		var cell := VBoxContainer.new()
-		cell.custom_minimum_size = Vector2(spec[2], 0)
-		cell.add_theme_constant_override("separation", -6)
-		row.add_child(cell)
-		cell.add_child(UiStyle.label(spec[1], UiStyle.cond_bold(), 18, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_CENTER, false))
-		var v := UiStyle.label("", UiStyle.font("BarlowCondensed-ExtraBold"), 36 if spec[0] == "time" else 30, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, false)
-		cell.add_child(v)
-		info[spec[0]] = v
+	var plate := TextureRect.new()
+	plate.texture = load(HUD27 + "timer_clean.png")
+	plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud_layer.add_child(plate)
+	var w := 500.0
+	var k := w / 820.0
+	_anchor(plate, Control.PRESET_TOP_RIGHT, Vector2(22, 100), Vector2(w, 112.0 * k))
+	var cells := {"time": [112.0, 340.0, 18.0, 92.0, 44], "best": [372.0, 560.0, 50.0, 100.0, 26], "last": [602.0, 790.0, 50.0, 100.0, 26]}
+	for key in cells:
+		var c: Array = cells[key]
+		var l := UiStyle.label("", UiStyle.font("BarlowCondensed-ExtraBold"), c[4], Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, false)
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		l.position = Vector2(c[0] * k, c[2] * k)
+		l.size = Vector2((c[1] - c[0]) * k, (c[3] - c[2]) * k)
+		plate.add_child(l)
+		info[key] = l
 
 
+## Position and timing tower (top left) on the GRINDLINE 27 plates: header (position / field size / lap), one row
+## plate per car (number, team colour, three-letter code, gap) and the gold plate for the player's row.
+var _row_tex: Texture2D
+var _row_player_tex: Texture2D
 
-## Timing tower (left): header with the player's position and the lap, then one row per car - position tile,
-## team colour, three-letter code and the gap to the leader. The player's row is lit gold.
+
 func _build_board() -> void:
-	var head := PanelContainer.new()
-	head.add_theme_stylebox_override("panel", UiStyle.box(Color(0.02, 0.02, 0.03, 0.82)))
-	head.position = Vector2(28, 24)
-	head.size = Vector2(300, 72)
+	var k := 330.0 / 440.0
+	_row_tex = load(HUD27 + "lb_row.png")
+	_row_player_tex = load(HUD27 + "lb_row_player.png")
+	var head := TextureRect.new()
+	head.texture = load(HUD27 + "lb_header.png")
+	head.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	head.position = Vector2(24, 20)
+	head.size = Vector2(330, 108 * k)
 	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud_layer.add_child(head)
-	var hr := HBoxContainer.new()
-	head.add_child(hr)
-	var accent := ColorRect.new()
-	accent.color = UiStyle.RED
-	accent.custom_minimum_size = Vector2(8, 0)
-	hr.add_child(accent)
 	var posv := UiStyle.label("P1", UiStyle.display(), 64, Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, false)
-	posv.custom_minimum_size = Vector2(150, 0)
-	hr.add_child(posv)
+	posv.position = Vector2(18, -4)
+	posv.size = Vector2(110, 80)
+	head.add_child(posv)
 	info["position"] = posv
-	var lapcol := VBoxContainer.new()
-	lapcol.add_theme_constant_override("separation", -2)
-	lapcol.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hr.add_child(lapcol)
-	lapcol.add_child(UiStyle.label("LAP", UiStyle.cond_bold(), 18, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_RIGHT, false))
-	var lapv := UiStyle.label("", UiStyle.font("BarlowCondensed-ExtraBold"), 38, Color.WHITE, HORIZONTAL_ALIGNMENT_RIGHT, false)
-	lapcol.add_child(lapv)
+	var tot := UiStyle.label("/%d" % race.racers.size(), UiStyle.font("BarlowCondensed-ExtraBold"), 34, UiStyle.GOLD, HORIZONTAL_ALIGNMENT_LEFT, false)
+	tot.position = Vector2(118, 26)
+	tot.size = Vector2(80, 44)
+	head.add_child(tot)
+	var lapv := UiStyle.label("", UiStyle.font("BarlowCondensed-ExtraBold"), 40, Color.WHITE, HORIZONTAL_ALIGNMENT_RIGHT, false)
+	lapv.position = Vector2(196, 26)
+	lapv.size = Vector2(118, 48)
+	head.add_child(lapv)
 	info["lap"] = lapv
+	var y := 20.0 + 108.0 * k
+	var rh := 45.0 * k
 	for i in race.racers.size():
-		var row := Control.new()
-		row.position = Vector2(28, 100 + i * 38)
-		row.size = Vector2(300, 36)
+		var row := TextureRect.new()
+		row.texture = _row_tex
+		row.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		row.position = Vector2(24, y + i * rh)
+		row.size = Vector2(330, rh)
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		hud_layer.add_child(row)
-		var bg := ColorRect.new()
-		bg.color = Color(0.02, 0.02, 0.03, 0.66)
-		bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(bg)
-		var tile := ColorRect.new()
-		tile.color = Color(1, 1, 1, 0.92)
-		tile.position = Vector2(0, 0)
-		tile.size = Vector2(38, 36)
-		tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(tile)
-		var pos := UiStyle.label(str(i + 1), UiStyle.font("BarlowCondensed-ExtraBold"), 24, Color(0.05, 0.05, 0.06), HORIZONTAL_ALIGNMENT_CENTER, false)
-		pos.size = Vector2(38, 36)
+		var pos := UiStyle.label(str(i + 1), UiStyle.font("BarlowCondensed-ExtraBold"), 26, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, false)
+		pos.position = Vector2(10, 0)
+		pos.size = Vector2(34, rh)
+		pos.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		row.add_child(pos)
 		var sw := ColorRect.new()
-		sw.position = Vector2(44, 6)
-		sw.size = Vector2(5, 24)
+		sw.position = Vector2(56, rh * 0.22)
+		sw.size = Vector2(26, rh * 0.56)
 		sw.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(sw)
-		var name := UiStyle.label("", UiStyle.cond_bold(), 24, UiStyle.TEXT, HORIZONTAL_ALIGNMENT_LEFT, false)
-		name.position = Vector2(58, 0)
-		name.size = Vector2(100, 36)
+		var name := UiStyle.label("", UiStyle.font("BarlowCondensed-ExtraBold"), 26, UiStyle.TEXT, HORIZONTAL_ALIGNMENT_LEFT, false)
+		name.position = Vector2(98, 0)
+		name.size = Vector2(110, rh)
+		name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		row.add_child(name)
-		var gap := UiStyle.label("", UiStyle.cond(), 22, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_RIGHT, false)
-		gap.position = Vector2(150, 0)
-		gap.size = Vector2(140, 36)
+		var gap := UiStyle.label("", UiStyle.font("BarlowCondensed-ExtraBold"), 24, Color.WHITE, HORIZONTAL_ALIGNMENT_RIGHT, false)
+		gap.position = Vector2(196, 0)
+		gap.size = Vector2(118, rh)
+		gap.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		row.add_child(gap)
-		board_rows.append([bg, sw, name, gap])
+		board_rows.append([row, sw, name, gap, pos])
+	var foot := TextureRect.new()
+	foot.texture = load(HUD27 + "lb_footer.png")
+	foot.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	foot.position = Vector2(24, y + race.racers.size() * rh - 2)
+	foot.size = Vector2(330, 14 * k)
+	foot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud_layer.add_child(foot)
 
 
 
@@ -236,10 +250,10 @@ func _build_speedo() -> void:
 	dial = RevDial.new()
 	dial.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dial.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	dial.offset_left = -110          # compact: keeps the road ahead and nearby cars visible
-	dial.offset_right = 110
-	dial.offset_top = -236
-	dial.offset_bottom = -16
+	dial.offset_left = -170          # compact 340 x 239: the road ahead and nearby cars stay visible above it
+	dial.offset_right = 170
+	dial.offset_top = -245
+	dial.offset_bottom = -6
 	hud_layer.add_child(dial)
 
 ## Boost gauge under the speedo and the skill feed on the right: each skill pops in with its points, the open chain
@@ -253,6 +267,7 @@ func _build_skills() -> void:
 	gauge.offset_bottom = -4
 	gauge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud_layer.add_child(gauge)
+	gauge.visible = false   # NOS charge is drawn on the tachometer
 	var back := ColorRect.new()
 	back.color = Color(1, 1, 1, 0.15)
 	back.size = Vector2(340, 8)
@@ -266,15 +281,16 @@ func _build_skills() -> void:
 	boost_label.size = Vector2(76, 26)
 	gauge.add_child(boost_label)
 	var col := VBoxContainer.new()
-	col.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+	col.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	col.offset_left = -560
-	col.offset_right = -40
-	col.offset_top = -330   # ends above the NOS / GAS touch buttons (they start ~20 px below the centre line)
-	col.offset_bottom = -10
+	col.offset_right = -28
+	col.offset_top = 392    # under the minimap, above the handbrake and pedals
+	col.offset_bottom = 640
+	col.alignment = BoxContainer.ALIGNMENT_BEGIN
 	col.alignment = BoxContainer.ALIGNMENT_END
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud_layer.add_child(col)
-	chain_label = UiStyle.label("", UiStyle.display(), 54, UiStyle.GOLD, HORIZONTAL_ALIGNMENT_RIGHT)
+	chain_label = UiStyle.label("", UiStyle.display(), 50, UiStyle.GOLD, HORIZONTAL_ALIGNMENT_RIGHT)
 	col.add_child(chain_label)
 	skill_box = VBoxContainer.new()
 	skill_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -293,7 +309,7 @@ func _on_skill(name: String, points: int, mult: int) -> void:
 
 
 func _skill_line(title: String, value: String, color: Color) -> void:
-	var l := UiStyle.label("%s   %s" % [title, value], UiStyle.cond_bold(), 38, color, HORIZONTAL_ALIGNMENT_RIGHT)
+	var l := UiStyle.label("%s   %s" % [title, value], UiStyle.cond_bold(), 32, color, HORIZONTAL_ALIGNMENT_RIGHT)
 	skill_box.add_child(l)
 	while skill_box.get_child_count() > 4:
 		skill_box.get_child(0).queue_free()
@@ -326,9 +342,20 @@ func _build_messages() -> void:
 	hud_layer.add_child(help)
 
 
+func _sprite_button(sprite: String, cb: Callable) -> TextureButton:
+	var b := TextureButton.new()
+	b.texture_normal = load(HUD27 + sprite + ".png")
+	b.ignore_texture_size = true
+	b.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	b.custom_minimum_size = Vector2(84, 72)
+	b.focus_mode = Control.FOCUS_NONE
+	b.pressed.connect(cb)
+	return b
+
+
 func _icon_button(icon: String, cb: Callable) -> Button:
 	var b := Button.new()
-	b.custom_minimum_size = Vector2(92, 72)
+	b.custom_minimum_size = Vector2(88, 72)
 	b.focus_mode = Control.FOCUS_NONE
 	b.add_theme_stylebox_override("normal", UiStyle.box(Color(0, 0, 0, 0.6)))
 	b.add_theme_stylebox_override("hover", UiStyle.box(Color(0, 0, 0, 0.75)))
@@ -343,13 +370,17 @@ func _icon_button(icon: String, cb: Callable) -> Button:
 
 func _build_buttons() -> void:
 	var row := HBoxContainer.new()
-	row.set_anchors_preset(Control.PRESET_TOP_RIGHT)   # under the minimap, clear of the timing strip
-	row.offset_left = -224
-	row.offset_right = -28
-	row.offset_top = 214
+	row.set_anchors_preset(Control.PRESET_TOP_RIGHT)   # top-right corner, above the timing card
+	row.offset_left = -324
+	row.offset_right = -22
+	row.offset_top = 18
+	row.alignment = BoxContainer.ALIGNMENT_END
 	row.add_theme_constant_override("separation", 12)
-	row.add_child(_icon_button("videocam", func(): race.camera.cycle()))
-	row.add_child(_icon_button("pause", func(): _set_pause(true)))
+	row.add_child(_sprite_button("camera", func(): race.camera.cycle()))
+	row.add_child(_sprite_button("pause", func(): _set_pause(true)))
+	row.add_child(_sprite_button("settings", func():   # straight into Settings (the race stays paused behind it)
+		_set_pause(true)
+		pause_panel._open_options()))
 	hud_layer.add_child(row)
 
 
@@ -357,7 +388,7 @@ func _pad(parent: Control, action: String, pos: Vector2, sz: Vector2, round: boo
 	var panel := Panel.new()
 	panel.position = pos
 	panel.size = sz
-	var r := int(sz.x * 0.5) if round else 22
+	var r := int(sz.x * 0.5) if round else 28
 	var idle := UiStyle.box(Color(0, 0, 0, 0.18), 2, Color(1, 1, 1, 0.55), r)
 	var on := UiStyle.box(Color(tint.r, tint.g, tint.b, 0.4), 2, tint, r)
 	panel.add_theme_stylebox_override("panel", idle)
@@ -410,6 +441,94 @@ func release_controls() -> void:
 		controls.visible = vis
 
 
+## Touch control drawn with a GRINDLINE 27 sprite (normal / pressed). A TouchScreenButton is the input: true
+## multi-touch, slide between buttons (passby), action press/release; its shape matches the sprite.
+func _sprite_pad(parent: Control, action: String, pos: Vector2, sz: Vector2, sprite: String, round := false) -> void:
+	var holder := Control.new()
+	holder.position = pos
+	holder.size = sz
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(holder)
+	var tsb := TouchScreenButton.new()
+	var tex: Texture2D = load(HUD27 + sprite + ".png")
+	tsb.texture_normal = tex
+	if ResourceLoader.exists(HUD27 + sprite + "_pressed.png"):
+		tsb.texture_pressed = load(HUD27 + sprite + "_pressed.png")
+	tsb.scale = sz / tex.get_size()
+	var shape: Shape2D
+	if round:
+		shape = CircleShape2D.new()
+		(shape as CircleShape2D).radius = tex.get_size().x * 0.46
+	else:
+		shape = RectangleShape2D.new()
+		(shape as RectangleShape2D).size = tex.get_size() * 0.96
+	tsb.shape = shape
+	tsb.shape_centered = true
+	tsb.action = action
+	tsb.passby_press = true
+	holder.add_child(tsb)
+
+
+## Steering pad: a dark, semi-transparent disc with a clear white arrow and a hairline edge (no metal ring);
+## brightens while held. TouchScreenButton input (multi-touch, slide between pads).
+func _steer_pad(parent: Control, action: String, pos: Vector2, icon: String) -> void:
+	var sz := Vector2(210, 210)
+	var disc := Control.new()
+	disc.position = pos
+	disc.size = sz
+	disc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	disc.set_meta("held", false)
+	disc.draw.connect(func():
+		var held: bool = disc.get_meta("held")
+		disc.draw_circle(sz * 0.5, sz.x * 0.5 - 1.0, Color(1, 1, 1, 0.16) if held else Color(0.02, 0.02, 0.03, 0.34), true, -1.0, true)
+		disc.draw_arc(sz * 0.5, sz.x * 0.5 - 1.5, 0.0, TAU, 96, Color(1, 1, 1, 0.6 if held else 0.22), 2.0 if held else 1.2, true))
+	parent.add_child(disc)
+	var ic := UiStyle.icon(icon, 110, Color(1, 1, 1, 0.95))
+	ic.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	ic.position = (sz - Vector2(110, 110)) * 0.5
+	ic.size = Vector2(110, 110)
+	ic.custom_minimum_size = Vector2(110, 110)
+	disc.add_child(ic)
+	var tsb := TouchScreenButton.new()
+	var shape := CircleShape2D.new()
+	shape.radius = sz.x * 0.52
+	tsb.shape = shape
+	tsb.shape_centered = true
+	tsb.position = sz * 0.5
+	tsb.action = action
+	tsb.passby_press = true
+	tsb.pressed.connect(func():
+		disc.set_meta("held", true)
+		disc.queue_redraw())
+	tsb.released.connect(func():
+		disc.set_meta("held", false)
+		disc.queue_redraw())
+	disc.add_child(tsb)
+
+
+## Pedal-style touch pad (brake / accelerator): a rounded plate with a grip-dot pattern, lit in its colour while held.
+func _pedal(parent: Control, action: String, pos: Vector2, sz: Vector2, text: String, tint: Color) -> void:
+	_pad(parent, action, pos, sz, false, "", "", tint)
+	var plate: Panel = parent.get_child(parent.get_child_count() - 1)
+	var cols := 3
+	var rows := int(sz.y / 70.0)
+	for y in rows:
+		for x in cols:
+			var dot := Panel.new()
+			dot.add_theme_stylebox_override("panel", UiStyle.box(Color(1, 1, 1, 0.28), 0, Color.TRANSPARENT, 9))
+			dot.size = Vector2(18, 18)
+			dot.position = Vector2(sz.x * (x + 1) / (cols + 1) - 9, 34 + (sz.y - 90) * y / maxf(rows - 1, 1))
+			dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			plate.add_child(dot)
+	var l := UiStyle.label(text, UiStyle.cond_bold(), 22, Color(1, 1, 1, 0.75), HORIZONTAL_ALIGNMENT_CENTER, false)
+	l.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	l.offset_top = -36
+	l.offset_bottom = -6
+	l.offset_left = -sz.x * 0.5
+	l.offset_right = sz.x * 0.5
+	plate.add_child(l)
+
+
 func _build_controls() -> void:
 	controls = Control.new()
 	controls.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -425,12 +544,12 @@ func _build_controls() -> void:
 	controls.add_child(right)
 	var tilt: bool = Game.settings()["steering"] == "tilt"
 	if not tilt:
-		_pad(left, "steer_left", Vector2(50, -280), Vector2(230, 230), true, "chevron_left", "", Color.WHITE)
-		_pad(left, "steer_right", Vector2(310, -280), Vector2(230, 230), true, "chevron_right", "", Color.WHITE)
-	_pad(right, "brake", Vector2(-520, -300), Vector2(200, 250), false, "", "BRAKE", UiStyle.RED)
-	_pad(right, "accelerate", Vector2(-280, -390), Vector2(220, 340), false, "speed", "GAS", UiStyle.MONEY)
-	_pad(right, "boost", Vector2(-480, -520), Vector2(150, 150), true, "", "NOS", Color(0.3, 0.75, 1.0))
-	_pad(right, "handbrake", Vector2(-660, -470), Vector2(130, 130), true, "", "HB", Color(1.0, 0.82, 0.3))
+		_steer_pad(left, "steer_left", Vector2(50, -270), "chevron_left")
+		_steer_pad(left, "steer_right", Vector2(300, -270), "chevron_right")
+	_sprite_pad(right, "brake", Vector2(-540, -236), Vector2(230, 212), "brake")
+	_sprite_pad(right, "accelerate", Vector2(-262, -320), Vector2(206, 290), "accelerator")
+	_sprite_pad(right, "handbrake", Vector2(-500, -420), Vector2(130, 144), "handbrake")
+	_sprite_pad(left, "boost", Vector2(50, -470), Vector2(170, 173), "nos", true)
 	# Player-configurable size and transparency (Settings), scaled toward each screen corner.
 	var sc := float(Game.settings().get("controlsSize", 1.0))
 	left.scale = Vector2(sc, sc)
@@ -526,6 +645,11 @@ func _process(delta: float) -> void:
 	var p: Racer = race.player
 	var car: RaceCarBody = p.car
 	info["position"].text = "P%d" % maxi(1, p.position)
+	# Position changes (overtakes made or lost) in the feed under the minimap, once the start has settled.
+	if race.phase == race.Phase.RACING and race.race_time > 4.0 and _last_pos > 0 and p.position != _last_pos and skill_box:
+		var up: bool = p.position < _last_pos
+		_skill_line("P%d" % p.position, "▲ GAINED" if up else "▼ LOST", UiStyle.MONEY if up else UiStyle.RED)
+	_last_pos = p.position
 	info["lap"].text = "%d / %d" % [p.laps.current_lap(), race.total_laps]
 	var running: bool = race.phase == race.Phase.RACING or race.phase == race.Phase.FINISHING
 	info["time"].text = _clock(p.laps.current_lap_elapsed(race.race_time)) if running and not p.laps.finished else _clock(p.laps.last_lap_ms / 1000.0)
@@ -538,7 +662,8 @@ func _process(delta: float) -> void:
 	info["best"].add_theme_color_override("font_color", UiStyle.PURPLE if fastest else Color.WHITE)
 	dial.set_values(car.rpm if race.phase != race.Phase.COUNTDOWN else 0.12, roundi(car.speed_kmh),
 		car.gear_label() if race.phase != race.Phase.COUNTDOWN else "N", car.boost_charge, car.boosting)
-	rpm_fill.size.x = 122.5 * car.rpm
+	rpm_fill.size.x = 136.0 * car.rpm
+	dial.set_assists(car.abs_active, car.tcs_active)
 	boost_fill.size.x = 340.0 * car.boost_charge
 	boost_fill.color = Color(1.0, 0.85, 0.3) if car.boosting else Color(0.3, 0.75, 1.0)
 	if race.skills:
@@ -546,7 +671,7 @@ func _process(delta: float) -> void:
 		chain_label.text = ("%s  ×%d" % [_thousands(sk.chain), sk.mult]) if sk.chain > 0 else ""
 	if race.camera:
 		race.camera.boost_kick = 1.0 if car.boosting else 0.0
-	progress_fill.size.x = 122.5 * (0.0 if p.laps.progress < 0.0 else fposmod(p.laps.progress, race.track.length) / race.track.length)
+	progress_fill.size.x = 136.0 * (0.0 if p.laps.progress < 0.0 else fposmod(p.laps.progress, race.track.length) / race.track.length)
 
 	if race.phase == race.Phase.COUNTDOWN:
 		var c := ceili(race.countdown_left)
@@ -587,10 +712,12 @@ func _update_board() -> void:
 		var r: Dictionary = rows[i]
 		var w: Array = board_rows[i]
 		var player: bool = r["player"]
-		(w[0] as ColorRect).color = Color(0.55, 0.42, 0.08, 0.85) if player else Color(0.02, 0.02, 0.03, 0.66)
+		(w[0] as TextureRect).texture = _row_player_tex if player else _row_tex
+		(w[4] as Label).add_theme_color_override("font_color", Color(0.06, 0.06, 0.07) if player else Color.WHITE)
 		(w[1] as ColorRect).color = _colors.get(r["id"], Color.WHITE)
 		(w[2] as Label).text = "YOU" if player else String(r["name"]).split(" ")[-1].substr(0, 3).to_upper()
-		(w[2] as Label).add_theme_color_override("font_color", UiStyle.GOLD if player else UiStyle.TEXT)
+		(w[2] as Label).add_theme_color_override("font_color", Color(0.07, 0.06, 0.04) if player else UiStyle.TEXT)
+		(w[3] as Label).add_theme_color_override("font_color", Color(0.07, 0.06, 0.04) if player else Color.WHITE)
 		var gap := "FIN" if r["finished"] else ("INTERVAL" if i == 0 else ("+%.3f" % ((leader["progress"] - r["progress"]) / pace) if pace > 0.0 else ""))
 		(w[3] as Label).text = gap
 

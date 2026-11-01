@@ -3,7 +3,7 @@
 class_name ChaseCamera
 extends Camera3D
 
-const MODES := [[6.6, 2.3], [4.6, 1.6], [0.0, 0.0]]
+const MODES := [[5.6, 1.85], [4.4, 1.45], [0.0, 0.0]]   # chase (car prominent, road ahead visible), near, bumper
 
 var target: RaceCarBody
 var mode := 0
@@ -77,11 +77,13 @@ func _physics_process(delta: float) -> void:
 		var hit := get_world_3d().direct_space_state.intersect_ray(q)
 		if not hit.is_empty() and not (hit["collider"] is RaceCarBody):
 			desired = hit["position"] + (pivot - desired).normalized() * 0.4
-		global_position = desired if _snap else global_position.lerp(desired, clampf(delta * 9.0, 0.0, 1.0))
-		look_at(target.global_position + Vector3.UP * 1.0 + rot * Vector3(0, 0, 3.0), Vector3.UP)
+		# Move with the car, then smooth only the offset: a plain lerp toward the target trailed by speed / 9 (4 m at
+		# 140 km/h), so the car shrank in frame exactly when racing. Deliberate lag comes from the surge term above.
+		global_position = desired if _snap else (global_position + target.linear_velocity * delta).lerp(desired, clampf(delta * 8.0, 0.0, 1.0))
+		look_at(target.global_position + Vector3.UP * 0.95 + rot * Vector3(0, 0, 6.0), Vector3.UP)
 	if _shake > 0.0 and Game.effect_on("camera_shake"):
 		global_position += Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * _shake * 0.25
 		_shake = maxf(0.0, _shake - delta * 1.2)
 	_kick = lerpf(_kick, boost_kick if Game.effect_on("motion_blur") else 0.0, clampf(delta * 4.0, 0.0, 1.0))
-	fov = lerpf(fov, 62.0 + (4.0 if Game.reduce_motion() else 10.0) * clampf(speed / 55.0, 0.0, 1.0) + 9.0 * _kick, clampf(delta * 3.0, 0.0, 1.0))
+	fov = lerpf(fov, 60.0 + (3.0 if Game.reduce_motion() else 7.0) * clampf(speed / 55.0, 0.0, 1.0) + 7.0 * _kick, clampf(delta * 3.0, 0.0, 1.0))
 	_snap = false

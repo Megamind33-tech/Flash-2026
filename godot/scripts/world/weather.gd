@@ -10,7 +10,7 @@ const LABEL := {"clear": "Clear", "cloudy": "Overcast", "rain": "Rain", "storm":
 ## grip: tyre grip multiplier · aqua: extra grip loss per m/s above 25 m/s · wind: crosswind accel (m/s^2)
 ## fog: depth fog density · rain: particle share · wet: road/wall wetness · sun: light energy
 const PRESET := {
-	"clear":  {"grip": 1.0, "aqua": 0.0, "wind": 0.0, "fog": 0.0007, "rain": 0.0, "wet": 0.0, "sun": 1.35, "sky": "clear"},
+	"clear":  {"grip": 1.0, "aqua": 0.0, "wind": 0.0, "fog": 0.00035, "rain": 0.0, "wet": 0.0, "sun": 1.35, "sky": "clear"},
 	"cloudy": {"grip": 0.99, "aqua": 0.0, "wind": 0.0, "fog": 0.0016, "rain": 0.0, "wet": 0.0, "sun": 0.7, "sky": "partly"},
 	"rain":   {"grip": 0.8, "aqua": 0.004, "wind": 0.0, "fog": 0.004, "rain": 0.55, "wet": 0.8, "sun": 0.42, "sky": "overcast"},
 	"storm":  {"grip": 0.66, "aqua": 0.008, "wind": 0.35, "fog": 0.008, "rain": 1.0, "wet": 1.0, "sun": 0.3, "sky": "overcast"},
@@ -109,7 +109,9 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 	var sky_name: String = "night" if time_of_day == "night" else ("sunset" if time_of_day == "dusk" and kind in ["clear", "cloudy", "dust"] else str(p["sky"]))
 	var pano := PanoramaSkyMaterial.new()
 	pano.panorama = load("res://assets/city/sky_%s.hdr" % sky_name)
-	pano.energy_multiplier = {"night": 0.12, "sunset": 1.0}.get(sky_name, 1.1)
+	# Day sky 0.85 (was 1.1): the panorama was the brightest thing on screen and clipped toward white behind the
+	# skyline; the sun and the lit facades should carry the brightness, not the backdrop.
+	pano.energy_multiplier = {"night": 0.12, "sunset": 1.0}.get(sky_name, 0.85)
 	sky.sky_material = pano
 	sky.radiance_size = Sky.RADIANCE_SIZE_64 if Game.quality() == 0 else Sky.RADIANCE_SIZE_128
 	env.background_mode = Environment.BG_SKY
@@ -140,9 +142,9 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 	env.fog_light_color = haze
 	env.fog_density = float(p["fog"])
 	env.fog_sky_affect = 0.25 if kind in ["clear", "cloudy"] else 0.7
-	env.fog_aerial_perspective = 0.5
+	env.fog_aerial_perspective = 0.35   # subtle depth: 0.5 washed the distant skyline flat
 	# The air glows toward a low sun, and a thin layer of haze hugs the ground (depth between street and skyline).
-	env.fog_sun_scatter = {"day": 0.18, "dusk": 0.55, "night": 0.0}[time_of_day]
+	env.fog_sun_scatter = {"day": 0.24, "dusk": 0.55, "night": 0.0}[time_of_day]
 	# Height fog thickens below fog_height, and the camera sits inside that layer: it is only right for fog and
 	# dust (in clear weather and rain it fogged the whole frame and washed out the contrast).
 	env.fog_height = 3.0
@@ -155,6 +157,14 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 		env.glow_hdr_threshold = 0.95
 	if RenderingServer.get_current_rendering_method() == "forward_plus":
 		_ultra(env)
+	# Measurements: --env tonemap_mode=3,fog_enabled=0,... overrides Environment properties for this run only.
+	var args := OS.get_cmdline_user_args()
+	var ei := args.find("--env")
+	if ei >= 0 and ei + 1 < args.size():
+		for kv in args[ei + 1].split(","):
+			var pr := kv.split("=")
+			if pr.size() == 2 and pr[0] in env:
+				env.set(pr[0], int(pr[1]) if pr[1].is_valid_int() else (float(pr[1]) if pr[1].is_valid_float() else pr[1]))
 	var we := WorldEnvironment.new()
 	we.environment = env
 	parent.add_child(we)
@@ -171,10 +181,11 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 			sun.light_color = Color(0.62, 0.7, 0.95)
 			sun.light_energy = 0.08
 		_:
-			# Mid-morning sun (30 degrees up), not noon: longer shadows and light that models cars and facades.
-			sun.rotation_degrees = Vector3(-30, -35, 0)
-			sun.light_color = Color(1.0, 0.94, 0.85) if kind != "dust" else Color(1.0, 0.82, 0.6)
-			sun.light_energy = float(p["sun"]) * 1.1
+			# Late afternoon (20 degrees up, warm): long shadows across the street, light that rakes the facades and
+			# models car bodies; still well above the golden-hour dusk preset.
+			sun.rotation_degrees = Vector3(-20, -38, 0)
+			sun.light_color = Color(1.0, 0.89, 0.74) if kind != "dust" else Color(1.0, 0.8, 0.58)
+			sun.light_energy = float(p["sun"]) * 1.12
 	var q := VisualsManager.level("shadows")
 	sun.shadow_enabled = time_of_day != "night"   # wanted; VisualsManager applies the Shadows option (range, cascades)
 	# High and Ultra: two cascades (crisp around the car, coarser beyond). Medium, the phone default, keeps one
@@ -183,7 +194,7 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 	sun.directional_shadow_split_1 = 0.22
 	# A low dusk sun puts whole streets in building shadow: the shadow range must reach far enough that its end
 	# does not show as a sunlit band across the road.
-	var reach := 1.9 if time_of_day == "dusk" else 1.0
+	var reach := 1.9 if time_of_day == "dusk" else 1.3   # low sun: longer shadows need more range
 	sun.directional_shadow_max_distance = (70.0 if q <= 1 else 120.0) * reach
 	sun.directional_shadow_blend_splits = q >= 2
 	sun.directional_shadow_fade_start = 0.6 if time_of_day == "dusk" else 0.8

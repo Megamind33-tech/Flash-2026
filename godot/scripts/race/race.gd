@@ -111,6 +111,7 @@ func _ready() -> void:
 		else:
 			track = CityWorld.track_from(data)
 			await CityWorld.build(self, data, style, track)
+	_aim_sun()
 	# AI braking points and corner speeds follow the grip the weather leaves.
 	track.lateral_grip_g *= Weather.grip
 	track.decel *= Weather.grip
@@ -453,6 +454,25 @@ func _dress_cars() -> void:
 			beam.material_override = bm
 			beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			r.car.add_child(beam)
+
+
+## Daytime sun per circuit: low (18 degrees) and ahead of the cars on the start straight, 28 degrees off-axis, so
+## the opening view is lit against the light like a late-afternoon broadcast shot (sheen on the asphalt, lit
+## edges on the cars, facades raked from the side) instead of the road sitting in the buildings' shadow under a
+## blue sky fill. The straight's direction is averaged over its first 250 m.
+func _aim_sun() -> void:
+	if Weather.time_of_day != "day" or _env.is_empty() or not _env.has("sun") or "--no-aim-sun" in OS.get_cmdline_user_args():
+		return
+	var sun: DirectionalLight3D = _env["sun"]
+	var t := Vector3.ZERO
+	for k in 6:
+		t += track.tangent_at(track.wrapd(k * 50.0))
+	t.y = 0.0
+	if t.length() < 0.1:
+		return
+	var toward_cam := (-t.normalized()).rotated(Vector3.UP, deg_to_rad(28.0))
+	var dir := (toward_cam * cos(deg_to_rad(18.0)) + Vector3.DOWN * sin(deg_to_rad(18.0))).normalized()
+	sun.global_basis = Basis.looking_at(dir, Vector3.UP)
 
 
 func _build_environment() -> void:

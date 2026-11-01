@@ -21,6 +21,7 @@ uniform float road_half = 7.1;       // half width covered by the mesh (to the b
 uniform float lap_length = 3000.0;
 uniform float wear = 0.6;
 uniform float wet = 0.0;
+uniform float damp = 0.0;            // dry weather: selective damp patches (street cleaning, run-off), not a mirror
 uniform float crack_fade = 0.0;      // 0 = the scan as is; 1 = cracks lifted to the surrounding tone (resurfaced race venue)
 uniform float anti_tile = 1.0;
 uniform float detail_soften = 0.45;  // pulls the aggregate's pixel-scale contrast toward the local tone: no salt-and-pepper speckle
@@ -91,15 +92,24 @@ void fragment() {
 		float ring = sin((r - ph * 0.45) * 60.0) * smoothstep(0.09, 0.0, abs(r - ph * 0.45)) * (1.0 - ph);
 		ripple = d / max(r, 1e-3) * ring * 0.35 * puddle * wet;
 	}
-	vec3 col = base * mix(1.0, 0.45, wet);
+	// damp patches in dry weather: low-frequency blobs, drawn toward the gutters and away from the rubbered line;
+	// darker, much smoother (sheen against a low sun) with a soft edge, never a full mirror
+	float dampm = 0.0;
+	if (damp > 0.0 && wet < 0.1) {
+		float f = vnoise(m * vec2(0.09, 0.035) + 3.7) * 0.65 + vnoise(m * vec2(0.35, 0.18) + 11.0) * 0.35;
+		f += smoothstep(0.45, 0.95, abs(m.x) / road_half) * 0.18 - mask.r * 0.25;
+		dampm = smoothstep(0.62, 0.74, f) * damp;
+	}
+	vec3 col = base * mix(1.0, 0.45, wet) * (1.0 - 0.28 * dampm);
 	rough = max(rough, rough_floor * (1.0 - wet));
 	rough = mix(rough, max(rough * 0.6, 0.35), wet);   // damp but still rough, so puddles read as mirrors against it
 	rough = mix(rough, 0.03, puddle);
+	rough = mix(rough, 0.12, dampm);
 	col = mix(col, base * 0.12, puddle);
 	ALBEDO = col;
 	ROUGHNESS = rough;
 	SPECULAR = mix(0.5, 0.6, puddle);
-	nm = mix(nm, vec3(0.5, 0.5, 1.0), clamp(puddle * 0.97 + wet * 0.25, 0.0, 1.0));
+	nm = mix(nm, vec3(0.5, 0.5, 1.0), clamp(puddle * 0.97 + wet * 0.25 + dampm * 0.6, 0.0, 1.0));
 	nm.xy += ripple;
 	NORMAL_MAP = nm;
 }

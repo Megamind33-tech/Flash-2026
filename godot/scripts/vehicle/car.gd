@@ -52,6 +52,7 @@ var _wheels: Array[VehicleWheel3D] = []
 var _engine: AudioStreamPlayer3D
 var _skid: AudioStreamPlayer3D
 var _impact: AudioStreamPlayer3D
+var _reverse_lights: Node3D
 
 const GEARS := 6
 ## Deceleration when coasting (no pedal): tyre rolling resistance plus engine braking in the current gear, in m/s^2.
@@ -64,6 +65,9 @@ const STOPPED := 0.6               # m/s: below this the car counts as stationar
 ## it, then press it again (a fresh press while stationary). Holding the brake at a standstill just holds the car.
 var direction := 1
 var braking := false
+var abs_active := false    # ABS easing brake pressure this tick (HUD lamp)
+var tcs_active := false    # traction control cutting torque this tick (HUD lamp)
+var traction_control := true
 var _brk_was := false
 var _stopped_on_brake := false
 ## Per-kilogram baselines tuned on the 1100 kg prototype (0-100 km/h ~4.2 s, ~200 km/h top speed); scaling
@@ -115,6 +119,7 @@ func _ready() -> void:
 	_engine = get_node_or_null("Engine") as AudioStreamPlayer3D
 	_skid = get_node_or_null("Skid") as AudioStreamPlayer3D
 	_impact = get_node_or_null("Impact") as AudioStreamPlayer3D
+	_reverse_lights = get_node_or_null("ReverseLights") as Node3D
 
 
 func _physics_process(delta: float) -> void:
@@ -183,6 +188,8 @@ func _physics_process(delta: float) -> void:
 	_update_gearbox(fwd_speed, thr)
 	if tail_lights:
 		tail_lights.emission_energy_multiplier = 4.0 if braking or not input_enabled else 0.8
+	if _reverse_lights:
+		_reverse_lights.visible = gear < 0 and input_enabled
 
 	if _skid:
 		# Squeal from the tyres' simulated slip (TyreFX: slip angle, wheelspin, lock), else Godot's grip state.
@@ -233,6 +240,8 @@ func _drive(thr: float, brk: float, fwd_speed: float, speed: float) -> void:
 	if direction > 0 and brk_on:
 		go = 0.0                   # brake beats throttle
 	braking = false
+	abs_active = false
+	tcs_active = false
 	var tick := 60.0 / Engine.physics_ticks_per_second   # brake is an impulse per step: same force at any tick rate
 	if not input_enabled:
 		engine_force = 0.0
@@ -245,7 +254,8 @@ func _drive(thr: float, brk: float, fwd_speed: float, speed: float) -> void:
 		for w in _wheels:
 			lock = minf(lock, w.get_skidinfo())
 		# ABS: ease the pressure while a wheel locks (skid info near 0), so hard braking still steers and stops short.
-		brake = brake_force * tick * stop * (0.62 if lock < 0.35 and speed > 4.0 else 1.0)
+		abs_active = lock < 0.35 and speed > 4.0
+		brake = brake_force * tick * stop * (0.62 if abs_active else 1.0)
 		if stopped:
 			brake = brake_force * tick   # at rest: hold
 			_static_hold()
@@ -257,6 +267,15 @@ func _drive(thr: float, brk: float, fwd_speed: float, speed: float) -> void:
 				f *= 1.6               # punchy launch (from Truck Town)
 			if fwd_speed > top_speed * (BOOST_TOP if boosting else 1.0):
 				f = 0.0                # rev limiter
+			# Traction control: the driven wheels' simulated surface speed (TyreFX) running well past the road
+			# speed is wheelspin; cut torque until they hook up again.
+			var fx := get_node_or_null("TyreFX")
+			if traction_control and fx and fx.omega.size() == _wheels.size():
+				for i in _wheels.size():
+					if _wheels[i].use_as_traction and fx.omega[i] * _wheels[i].wheel_radius > fwd_speed * 1.12 + 1.2:
+						tcs_active = true
+				if tcs_active:
+					f *= 0.55
 			engine_force = f
 		else:
 			engine_force = -engine_force_max * 0.45 * go if fwd_speed > -9.0 else 0.0   # reverse: ~32 km/h max
@@ -335,7 +354,6 @@ func _update_gearbox(fwd_speed: float, thr: float) -> void:
 		if n > 0:
 			drive_v = sum / n
 	_shift_cool = maxf(0.0, _shift_cool - get_physics_process_delta_time())
-	var band := top_speed / GEARS
 	if direction < 0 or drive_v < -0.5:
 		gear = -1
 		rpm = clampf(absf(drive_v) / 8.0, 0.12, 1.0)
@@ -343,22 +361,28 @@ func _update_gearbox(fwd_speed: float, thr: float) -> void:
 		if gear < 1:
 			gear = 1
 		var v := maxf(drive_v, 0.0)
-		var r := 0.18 + 0.82 * (v - (gear - 1) * band) / band
-		var up_at := lerpf(0.78, 0.96, thr)
+		var up_at := lerpf(0.78, 0.94, thr)
+		# Geometric ratios: each gear's top speed is top_speed * (g / GEARS)^0.75, so an upshift lands at 59 % (1-2)
+		# to 87 % (5-6) of the revs, as in a real close-ratio box, and never below the downshift point (no hunting).
+		var r := v / gear_top(gear)
 		if r > up_at and gear < GEARS and _shift_cool <= 0.0:
 			gear += 1
-			_shift_cool = 0.35
-		elif r < 0.3 and gear > 1 and _shift_cool <= 0.0:
+			_shift_cool = 0.4
+		elif gear > 1 and v / gear_top(gear - 1) < 0.72 and r < 0.45 and _shift_cool <= 0.0:
 			gear -= 1
-			_shift_cool = 0.35
-		rpm = clampf(0.18 + 0.82 * (v - (gear - 1) * band) / band, 0.1, 1.0)
-		if gear == 1 and thr > 0.05 and v < band * 0.5:
+			_shift_cool = 0.4
+		rpm = clampf(0.12 + 0.88 * v / gear_top(gear), 0.12, 1.0)
+		if gear == 1 and thr > 0.05 and v < gear_top(1) * 0.5:
 			rpm = maxf(rpm, 0.18 + 0.45 * thr)   # clutch slipping at the launch
 		if thr < 0.05:
-			rpm *= 0.92
+			rpm = maxf(0.12, rpm * 0.96)
 	if _engine:
 		_engine.pitch_scale = lerpf(_engine.pitch_scale, 0.6 + rpm * 1.1, 0.2)
 		_engine.volume_db = lerpf(-14.0, -4.0, thr)
+
+
+func gear_top(g: int) -> float:
+	return top_speed * pow(float(clampi(g, 1, GEARS)) / GEARS, 0.75)
 
 
 func gear_label() -> String:

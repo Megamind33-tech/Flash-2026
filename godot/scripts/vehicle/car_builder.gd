@@ -174,6 +174,56 @@ static func _contact_shadow(bmin: Vector3, bmax: Vector3) -> Decal:
 	return d
 
 
+## Reverse lamps: a small white emissive lens at the inboard end of each tail-light cluster (measured from the
+## model's own tail-light vertices) plus a dim rear spotlight on the road; RaceCarBody shows them in reverse only.
+static func _reverse_lamps(car: RaceCarBody, pts: Array) -> void:
+	if pts.size() < 6:
+		return
+	var lens := StandardMaterial3D.new()
+	lens.albedo_color = Color(0.9, 0.92, 0.95)
+	lens.emission_enabled = true
+	lens.emission = Color(1, 1, 1)
+	lens.emission_energy_multiplier = 3.0
+	lens.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var group := Node3D.new()
+	group.name = "ReverseLights"
+	group.visible = false
+	car.add_child(group)
+	for side in [-1.0, 1.0]:
+		var lo := Vector3(INF, INF, INF)
+		var hi := -lo
+		for p in pts:
+			var v: Vector3 = p
+			if signf(v.x) == side:
+				lo = lo.min(v)
+				hi = hi.max(v)
+		if lo.x == INF:
+			continue
+		var inner := lo.x if side > 0.0 else hi.x   # the cluster's end nearest the centreline
+		var q := MeshInstance3D.new()
+		var qm := QuadMesh.new()
+		qm.size = Vector2(clampf((hi.x - lo.x) * 0.28, 0.05, 0.12), clampf((hi.y - lo.y) * 0.45, 0.03, 0.06))
+		qm.material = lens
+		q.mesh = qm
+		q.position = Vector3(inner + side * qm.size.x * 0.6, (lo.y + hi.y) * 0.5, lo.z - 0.006)
+		q.rotation.y = PI   # face backwards
+		q.layers = CAR_LAYER
+		q.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		group.add_child(q)
+	var spot := SpotLight3D.new()
+	spot.light_color = Color(1, 0.97, 0.92)
+	spot.light_energy = 1.2
+	spot.spot_range = 9.0
+	spot.spot_angle = 50.0
+	var zmin := INF
+	for p in pts:
+		zmin = minf(zmin, (p as Vector3).z)
+	spot.position = Vector3(0, 0.6, zmin - 0.1)
+	spot.rotation = Vector3(deg_to_rad(-25), 0, 0)   # a SpotLight shines along its -Z, which is already the car's rear; tilted down
+	spot.shadow_enabled = false
+	group.add_child(spot)
+
+
 static func tail_material() -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
@@ -230,6 +280,7 @@ static func build(livery: String, with_audio: bool, car_id := DEFAULT_CAR) -> Ra
 	visual.name = "Visual"
 	car.add_child(visual)
 	var wheel_meshes := {}
+	var tail_pts := []   # tail-light vertices in car space: reverse lamps are placed inside those clusters
 	for mi in model.find_children("*", "MeshInstance3D", true, false):
 		var inst := mi as MeshInstance3D
 		var copy := MeshInstance3D.new()
@@ -239,6 +290,11 @@ static func build(livery: String, with_audio: bool, car_id := DEFAULT_CAR) -> Ra
 		for s in inst.mesh.get_surface_count():
 			var slot := _slot(inst.mesh.surface_get_material(s))
 			copy.set_surface_override_material(s, tail if slot == "tail" else material(slot, livery))
+			if slot == "tail":
+				var xf := _accumulated(inst)
+				var verts: PackedVector3Array = inst.mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]
+				for vi in range(0, verts.size(), maxi(1, verts.size() / 400)):
+					tail_pts.append(xf * verts[vi])
 		var parent_name := String(inst.get_parent().name) if inst.get_parent() else ""
 		var key := String(inst.name) if String(inst.name).begins_with("Wheel_") else parent_name
 		if key.begins_with("Wheel_"):
@@ -247,6 +303,7 @@ static func build(livery: String, with_audio: bool, car_id := DEFAULT_CAR) -> Ra
 			copy.transform = _accumulated(inst)
 			visual.add_child(copy)
 	model.free()
+	_reverse_lamps(car, tail_pts)
 	car.add_child(_contact_shadow(bmin, bmax))
 	var core := _contact_shadow(bmin, bmax)   # tighter, darker core under the body: the car sits on the floor
 	core.name = "ContactShadowCore"

@@ -148,6 +148,9 @@ func _car_tests(id: String) -> void:
 	var squat := 0.0
 	var speeds := []
 	var puffs0: int = TyreFX.puffs if _fx(car) else 0
+	var shifts := 0
+	var downs := 0
+	var g_last := car.gear
 	var bslip := 0.0
 	for i in _secs(5.0):
 		car.throttle = 1.0
@@ -155,6 +158,10 @@ func _car_tests(id: String) -> void:
 		await get_tree().physics_frame
 		if _fx(car) and i > _secs(0.6):
 			bslip = maxf(bslip, _fx(car).max_slip)
+		if car.gear != g_last:
+			shifts += 1
+			downs += 1 if car.gear < g_last else 0
+			g_last = car.gear
 		var a := _spin(w)
 		turned += absf(wrapf(a - last, -PI, PI))
 		last = a
@@ -167,8 +174,8 @@ func _car_tests(id: String) -> void:
 	for k in range(1, speeds.size()):
 		rising = rising and speeds[k] > speeds[k - 1]
 	var bpuffs: int = (TyreFX.puffs - puffs0) if _fx(car) else -1
-	_check(id, "B", rising and car.speed_kmh > 80.0 and absf(turned - expect) < expect * 0.25 and bpuffs < 20,
-		"5 s throttle: %s km/h, wheel turned %.0f rad for %.0f rad of road, rear squat %.2f°, smoke puffs %d (after launch slip %.2f)" % [str(speeds + [snappedf(car.speed_kmh, 1)]), turned, expect, squat, bpuffs, bslip])
+	_check(id, "B", rising and car.speed_kmh > 80.0 and absf(turned - expect) < expect * 0.25 and bpuffs < 20 and downs == 0 and shifts <= RaceCarBody.GEARS,
+		"5 s throttle: %s km/h, wheel turned %.0f rad for %.0f rad of road, rear squat %.2f°, smoke puffs %d (after launch slip %.2f), %d upshifts %d downshifts, gear %d at %.0f%% rpm" % [str(speeds + [snappedf(car.speed_kmh, 1)]), turned, expect, squat, bpuffs, bslip, shifts - downs, downs, car.gear, car.rpm * 100.0])
 	car.queue_free()
 
 	# C: lift off at 100

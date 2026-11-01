@@ -114,6 +114,55 @@ static func spectators(root: Node3D, track: TrackPath, fence_offset: float, dept
 	_instances(root, groups, "Spectators", 220.0)
 
 
+## Fans along the rest of the lap: 40-70 m patches behind the catch fence, alternating sides, every 140 m (Balanced
+## and up); none on Performance. Each fan is placed only where the spot is clear of building
+## footprints (map data) and of anything solid already built there (a physics probe: verandas, kiosks, walls,
+## paddock), so nobody stands inside a wall or a shop. One animated MultiMesh per avatar/pose (a handful of
+## draw calls), hidden beyond 220 m.
+static func lap_crowds(root: Node3D, track: TrackPath, fence_offset: float, data: Dictionary) -> int:
+	var q := Game.quality()
+	if q == 0:
+		return 0
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4421
+	var idx := StreetProps._building_index(data)
+	var space := root.get_world_3d().direct_space_state
+	var probe := PhysicsShapeQueryParameters3D.new()
+	var sphere := SphereShape3D.new()
+	sphere.radius = 0.45
+	probe.shape = sphere
+	var groups := {}
+	var placed := 0
+	var spacing := 140.0
+	var d := 120.0
+	var side := 1.0
+	while d < track.length - 120.0:
+		var patch := rng.randf_range(40.0, 70.0)
+		var x := d
+		while x < d + patch:
+			for row in 2:
+				if rng.randf() < 0.35:
+					continue
+				var dd := track.wrapd(x + rng.randf_range(-0.3, 0.3))
+				var off := fence_offset + 0.8 + row * 1.0
+				if not StreetProps._clear(idx, track, dd, int(side), off, 0.6):
+					continue
+				var r := track.right_at(dd)
+				var p := track.position_at(dd) + r * side * off
+				probe.transform = Transform3D(Basis(), p + Vector3.UP * 1.0)
+				if not space.intersect_shape(probe, 1).is_empty():
+					continue
+				var face := Basis.looking_at(r * side, Vector3.UP).rotated(Vector3.UP, rng.randf_range(-0.5, 0.5))
+				var key := "%s|%s" % [AVATARS[rng.randi() % AVATARS.size()], "cheer" if rng.randf() < 0.35 else "clap"]
+				(groups.get_or_add(key, []) as Array).append(Transform3D(face.scaled(Vector3.ONE * rng.randf_range(0.94, 1.05)), p))
+				placed += 1
+			x += 1.2
+		d += spacing
+		side = -side
+	_instances(root, groups, "LapCrowd", 220.0)
+	return placed
+
+
 ## Pedestrians standing on side-street pavements, well away from the circuit.
 static func pedestrians(root: Node3D, data: Dictionary, track: TrackPath) -> void:
 	if Game.quality() == 0:
