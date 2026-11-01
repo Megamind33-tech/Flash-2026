@@ -31,3 +31,15 @@ and roughly halves video memory.
 
 The labels in the raw log say `renderer=mobile` for Ultra; that was a logging bug (it read the project setting).
 The run used Forward+ (draw calls 514-561). Fixed: the log now reports the active rendering method.
+
+## Lusaka v2 (upgraded venue, VisualsManager presets), same method
+| Preset | Renderer | Mean ms | p95 ms | Draw calls | Primitives | Video MB |
+|---|---|---:|---:|---:|---:|---:|
+| Performance | Mobile | 284.1 | 345.2 | 177 | 330k | 122 |
+| Balanced | Mobile | 388.9 | 434.5 | 252 | 681k | 254 |
+| Quality | Mobile | 491.8 | 534.8 | 271 | 1048k | 262 |
+| Ultra (Android path) | Mobile | 1316.5 | 1474.9 | 280 | 1149k | 298 |
+| Ultra (desktop) | Forward+ | 1826.7 | 2717.4 | 794 | 1149k | 358 |
+
+Ultra on Mobile costs ~2.7x Quality mostly in pixel work (MSAA 4x, longer shadow and view range): draw calls
+barely rise. Forward+ nearly triples draw calls (extra lighting passes), one reason it stays off Android.
