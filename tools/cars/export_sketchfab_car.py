@@ -548,7 +548,10 @@ def rebuild_tyre(meshes, c, radius, side):
             m = me.materials[f.material_index] if f.material_index < len(me.materials) else None
             cc = f.calc_center_median() - c
             rho = math.hypot(cc.y, cc.z)
-            if (_is_tyre_mat(m) and rho > r_bead - 0.01) or rho > r_bead + 0.12 * H:
+            # also the author's rubber outside the new tyre's width (the E30's old sidewall sat inside the bead
+            # radius but 10 cm outboard, a dark jagged shape over the new sidewall); rims never reach out there
+            outside = abs(cc.x - xc) > half * 0.92 and rho > 0.45 * R
+            if (_is_tyre_mat(m) and (rho > r_bead - 0.01 or outside)) or rho > r_bead + 0.12 * H:
                 kill.append(f)
         bmesh.ops.delete(bm, geom=kill, context="FACES")
         bm.to_mesh(me); bm.free()

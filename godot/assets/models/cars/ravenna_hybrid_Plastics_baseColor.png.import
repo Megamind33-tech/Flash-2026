@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://rvqnlsxutixw"
-path="res://.godot/imported/ravenna_hybrid_Plastics_baseColor.png-9dd472bc215728aa045d7f5d80342ca3.ctex"
+path.s3tc="res://.godot/imported/ravenna_hybrid_Plastics_baseColor.png-9dd472bc215728aa045d7f5d80342ca3.s3tc.ctex"
+path.etc2="res://.godot/imported/ravenna_hybrid_Plastics_baseColor.png-9dd472bc215728aa045d7f5d80342ca3.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "3c60e0a1297b6f8f469c8c2d082baa9e"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/cars/ravenna_hybrid_Plastics_baseColor.png"
-dest_files=["res://.godot/imported/ravenna_hybrid_Plastics_baseColor.png-9dd472bc215728aa045d7f5d80342ca3.ctex"]
+dest_files=["res://.godot/imported/ravenna_hybrid_Plastics_baseColor.png-9dd472bc215728aa045d7f5d80342ca3.s3tc.ctex", "res://.godot/imported/ravenna_hybrid_Plastics_baseColor.png-9dd472bc215728aa045d7f5d80342ca3.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +42,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

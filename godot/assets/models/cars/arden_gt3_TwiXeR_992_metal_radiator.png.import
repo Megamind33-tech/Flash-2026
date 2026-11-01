@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://0ehn7eyjaj2w"
-path="res://.godot/imported/arden_gt3_TwiXeR_992_metal_radiator.png-8fe025b8456322d7ffa787e377acb2db.ctex"
+path.s3tc="res://.godot/imported/arden_gt3_TwiXeR_992_metal_radiator.png-8fe025b8456322d7ffa787e377acb2db.s3tc.ctex"
+path.etc2="res://.godot/imported/arden_gt3_TwiXeR_992_metal_radiator.png-8fe025b8456322d7ffa787e377acb2db.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "d437015b07f374a8b4a2386816d5e984"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/cars/arden_gt3_TwiXeR_992_metal_radiator.png"
-dest_files=["res://.godot/imported/arden_gt3_TwiXeR_992_metal_radiator.png-8fe025b8456322d7ffa787e377acb2db.ctex"]
+dest_files=["res://.godot/imported/arden_gt3_TwiXeR_992_metal_radiator.png-8fe025b8456322d7ffa787e377acb2db.s3tc.ctex", "res://.godot/imported/arden_gt3_TwiXeR_992_metal_radiator.png-8fe025b8456322d7ffa787e377acb2db.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +42,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

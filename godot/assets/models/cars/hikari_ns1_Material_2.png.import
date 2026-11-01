@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cssmd68bs5kqr"
-path="res://.godot/imported/hikari_ns1_Material_2.png-f21a22b4afd7f1a8e36dbbe7724d997e.ctex"
+path.s3tc="res://.godot/imported/hikari_ns1_Material_2.png-f21a22b4afd7f1a8e36dbbe7724d997e.s3tc.ctex"
+path.etc2="res://.godot/imported/hikari_ns1_Material_2.png-f21a22b4afd7f1a8e36dbbe7724d997e.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "befa92c9c1ffd50aad9a864b84cdd139"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/cars/hikari_ns1_Material_2.png"
-dest_files=["res://.godot/imported/hikari_ns1_Material_2.png-f21a22b4afd7f1a8e36dbbe7724d997e.ctex"]
+dest_files=["res://.godot/imported/hikari_ns1_Material_2.png-f21a22b4afd7f1a8e36dbbe7724d997e.s3tc.ctex", "res://.godot/imported/hikari_ns1_Material_2.png-f21a22b4afd7f1a8e36dbbe7724d997e.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +42,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

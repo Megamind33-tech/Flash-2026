@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dywvup8d6glpo"
-path="res://.godot/imported/ravenna_hybrid_INT_Carpet_baseColor.png-0250c9490a101ec3635aeb9807187bbe.ctex"
+path.s3tc="res://.godot/imported/ravenna_hybrid_INT_Carpet_baseColor.png-0250c9490a101ec3635aeb9807187bbe.s3tc.ctex"
+path.etc2="res://.godot/imported/ravenna_hybrid_INT_Carpet_baseColor.png-0250c9490a101ec3635aeb9807187bbe.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "678a08f49e3495cc07016ddb07212e62"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/cars/ravenna_hybrid_INT_Carpet_baseColor.png"
-dest_files=["res://.godot/imported/ravenna_hybrid_INT_Carpet_baseColor.png-0250c9490a101ec3635aeb9807187bbe.ctex"]
+dest_files=["res://.godot/imported/ravenna_hybrid_INT_Carpet_baseColor.png-0250c9490a101ec3635aeb9807187bbe.s3tc.ctex", "res://.godot/imported/ravenna_hybrid_INT_Carpet_baseColor.png-0250c9490a101ec3635aeb9807187bbe.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +42,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

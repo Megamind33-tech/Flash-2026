@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dsde4ecg8x7px"
-path="res://.godot/imported/kaze_rotor_Material_3.png-2b88f7121723b8848ce23d66d170b2ee.ctex"
+path.s3tc="res://.godot/imported/kaze_rotor_Material_3.png-2b88f7121723b8848ce23d66d170b2ee.s3tc.ctex"
+path.etc2="res://.godot/imported/kaze_rotor_Material_3.png-2b88f7121723b8848ce23d66d170b2ee.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "befa92c9c1ffd50aad9a864b84cdd139"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/cars/kaze_rotor_Material_3.png"
-dest_files=["res://.godot/imported/kaze_rotor_Material_3.png-2b88f7121723b8848ce23d66d170b2ee.ctex"]
+dest_files=["res://.godot/imported/kaze_rotor_Material_3.png-2b88f7121723b8848ce23d66d170b2ee.s3tc.ctex", "res://.godot/imported/kaze_rotor_Material_3.png-2b88f7121723b8848ce23d66d170b2ee.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +42,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

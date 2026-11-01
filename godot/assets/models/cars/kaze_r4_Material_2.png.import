@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dgjp4j3usl63i"
-path="res://.godot/imported/kaze_r4_Material_2.png-6531ace175ff79f0bd036e0f83287b5d.ctex"
+path.s3tc="res://.godot/imported/kaze_r4_Material_2.png-6531ace175ff79f0bd036e0f83287b5d.s3tc.ctex"
+path.etc2="res://.godot/imported/kaze_r4_Material_2.png-6531ace175ff79f0bd036e0f83287b5d.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "d9be5d973260b884f7cba17e6b59e3a8"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/cars/kaze_r4_Material_2.png"
-dest_files=["res://.godot/imported/kaze_r4_Material_2.png-6531ace175ff79f0bd036e0f83287b5d.ctex"]
+dest_files=["res://.godot/imported/kaze_r4_Material_2.png-6531ace175ff79f0bd036e0f83287b5d.s3tc.ctex", "res://.godot/imported/kaze_r4_Material_2.png-6531ace175ff79f0bd036e0f83287b5d.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +42,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

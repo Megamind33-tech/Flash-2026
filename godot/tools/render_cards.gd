@@ -38,6 +38,10 @@ func _ready() -> void:
 	key.rotation_degrees = Vector3(-38, -35, 0)
 	key.light_energy = 1.6
 	key.shadow_enabled = true
+	key.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
+	key.directional_shadow_max_distance = 14.0   # the studio is a few metres across: the whole map on the car (no stair-stepped arch shadows)
+	key.shadow_blur = 1.5
+	RenderingServer.directional_soft_shadow_filter_set_quality(RenderingServer.SHADOW_QUALITY_SOFT_MEDIUM)
 	world.add_child(key)
 	var rim := DirectionalLight3D.new()
 	rim.rotation_degrees = Vector3(-20, 150, 0)

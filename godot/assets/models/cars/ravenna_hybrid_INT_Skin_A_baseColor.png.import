@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://chxjjy1qg8ehl"
-path="res://.godot/imported/ravenna_hybrid_INT_Skin_A_baseColor.png-6aa8db1a2d62ad944cf99b0a702b5e96.ctex"
+path.s3tc="res://.godot/imported/ravenna_hybrid_INT_Skin_A_baseColor.png-6aa8db1a2d62ad944cf99b0a702b5e96.s3tc.ctex"
+path.etc2="res://.godot/imported/ravenna_hybrid_INT_Skin_A_baseColor.png-6aa8db1a2d62ad944cf99b0a702b5e96.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "5dbc118e9f23f78eda27db3799140b23"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/cars/ravenna_hybrid_INT_Skin_A_baseColor.png"
-dest_files=["res://.godot/imported/ravenna_hybrid_INT_Skin_A_baseColor.png-6aa8db1a2d62ad944cf99b0a702b5e96.ctex"]
+dest_files=["res://.godot/imported/ravenna_hybrid_INT_Skin_A_baseColor.png-6aa8db1a2d62ad944cf99b0a702b5e96.s3tc.ctex", "res://.godot/imported/ravenna_hybrid_INT_Skin_A_baseColor.png-6aa8db1a2d62ad944cf99b0a702b5e96.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +42,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

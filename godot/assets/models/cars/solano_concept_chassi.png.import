@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dbwm2doownbp5"
-path="res://.godot/imported/solano_concept_chassi.png-6b7ad3a9594e1b81e0d5bfe80f064e7c.ctex"
+path.s3tc="res://.godot/imported/solano_concept_chassi.png-6b7ad3a9594e1b81e0d5bfe80f064e7c.s3tc.ctex"
+path.etc2="res://.godot/imported/solano_concept_chassi.png-6b7ad3a9594e1b81e0d5bfe80f064e7c.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "d43ac1f5c51ef4d39da3aee4b44f3402"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/cars/solano_concept_chassi.png"
-dest_files=["res://.godot/imported/solano_concept_chassi.png-6b7ad3a9594e1b81e0d5bfe80f064e7c.ctex"]
+dest_files=["res://.godot/imported/solano_concept_chassi.png-6b7ad3a9594e1b81e0d5bfe80f064e7c.s3tc.ctex", "res://.godot/imported/solano_concept_chassi.png-6b7ad3a9594e1b81e0d5bfe80f064e7c.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +42,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

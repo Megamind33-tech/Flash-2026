@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b6auiss2kdbx2"
-path="res://.godot/imported/elektra_egt_BMW_E30_M3_RIM_baseColor.png-c36af0eddbd2024f7021b54416fb9855.ctex"
+path.s3tc="res://.godot/imported/elektra_egt_BMW_E30_M3_RIM_baseColor.png-c36af0eddbd2024f7021b54416fb9855.s3tc.ctex"
+path.etc2="res://.godot/imported/elektra_egt_BMW_E30_M3_RIM_baseColor.png-c36af0eddbd2024f7021b54416fb9855.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "60ae64079a796914934a2aaa3ce8f9a5"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/cars/elektra_egt_BMW_E30_M3_RIM_baseColor.png"
-dest_files=["res://.godot/imported/elektra_egt_BMW_E30_M3_RIM_baseColor.png-c36af0eddbd2024f7021b54416fb9855.ctex"]
+dest_files=["res://.godot/imported/elektra_egt_BMW_E30_M3_RIM_baseColor.png-c36af0eddbd2024f7021b54416fb9855.s3tc.ctex", "res://.godot/imported/elektra_egt_BMW_E30_M3_RIM_baseColor.png-c36af0eddbd2024f7021b54416fb9855.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +42,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

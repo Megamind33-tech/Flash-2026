@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://chiiws6jioej1"
-path="res://.godot/imported/kaze_gt35_r35_misc_metallicRoughness.png-a2385ed35bbcf8f5ab0b3c839181f4ec.ctex"
+path.s3tc="res://.godot/imported/kaze_gt35_r35_misc_metallicRoughness.png-a2385ed35bbcf8f5ab0b3c839181f4ec.s3tc.ctex"
+path.etc2="res://.godot/imported/kaze_gt35_r35_misc_metallicRoughness.png-a2385ed35bbcf8f5ab0b3c839181f4ec.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "a928a69f9876796e77549af235ed3dd8"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/cars/kaze_gt35_r35_misc_metallicRoughness.png"
-dest_files=["res://.godot/imported/kaze_gt35_r35_misc_metallicRoughness.png-a2385ed35bbcf8f5ab0b3c839181f4ec.ctex"]
+dest_files=["res://.godot/imported/kaze_gt35_r35_misc_metallicRoughness.png-a2385ed35bbcf8f5ab0b3c839181f4ec.s3tc.ctex", "res://.godot/imported/kaze_gt35_r35_misc_metallicRoughness.png-a2385ed35bbcf8f5ab0b3c839181f4ec.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +42,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

@@ -79,23 +79,23 @@ lat = (U * BLOCKS + 0.15 * smoothstep(SIDE_END, SHOULDER_END + 0.04, Vs)) % 1.0
 lat_groove = band(lat, 0.5, 0.06, 0.025)
 reach = smoothstep(SIDE_END - 0.01, SHOULDER_END + 0.035, Vs) * (Vs < SHOULDER_END + 0.04)
 h += shoulder * (0.9 - 0.25 * smoothstep(SHOULDER_END - 0.02, SIDE_END, Vs))
-h -= lat_groove * reach * 0.75
+h -= lat_groove * reach * 0.5
 # sidewall: smooth, a rim protector rib near the bead and two thin decorative rings; fine radial texture
 h += side * (0.35 + 0.08 * np.sin((Vs - BEAD) / (SIDE_END - BEAD) * np.pi))
-h += band(Vs, 0.085, 0.012, 0.006) * 0.25
-h += band(Vs, 0.235, 0.0025, 0.002) * 0.08 + band(Vs, 0.26, 0.0025, 0.002) * 0.08
-h += side * (tile_noise(64, 2) - 0.5) * 0.02
+h += band(Vs, 0.085, 0.012, 0.012) * 0.12
+h += band(Vs, 0.26, 0.003, 0.004) * 0.04
+h += side * (tile_noise(32, 2) - 0.5) * 0.004
 # bead seat
 h += bead * (0.15 + 0.2 * smoothstep(0.0, BEAD, Vs))
 # rubber grain everywhere
 grain = tile_noise(96, 3)
-h += (grain - 0.5) * 0.025
+h += (grain - 0.5) * 0.008
 
 # normal map (OpenGL convention): slope scale tuned so grooves read at car-card distance without aliasing
 dx = (np.roll(h, -1, axis=1) - np.roll(h, 1, axis=1)) * 0.5
 dy = (np.roll(h, -1, axis=0) - np.roll(h, 1, axis=0)) * 0.5
 dy[0, :] = dy[1, :]; dy[-1, :] = dy[-2, :]
-k = 9.0
+k = 5.0   # gentle: grooves read, the sidewall stays smooth (stronger read as crumpled rubber)
 nx, ny, nz = -dx * k, dy * k, np.ones_like(h)
 ln = np.sqrt(nx * nx + ny * ny + nz * nz)
 normal = np.stack([nx / ln, ny / ln, nz / ln], -1) * 0.5 + 0.5
@@ -108,13 +108,13 @@ ao = np.clip(1.0 - np.maximum(blur - h, 0) * 2.2, 0.45, 1.0)
 
 # roughness: worn tread matte, sidewall satin, grooves dusty
 rough = 0.72 * side + 0.8 * bead + 0.86 * shoulder + 0.9 * tread
-rough += (blur - h > 0.15) * 0.06 + (grain - 0.5) * 0.06
+rough += (blur - h > 0.15) * 0.05 + (grain - 0.5) * 0.03
 rough = np.clip(rough, 0.55, 1.0)
 
 # albedo (sRGB): black rubber, tread lighter from wear and road dust, grooves darker
 base = 34 * side + 33 * bead + 40 * shoulder + 43 * tread
-base += (grain - 0.5) * 6
-base *= 0.75 + 0.25 * ao
+base += (grain - 0.5) * 3
+base *= 0.85 + 0.15 * ao
 alb = np.clip(np.stack([base, base, base * 1.03], -1), 0, 255)
 
 os.makedirs(OUT, exist_ok=True)

@@ -108,7 +108,14 @@ func apply_live() -> void:
 			vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
 	RenderingServer.directional_shadow_atlas_set_size(e["shadows"]["atlas"], true)
 	vp.positional_shadow_atlas_size = e["shadows"]["positional_atlas"]
-	RenderingServer.directional_soft_shadow_filter_set_quality(RenderingServer.SHADOW_QUALITY_SOFT_LOW if e["shadows"]["soft"] else RenderingServer.SHADOW_QUALITY_HARD)
+	# Hard (unfiltered) shadows stair-step along every edge: the wheel arch's shadow drew a saw-tooth across the tyres.
+	# Level 1 gets the cheapest PCF filter instead; level 2 and up the low one.
+	var sq := RenderingServer.SHADOW_QUALITY_HARD
+	if e["shadows"]["level"] >= 2:
+		sq = RenderingServer.SHADOW_QUALITY_SOFT_LOW
+	elif e["shadows"]["level"] == 1:
+		sq = RenderingServer.SHADOW_QUALITY_SOFT_VERY_LOW
+	RenderingServer.directional_soft_shadow_filter_set_quality(sq)
 	for n in tree.root.find_children("*", "", true, false):
 		if n is WorldEnvironment or n is Light3D or n is Camera3D or n is GPUParticles3D:
 			_apply_node(n)

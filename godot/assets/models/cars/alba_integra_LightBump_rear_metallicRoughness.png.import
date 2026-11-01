@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://o2jswdlurx22"
-path="res://.godot/imported/alba_integra_LightBump_rear_metallicRoughness.png-b539a88ac52f6665edaa0caab9975b54.ctex"
+path.s3tc="res://.godot/imported/alba_integra_LightBump_rear_metallicRoughness.png-b539a88ac52f6665edaa0caab9975b54.s3tc.ctex"
+path.etc2="res://.godot/imported/alba_integra_LightBump_rear_metallicRoughness.png-b539a88ac52f6665edaa0caab9975b54.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "301f23e9822652c20b45dfcf24e02d98"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/cars/alba_integra_LightBump_rear_metallicRoughness.png"
-dest_files=["res://.godot/imported/alba_integra_LightBump_rear_metallicRoughness.png-b539a88ac52f6665edaa0caab9975b54.ctex"]
+dest_files=["res://.godot/imported/alba_integra_LightBump_rear_metallicRoughness.png-b539a88ac52f6665edaa0caab9975b54.s3tc.ctex", "res://.godot/imported/alba_integra_LightBump_rear_metallicRoughness.png-b539a88ac52f6665edaa0caab9975b54.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +42,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

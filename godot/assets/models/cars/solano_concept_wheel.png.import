@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b27rehpg142p0"
-path="res://.godot/imported/solano_concept_wheel.png-f39fcc2e480502b48fc9ffdd5ac2299e.ctex"
+path.s3tc="res://.godot/imported/solano_concept_wheel.png-f39fcc2e480502b48fc9ffdd5ac2299e.s3tc.ctex"
+path.etc2="res://.godot/imported/solano_concept_wheel.png-f39fcc2e480502b48fc9ffdd5ac2299e.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "90d68495cf8ed2059c111dd2f11a289f"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/cars/solano_concept_wheel.png"
-dest_files=["res://.godot/imported/solano_concept_wheel.png-f39fcc2e480502b48fc9ffdd5ac2299e.ctex"]
+dest_files=["res://.godot/imported/solano_concept_wheel.png-f39fcc2e480502b48fc9ffdd5ac2299e.s3tc.ctex", "res://.godot/imported/solano_concept_wheel.png-f39fcc2e480502b48fc9ffdd5ac2299e.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +42,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0
