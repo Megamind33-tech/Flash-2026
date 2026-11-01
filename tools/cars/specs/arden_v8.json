@@ -10,7 +10,7 @@
    ],
    "radius": 0.3671,
    "width": 0.3121,
-   "tris": 12999
+   "tris": 16000
   },
   "Wheel_RL": {
    "centre": [
@@ -20,7 +20,7 @@
    ],
    "radius": 0.3671,
    "width": 0.3121,
-   "tris": 13000
+   "tris": 16000
   },
   "Wheel_FR": {
    "centre": [
@@ -30,7 +30,7 @@
    ],
    "radius": 0.3671,
    "width": 0.3121,
-   "tris": 12999
+   "tris": 16000
   },
   "Wheel_RR": {
    "centre": [
@@ -40,7 +40,7 @@
    ],
    "radius": 0.3671,
    "width": 0.3121,
-   "tris": 13000
+   "tris": 16000
   }
  },
  "lod1_tris": 55219,

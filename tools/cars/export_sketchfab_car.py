@@ -71,9 +71,9 @@ CANON = {   # base colour, metallic, roughness, emission, alpha
     "tyre": ((0.035, 0.035, 0.037), 0.0, 0.85, 0.0, 1.0),
 }
 BODY_BUDGET = 24000     # LOD0 body incl. interior silhouette (tris); the paint / glass shell gets 1.5x its share
-WHEEL_BUDGET = 13000    # per wheel: GRIDLINE tyre (~3k, never reduced) + the author's rim and disc (the rest)
+WHEEL_BUDGET = 16000    # per wheel: GRIDLINE tyre (~7k, never reduced) + the author's rim and disc (the rest)
 WHEEL_LOD1 = 1400       # per wheel beyond 30 m (opponents): Wheel_xx_LOD1
-TYRE_SEGMENTS = 72      # around the lathed tyre
+TYRE_SEGMENTS = 96      # around the lathed tyre (smooth silhouette up close)
 SHELL_CAP = 10 ** 9     # paint + glass shell: never reduced (layered panels tear when decimated: mottled paint)
 if os.environ.get("CAR_NO_REDUCE"):   # diagnostics: full detail, no decimation, no normal transfer
     BODY_BUDGET = SHELL_CAP = WHEEL_BUDGET = 10 ** 9
@@ -547,14 +547,21 @@ if LOD_PARTS:
 # shared baked material GL_tyre (tools/cars/make_tyre_textures.py). The author's rim, disc and hub stay.
 TYRE_TILE_M = 0.20
 # (axial position as a fraction of the half width, height above the bead as a fraction of the sidewall, texture v)
-PROFILE = [(-0.80, 0.00, 0.00), (-0.86, 0.05, 0.06), (-0.95, 0.18, 0.11), (-1.00, 0.38, 0.18), (-0.99, 0.56, 0.24),
-           (-0.95, 0.74, 0.30), (-0.88, 0.87, 0.335), (-0.79, 0.95, 0.36), (-0.70, 0.99, 0.375), (-0.62, 1.00, 0.38),
-           (-0.40, 1.00, 0.43), (-0.20, 1.00, 0.47), (0.0, 1.00, 0.50)]
+# A rounded, tube-like section: bead, full sidewall bulge, a wide elliptical shoulder, flat crown. Mirrored below.
+PROFILE = [(-0.78, 0.00, 0.00), (-0.84, 0.04, 0.04), (-0.90, 0.10, 0.07), (-0.95, 0.18, 0.10), (-0.985, 0.28, 0.14),
+           (-1.00, 0.40, 0.18), (-0.995, 0.52, 0.22), (-0.975, 0.63, 0.26), (-0.94, 0.73, 0.30)]
+for _a in (15, 30, 45, 60, 75, 90):   # shoulder: quarter ellipse round to the crown
+    _t = math.radians(_a)
+    PROFILE.append((-0.60 - 0.34 * math.cos(_t), 0.73 + 0.27 * math.sin(_t), 0.30 + 0.08 * _a / 90))
+PROFILE += [(-0.45, 1.00, 0.415), (-0.30, 1.00, 0.45), (-0.15, 1.00, 0.475), (0.0, 1.00, 0.50)]
 PROFILE = PROFILE + [(-x, r, 1.0 - v) for x, r, v in reversed(PROFILE[:-1])]
 
 
 def _is_tyre_mat(m):
     return m is not None and tyre_rx.search(orig_name.get(m.name, m.name)) is not None
+
+
+WHEEL_SCALE = []   # (centre, tyre radius, rim scale) per wheel: the calipers on the body follow their rim
 
 
 def rebuild_tyre(meshes, c, radius, side):
@@ -568,9 +575,15 @@ def rebuild_tyre(meshes, c, radius, side):
     R = radius
     rim = sorted(r for r, x, t in rows if not t and r < R * 0.97)
     r_rim = rim[int(len(rim) * 0.995)] if rim else R * 0.7
-    r_bead = min(max(r_rim, R * 0.55), R * 0.86) - 0.003
+    # a real road / track tyre's sidewall is 30-45% of the section height of the wheel: never thinner than 29% of R
+    # (the bead sat at the rim's outer lip and the rubber looked like a thin band)
+    # (the bead sat at the rim's outer lip and the rubber looked like a thin band). A rim too big for that is scaled
+    # down about the axle (a smaller wheel: spokes, barrel and lip stay whole); the brake calipers follow (WHEEL_SCALE).
+    r_seat = min(max(r_rim, R * 0.55), R * 0.71)
     if cfg.get("rim_frac"):
-        r_bead = R * cfg["rim_frac"]
+        r_seat = R * cfg["rim_frac"]
+    f_rim = min(1.0, r_seat / max(r_rim, 1e-6))
+    r_bead = r_seat - 0.003
     H = R - r_bead
     tread_x = [x for r, x, t in rows if t and r > r_bead + 0.5 * H]
     if len(tread_x) < 10:
@@ -579,7 +592,41 @@ def rebuild_tyre(meshes, c, radius, side):
     x0, x1 = tread_x[int(len(tread_x) * 0.01)], tread_x[int(len(tread_x) * 0.99)]
     half = max((x1 - x0) / 2, 0.08)
     xc = (x0 + x1) / 2
-    print("TYRE", side, "R %.3f rim %.3f bead %.3f width %.3f offset %.3f" % (R, r_rim, r_bead, half * 2, xc))
+    # A tyre is centred on the rim it is mounted on: both beads just inside the rim flanges. Centred on the old
+    # tread instead, the E30's dished rim stood 4 cm proud of the sidewall with its barrel showing.
+    # A rim face flush with the sidewall bulge is normal fitment. One standing beyond it (the E30's dished BBS stood
+    # 3 cm proud, its barrel showing beside the rubber) gets a tyre widened outward to wrap it; the inner sidewall
+    # stays put so the tyre stays inside the wheel arch.
+    sgn = 1.0 if side == "L" else -1.0
+    rim_in = 0.0
+    outer = sorted(sgn * x for r, x, t in rows if not t and r_rim * 0.6 < r < r_rim * 1.02)
+    if len(outer) > 20:
+        flange = outer[int(len(outer) * 0.995)]       # outermost rim face (axial, outward positive)
+        bulge = sgn * xc + half
+        if flange > bulge - 0.005:
+            # a rim standing proud of the sidewall: like a wheel offset change, the rim (with disc and caliper) moves
+            # in by half the overhang and the tyre out by the other half, so the rim face ends flush with the
+            # sidewall bulge. Widening the tyre instead exposed the E30's dish; sliding only the tyre left it in the
+            # wheel arch's way.
+            over = flange - bulge + 0.008
+            rim_in = -sgn * over / 2
+            xc += sgn * over / 2
+        print("RIM flange %.3f bulge %.3f -> width %.3f offset %.3f rim shift %.3f" % (flange, bulge, 2 * half, xc, rim_in))
+    # The rim must turn on the wheel axis. The axis comes from the old tyre's bounding box; on some models (E30) the
+    # rim lip ring is centred a few cm away, so rim and new tyre were eccentric (a crescent of barrel showing, and a
+    # wobble when spinning). Measure the lip ring and move the rim onto the axis.
+    ring = [f.center - c for me in meshes for f in me.polygons
+            if not _is_tyre_mat(me.materials[f.material_index] if f.material_index < len(me.materials) else None)
+            and r_rim * 0.85 < math.hypot((f.center - c).y, (f.center - c).z) < r_rim * 1.02]
+    rim_off = Vector((0.0, 0.0, 0.0))
+    if len(ring) > 40:
+        ys = sorted(p.y for p in ring); zs = sorted(p.z for p in ring)
+        k = max(1, len(ring) // 200)
+        rim_off = Vector((0.0, (ys[k] + ys[-1 - k]) / 2, (zs[k] + zs[-1 - k]) / 2))
+        if rim_off.length < 0.003:
+            rim_off = Vector((0.0, 0.0, 0.0))
+    print("RIM centre offset %.4f %.4f" % (rim_off.y, rim_off.z))
+    print("TYRE", side, "R %.3f rim %.3f bead %.3f width %.3f offset %.3f rim scale %.3f" % (R, r_rim, r_bead, half * 2, xc, f_rim))
     out = []
     for me in meshes:   # rubber beyond the bead goes, and anything else out there (sidewall lettering, valves)
         bm = bmesh.new(); bm.from_mesh(me); bm.faces.ensure_lookup_table()
@@ -591,12 +638,21 @@ def rebuild_tyre(meshes, c, radius, side):
             # also the author's rubber outside the new tyre's width (the E30's old sidewall sat inside the bead
             # radius but 10 cm outboard, a dark jagged shape over the new sidewall); rims never reach out there
             outside = abs(cc.x - xc) > half * 0.92 and rho > 0.45 * R
-            if (_is_tyre_mat(m) and (rho > r_bead - 0.01 or outside)) or rho > r_bead + 0.12 * H:
+            # (measured on the rim as authored, before it is scaled to the bead)
+            # a tyre material that is only rubber goes entirely (scaled with the rim, the E30's old inner sidewall
+            # showed as a dark scrap); a shared one ("scene - root" also covers rims) only beyond the rim lip
+            pure = "scene" not in cfg["tyre_mat"]
+            if (_is_tyre_mat(m) and (pure or rho > r_rim - 0.01 or outside)) or rho > r_rim + 0.12 * (R - r_rim):
                 kill.append(f)
         bmesh.ops.delete(bm, geom=kill, context="FACES")
+        if f_rim < 0.999 or rim_off.length > 0 or rim_in:
+            for v in bm.verts:
+                d = v.co - c - rim_off
+                v.co = c + Vector((d.x + rim_in, d.y * f_rim, d.z * f_rim))
         bm.to_mesh(me); bm.free()
         if len(me.polygons):
             out.append(me)
+    WHEEL_SCALE.append((c.copy(), R, f_rim, rim_in))
     # lathe the profile around the axle (X)
     tm = bpy.data.meshes.new("tyre")
     bm = bmesh.new()
@@ -652,6 +708,20 @@ for k, w in wheels.items():
         mod = lo.modifiers.new("dec", "DECIMATE"); mod.ratio = WHEEL_LOD1 / tris(lo.data)
     spec["wheels"][names[k]] = dict(centre=[round(c.x, 4), round(c.y, 4), round(c.z, 4)],
                                     radius=round(w["radius"], 4), width=round(w["width"], 4), tris=tris(o.data))
+# brake calipers stay on the body (they must not spin): scale them with their wheel's rim so they still fit inside it
+_cal = [i for i, m in enumerate(body.data.materials) if m is not None and re.search(r"caliper|brake", orig_name.get(m.name, m.name) + m.name, re.I)]
+if _cal and any(fs < 0.999 or sh for _, _, fs, sh in WHEEL_SCALE):
+    _vs = {v for p in body.data.polygons if p.material_index in _cal for v in p.vertices}
+    _moved = 0
+    for vi in _vs:
+        co = body.data.vertices[vi].co
+        for wc, wr, fs, sh in WHEEL_SCALE:
+            d = co - wc
+            if (fs < 0.999 or sh) and abs(d.x) < 0.35 and math.hypot(d.y, d.z) < wr:
+                body.data.vertices[vi].co = wc + Vector((d.x + sh, d.y * fs, d.z * fs))
+                _moved += 1
+                break
+    print("CALIPERS scaled with their rims:", _moved, "vertices")
 for img in bpy.data.images:   # mobile texture budget
     if img.size[0] > TEX_MAX or img.size[1] > TEX_MAX:
         f = TEX_MAX / max(img.size[0], img.size[1])

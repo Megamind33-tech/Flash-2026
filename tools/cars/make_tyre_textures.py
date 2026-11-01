@@ -98,21 +98,46 @@ grain = tile_noise(96, 3)
 # v), rows 0.06-0.30 the other (drawn rotated 180 degrees: outward points the other way there). Letters are drawn at
 # physical proportions for a ~2.1 m circumference and a ~7 cm sidewall.
 def lettering():
+    """Sidewall markings in band rows (row 0 = outer edge by the shoulder, last row = the bead). Physical sizes for a
+    ~2.1 m circumference and ~7.5 cm of lettering band. Everything is GRIDLINE's own fictional marking."""
     W, H = NU, int(N * 0.24)
+    CIRC, BAND = 2.1, 0.075
     img = Image.new("L", (W, H), 0)
-    d = ImageDraw.Draw(img)
-    big = ImageFont.truetype(FONT, 400)
-    small = ImageFont.truetype(FONT, 400)
-    def put(text, font, u0, u1, v0, v1):
+    font = ImageFont.truetype(FONT, 300)
+    def put(text, u0, r0, height_m, scale_x=1.0):
         bb = font.getbbox(text)
-        t = Image.new("L", (bb[2] - bb[0] + 20, bb[3] - bb[1] + 20), 0)
-        ImageDraw.Draw(t).text((10 - bb[0], 10 - bb[1]), text, fill=255, font=font)
-        t = t.resize((int((u1 - u0) * W), int((v1 - v0) * H)), Image.LANCZOS)
-        img.paste(t, (int(u0 * W), int(v0 * H)), t)
+        t = Image.new("L", (bb[2] - bb[0] + 16, bb[3] - bb[1] + 16), 0)
+        ImageDraw.Draw(t).text((8 - bb[0], 8 - bb[1]), text, fill=255, font=font)
+        hpx = max(4, int(height_m / BAND * H))
+        wpx = max(4, int(t.width / t.height * height_m / CIRC * W * scale_x))
+        t = t.resize((wpx, hpx), Image.LANCZOS)
+        img.paste(t, (int(u0 * W) % W, int(r0 * H)), t)
+        return u0 + wpx / W
+    def arrow(u0, r0, length_m, height_m):   # rotation arrow
+        x0, y0 = int(u0 * W), int(r0 * H)
+        l, hh = int(length_m / CIRC * W), int(height_m / BAND * H)
+        d = ImageDraw.Draw(img)
+        d.rectangle([x0, y0 + hh * 0.35, x0 + l * 0.75, y0 + hh * 0.65], fill=255)
+        d.polygon([(x0 + l * 0.7, y0), (x0 + l, y0 + hh / 2), (x0 + l * 0.7, y0 + hh)], fill=255)
     for k in (0.0, 0.5):
-        put("GRIDLINE", big, 0.04 + k, 0.17 + k, 0.30, 0.78)
-        put("PRO R   255/35 ZR19   96Y", small, 0.22 + k, 0.40 + k, 0.42, 0.66)
+        # outer row (by the shoulder): grades, construction
+        put("TREADWEAR 280   TRACTION AA   TEMPERATURE A", 0.02 + k, 0.05, 0.0095)
+        put("TUBELESS  RADIAL", 0.30 + k, 0.05, 0.0095)
+        # main row: brand, model, size
+        e = put("GRIDLINE", 0.03 + k, 0.24, 0.032)
+        e = put("PRO R", e + 0.025, 0.33, 0.022)
+        put("255/35 ZR19  96Y", e + 0.03, 0.38, 0.016)
+        # inner row (by the bead): load / pressure, code, rotation
+        put("MAX LOAD 710 KG (1565 LBS)   MAX PRESS 350 kPa (51 PSI)", 0.03 + k, 0.73, 0.009)
+        put("DOT  GL27 XR4 2726", 0.27 + k, 0.73, 0.009)
+        put("ROTATION", 0.37 + k, 0.73, 0.008)
+        arrow(0.41 + k, 0.73, 0.06, 0.009)
     a = np.asarray(img, dtype=float) / 255.0
+    # knurled ring just outside the rim protector: fine radial serrations, once around
+    rows = np.arange(H) / H
+    ring = ((rows > 0.88) & (rows < 0.94)).astype(float)[:, None]
+    serr = (np.sin(np.arange(W) / W * 2 * np.pi * 720) > 0.2).astype(float)[None, :]
+    a = np.maximum(a, ring * serr * 0.45)
     return a
 L = lettering()
 band = L.shape[0]
@@ -121,7 +146,7 @@ LET = np.zeros((N, NU))   # letter mask, also used for albedo and roughness belo
 LET[r_a:r_a + band, :] = L
 r_b = int(N * 0.06)                     # rows 0.06 .. 0.30: rotated 180 degrees
 LET[r_b:r_b + band, :] = L[::-1, ::-1]
-h += LET * 0.45
+h += LET * 0.5
 
 # normal map (OpenGL convention): slope scale tuned so grooves read at car-card distance without aliasing
 dx = (np.roll(h, -1, axis=1) - np.roll(h, 1, axis=1)) * 0.5
