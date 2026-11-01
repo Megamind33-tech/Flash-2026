@@ -101,6 +101,7 @@ func join(address: String, port := DEFAULT_PORT) -> bool:
 
 
 func leave() -> void:
+	state = "offline"   # before the peer goes, so listeners never query a closed peer
 	if multiplayer.multiplayer_peer:
 		multiplayer.multiplayer_peer.close()
 	multiplayer.multiplayer_peer = null
@@ -143,14 +144,14 @@ func _load_profile() -> void:
 		profile["name"] = str(Game.save["career"].get("driverName", "Driver"))
 
 
-func set_profile(name: String, country: String, club_id: String, club_name: String, car: String) -> void:
+func set_profile(name: String, country: String, club_id: String, club_name: String, car: String, persist := true) -> void:
 	profile["name"] = name.strip_edges().left(20)
 	profile["country"] = country.strip_edges().to_upper().left(2)
 	profile["club"] = club_id.strip_edges().to_lower().replace(" ", "_").left(24)
 	profile["club_name"] = club_name.strip_edges().left(28)
 	profile["car"] = car if CarBuilder.ROSTER.has(car) else "kaze_r4"
-	Game.save["online_profile"] = profile.duplicate()
-	if Game.has_method("persist"):
+	if persist:   # test clients race with a throwaway profile
+		Game.save["online_profile"] = profile.duplicate()
 		Game.persist()
 	if is_online() and not multiplayer.is_server():
 		_register.rpc_id(1, profile)

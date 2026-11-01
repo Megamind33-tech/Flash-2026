@@ -10,7 +10,7 @@ func _ready() -> void:
 	var a := OS.get_cmdline_user_args()
 	var i := a.find("--net-client")
 	Net.profile["id"] = "test_%s" % a[i + 3]
-	Net.set_profile(a[i + 3], a[i + 4], a[i + 5], a[i + 5].capitalize(), a[i + 6])
+	Net.set_profile(a[i + 3], a[i + 4], a[i + 5], a[i + 5].capitalize(), a[i + 6], false)
 	Net.lobby_changed.connect(_on_lobby)
 	Net.join(a[i + 1], int(a[i + 2]))
 

@@ -485,7 +485,7 @@ func _build_hub() -> void:
 	side.custom_minimum_size = Vector2(300, 0)
 	side.add_theme_constant_override("separation", 0)
 	sidep.add_child(side)
-	for it in [["campaigns", "Campaigns"], ["competitions", "Competitions"], ["pvp", "PvP Rivals"], ["quick", "Quick Race"], ["drivers", "Drivers"], ["settings", "Settings"]]:
+	for it in [["campaigns", "Campaigns"], ["competitions", "Competitions"], ["pvp", "PvP Rivals"], ["online", "Online"], ["quick", "Quick Race"], ["drivers", "Drivers"], ["settings", "Settings"]]:
 		var b := Button.new()
 		b.text = it[1].to_upper() + "   ›"
 		b.alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -689,6 +689,9 @@ func _go(p: String) -> void:
 		return
 	if p == "settings":   # the one Settings screen (scripts/ui/settings_screen.gd)
 		_open_settings()
+		return
+	if p == "online":   # team races, voice, leagues (scripts/ui/online_screen.gd)
+		_overlay_opened(OnlineScreen.open(self))
 		return
 	if p in ["competitions", "challenges", "campaigns", "pvp", "quick"]:   # card screens (scripts/ui/event_screens.gd)
 		_overlay_opened(EventScreens.open(self, p))
