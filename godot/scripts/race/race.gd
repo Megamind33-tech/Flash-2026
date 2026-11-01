@@ -47,6 +47,7 @@ var track_name := ""
 var _env := {}
 var _sprays := []
 var _rain_parts: GPUParticles3D
+var _wet_refl: WetReflections
 var _weather_offset := 0.0   # evidence only: --weather-t S shows the weather S seconds into a race
 var _flash := 0.0
 var format := "race"
@@ -345,6 +346,7 @@ func _ready() -> void:
 			camera.set_physics_process(false)
 			break
 	_dress_cars()
+	_wet_refl = WetReflections.build(self, track, player.car)   # wet weather, Balanced tier and up
 	if not autotest or DisplayServer.get_name() != "headless":
 		hud = RaceHud.new()
 		add_child(hud)
@@ -1020,6 +1022,7 @@ func _complete() -> void:
 	print("[GRIDLINE] potholes=%d player_hits=%d all_hits=%d" % [Potholes.holes.size(), player.car.pothole_hits, Potholes.events])
 	print("[GRIDLINE] format=%s city=%s weather=%s/%s grip=%.2f eliminated=%d medal=%d ghost=%s" % [format, city_id, Weather.kind, Weather.time_of_day, Weather.grip, _eliminations, medal, str(not ghost.is_empty())])
 	print("[GRIDLINE] race complete seed=%d event=%s laps=%d player=P%d race_time=%.1fs avg_fps=%.1f worst_frame_ms=%.1f" % [race_seed, event["id"], total_laps, player.position, race_time, avg_fps, _worst_frame * 1000.0])
+	print("[GRIDLINE] weather=%s rain=%.2f water=%.2f film=%.2f grip=%.3f wet_probe_captures=%d" % [Weather.kind, Weather.rain, Weather.water, Weather.film, Weather.grip, _wet_refl.captures if _wet_refl else 0])
 	var gaps := []
 	for i in range(1, standings.size()):
 		gaps.append("%.1f" % ((racers.filter(func(x): return x.id == standings[i]["id"])[0].laps.finish_time - racers.filter(func(x): return x.id == standings[i - 1]["id"])[0].laps.finish_time)))
