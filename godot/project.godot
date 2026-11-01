@@ -52,3 +52,18 @@ environment/defaults/default_clear_color=Color(0.55, 0.62, 0.7, 1)
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/settings_menus/plugin.cfg")
+
+[shader_globals]
+
+road_wet={
+"type": "float",
+"value": 0.0
+}
+road_water={
+"type": "float",
+"value": 0.0
+}
+road_rain={
+"type": "float",
+"value": 0.0
+}
