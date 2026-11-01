@@ -86,7 +86,7 @@ func _maybe_capture() -> void:
 			mean += v
 		mean /= maxf(1.0, ms.size())
 		print("[GRIDLINE] PROFILE preset=%s quality=%d renderer=%s frames=%d mean_ms=%.1f p95_ms=%.1f draw_calls=%.0f primitives=%.0f video_mem_mb=%.0f nodes=%d (software renderer: compare presets, not devices)" % [
-			PRESETS[quality()]["name"], quality(), ProjectSettings.get_setting("rendering/renderer/rendering_method"), ms.size(), mean,
+			PRESETS[quality()]["name"], quality(), RenderingServer.get_current_rendering_method(), ms.size(), mean,
 			sorted[int(sorted.size() * 0.95) - 1] if sorted.size() > 1 else mean, dc / n, prim / n,
 			Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0, Performance.get_monitor(Performance.OBJECT_NODE_COUNT)])
 	await RenderingServer.frame_post_draw
