@@ -366,6 +366,10 @@ static func attach_particles(camera: Node3D) -> GPUParticles3D:
 		pm.color = Color(0.8, 0.84, 0.9, 0.32)
 		quad.size = Vector2(0.025, 0.75)
 		mat.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
+		# GR27: a drop passing right in front of the lens was drawn as a huge white bar across the frame
+		mat.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_ALPHA
+		mat.distance_fade_min_distance = 1.5
+		mat.distance_fade_max_distance = 4.0
 	parts.process_material = pm
 	quad.material = mat
 	parts.draw_pass_1 = quad
@@ -416,3 +420,31 @@ static func make_spray(at := Vector3(0, 0.15, -1.3)) -> GPUParticles3D:
 	parts.draw_pass_1 = quad
 	parts.emitting = false
 	return parts
+
+
+## Wet-road reflection of a car's tail lights (GR27): two long soft red streaks on the road behind the lamps, the
+## way lights smear on wet asphalt. The Mobile renderer has no screen-space reflections and the street probes
+## leave cars out, so without this a wet road never shows the lights of the car ahead. race.gd scales the
+## streaks with the road film and brightens them under braking; on a dry road they are off.
+static func make_light_streaks(car: VehicleBody3D) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	mat.albedo_texture = soft_glow()
+	mat.albedo_color = Color(0, 0, 0)
+	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	var rl := car.get_node_or_null("Wheel_RL") as VehicleWheel3D
+	var half := absf(rl.position.x) - 0.15 if rl else 0.7
+	var z := (rl.position.z - rl.wheel_radius if rl else -1.4) - 2.2
+	for sx: float in [-1.0, 1.0]:
+		var mi := MeshInstance3D.new()
+		var q := QuadMesh.new()
+		q.size = Vector2(0.45, 4.2)
+		q.orientation = PlaneMesh.FACE_Y
+		mi.mesh = q
+		var road_y: float = (rl.position.y - rl.wheel_rest_length - rl.wheel_radius) if rl else -0.35
+		mi.position = Vector3(sx * half, road_y + 0.05, z)   # on the road under the suspension's rest height
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		car.add_child(mi)
+	return mat

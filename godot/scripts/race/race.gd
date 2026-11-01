@@ -49,6 +49,7 @@ var _sprays := []
 var _rain_parts: GPUParticles3D
 var _wet_refl: WetReflections
 var _rain_audio: AudioStreamPlayer
+var _streaks := []   # [material, car]: wet-road tail-light reflections
 var _weather_offset := 0.0   # evidence only: --weather-t S shows the weather S seconds into a race
 var _weather_speed := 1.0    # evidence only: --weather-speed K runs the weather clock K x (time-lapse of a transition)
 var _flash := 0.0
@@ -470,6 +471,9 @@ func _result_position() -> int:
 
 ## Wet-road spray on every car; headlights on the player's car when it is dark or the weather closes in.
 func _dress_cars() -> void:
+	if float(Weather.STATE.get(Weather.kind, Weather.STATE["clear"])[4]) > 0.3:   # wet: tail lights smear on the road
+		for r in racers:
+			_streaks.append([Weather.make_light_streaks(r.car), r.car])
 	for r in racers:   # spray from each rear tyre's contact patch
 		for wn in ["Wheel_RL", "Wheel_RR"]:
 			var w := r.car.get_node_or_null(wn) as VehicleWheel3D
@@ -775,6 +779,10 @@ func _physics_process(delta: float) -> void:
 		var v := (sp[1] as RaceCarBody).speed_kmh
 		sp[0].emitting = v > 35.0 and spray_k > 0.12
 		sp[0].amount_ratio = clampf(v / 180.0, 0.2, 1.0) * spray_k
+	for st in _streaks:   # brighter on a wetter road and under braking
+		var c := st[1] as RaceCarBody
+		var k := clampf(Weather.film * 0.8 + Weather.water * 0.5, 0.0, 1.0) * (1.0 if c.braking or not c.input_enabled else 0.35)
+		(st[0] as StandardMaterial3D).albedo_color = Color(0.9, 0.08, 0.05) * k * 0.55
 	if _rain_audio:
 		_rain_audio.volume_db = -80.0 if Weather.rain < 0.01 else lerpf(-26.0, -8.0, Weather.rain)
 	if _rain_parts and is_instance_valid(_rain_parts):

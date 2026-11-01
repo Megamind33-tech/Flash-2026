@@ -85,10 +85,10 @@ void fragment() {
 	vec2 ripple = vec2(0.0);
 	if (wet > 0.0 || road_water > 0.0) {
 		float across = abs(m.x) / road_half;
-		float camber = smoothstep(0.35, 1.0, across);                               // crown sheds water to the gutters
+		float camber = smoothstep(0.5, 0.97, across);                               // crown sheds water to the gutters
 		float dips = vnoise(vec2(m.y * 0.03, 1.7)) * 0.6 + vnoise(m * vec2(0.18, 0.045) + 5.1) * 0.4;   // shallow dips along the lap
 		float irreg = vnoise(m * vec2(0.9, 0.42) + 2.3);
-		float drain = camber * 0.42 + dips * 0.36 + irreg * 0.12 + (0.5 - h) * 0.2 - mask.r * 0.22;
+		float drain = camber * 0.52 + dips * 0.34 + irreg * 0.12 + (0.5 - h) * 0.2 - mask.r * 0.22;
 		// standing water: lowest ground first; deeper water reads darker and flatter
 		float th = 1.0 - road_water * 0.78;
 		puddle = smoothstep(th, th + 0.07, drain) * step(0.001, road_water);
@@ -98,14 +98,15 @@ void fragment() {
 		filml = max(filml, puddle);
 		if (road_rain > 0.0) {
 			// raindrop rings: one drop per 0.6 m cell, random phase, ring expanding over its cycle
-			vec2 cell = floor(m / 0.6);
-			vec2 f = fract(m / 0.6) - 0.5;
+			vec2 cell = floor(m / 0.45);
+			vec2 f = fract(m / 0.45) - 0.5;
 			float ph = fract(TIME * (0.6 + road_rain * 0.6) + hash(cell));
 			vec2 off = vec2(hash(cell + 3.1), hash(cell + 5.7)) - 0.5;
 			vec2 d = f - off * 0.5;
 			float r = length(d);
-			float ring = sin((r - ph * 0.45) * 60.0) * smoothstep(0.09, 0.0, abs(r - ph * 0.45)) * (1.0 - ph);
-			ripple = d / max(r, 1e-3) * ring * 0.35 * puddle * road_rain;
+			// a single thin ring per drop, only half the cells active at a time: a shimmer, not a stamped pattern
+			float ring = sin((r - ph * 0.32) * 80.0) * smoothstep(0.05, 0.0, abs(r - ph * 0.32)) * (1.0 - ph) * step(0.5, hash(cell + floor(TIME * 0.9)));
+			ripple = d / max(r, 1e-3) * ring * 0.16 * puddle * road_rain;
 		}
 	}
 	// damp patches in dry weather: low-frequency blobs, drawn toward the gutters and away from the rubbered line;
@@ -120,7 +121,7 @@ void fragment() {
 	// aggregate still breaks up reflections); standing water is dark, flat and smooth.
 	vec3 col = base * mix(1.0, 0.5, filml) * (1.0 - 0.28 * dampm);
 	rough = max(rough, rough_floor * (1.0 - filml));
-	rough = mix(rough, clamp(rough * 0.45, 0.14, 0.32), filml);
+	rough = mix(rough, clamp(rough * 0.45 + (vnoise(m * 0.7 + 9.1) - 0.5) * 0.12, 0.12, 0.34), filml);   // patchy, not one satin
 	rough = mix(rough, 0.035, puddle);
 	rough = mix(rough, 0.12, dampm);
 	col = mix(col, base * 0.16, puddle);
