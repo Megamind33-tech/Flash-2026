@@ -95,6 +95,26 @@ Written at the end of session 018WCsTK. Read this first, then `docs/PRODUCTION_P
   - APK builds and passes apksigner.
 - **Before handover:** a Berlin 1-lap race with `--cam-water` finished cleanly.
 
+## Racing, graphics, settings and gameplay directive (Nov 2026)
+- **Graphics settings are real:** `VisualsManager.effective()` maps each option level to engine values and applies
+  them to every scene, including ones loaded later; "Preset" restores the preset's values. Table: docs/GRAPHICS_SETTINGS.md.
+  Ultra switches to Forward+ only on desktop; Android keeps the Mobile renderer (not validated on phones).
+  Test: tests/graphics_settings_test (45 checks on real node / viewport values).
+- **Lusaka venue:** circuit reshaped by `tools/cities/lusaka_venue.py` (base data in tools/cities/base/; re-run to
+  regenerate `godot/data/cities/lusaka.json`); event build in `scripts/world/lusaka_venue.gd`. Painted render via
+  `style.painted` + `paint_palette` (BuildingKit). Evidence: docs/evidence/lusaka/lusaka_before_after.jpg.
+  Ghost laps are stored per layout (`Ghosts.path`, `_v2`).
+- **Driving:** per-car `brakes` rating + ABS (tests/handling_test prints 0-100, 100-0, dip, response, lateral g).
+- **AI:** slipstream for AI cars (same rule as the player), side awareness, 3-ray traffic cone, closing-speed
+  following distance. Races print `[GRIDLINE] racecraft overtakes=.. car_contacts=.. finish_gaps_s=..`.
+  A/B switches for measurement only: env `AI_NO_SIDE`, `AI_NO_DRAFT`.
+- **Team Owner economy:** weekly academy prospect ($2,000, `TeamOwner.ACADEMY_FEE`), unpaid wages end contracts
+  instead of a negative wallet, `TeamOwner.next_step()` on the HQ. Test: tests/economy_test.
+- **Rewards:** `Game.payable_event()` pays the Daily double prize once per day.
+- **New tests in tools_build.sh:** graphics, handling, economy, pause, ui scale (90 % / 130 % on every screen).
+- **Evidence flags:** race.tscn `--cam-track <metres> [height]`, `--cam-card`, `--hide-hud`, `--career-race`;
+  `--profile N` with `--shot` for frame-time sampling.
+
 ## Visual, UI & settings correction (Nov 2026)
 - **Settings:** one screen, `scripts/ui/settings_screen.gd`, from the home menu and the race pause. Sections Audio
   (master, music, effects, ambience, engines), Display (3D resolution, frame-rate cap limited to the display refresh and
