@@ -47,12 +47,12 @@ CARS = {
                     drop=r"badge|logo|emblem|plate_number", paint=r"^material\.001$", glass=r"^material$", tail=r"^material\.009$"),
     "kaze_rotor": dict(src="rx7fd", length=4.30, forward="auto", tyre_mat=r"^material\.011$", drop_mat=r"^$",
                        drop=r"badge|logo|emblem", paint=r"^material\.007$", glass=r"^material\.008$", tail=r"^material\.019$"),
-    "hikari_ns1": dict(src="nsx", length=4.41, forward="auto", tyre_mat=r"^material\.011$", drop_mat=r"^$",
+    "hikari_ns1": dict(src="nsx", length=4.41, forward="-y", tail_zmin=0.55, tyre_mat=r"^material\.011$", drop_mat=r"^$",
                        drop=r"badge|logo|emblem", paint=r"^material\.003$", glass=r"^material\.007$", tail=r"^material\.016$"),
     "alba_integra": dict(src="delta", length=3.90, forward="auto", tyre_mat=r"^tire$",
                          drop_mat=r"^logo$|^number$|^shield_2$|^red_suns$|^legion$|^legend$|^alpha_mask$",
                          drop=r"badge|logo|emblem|number plate", paint=r"^paint$", glass=r"^glass$", tail=r"light_rear"),
-    "ridgeway_sv8": dict(src="gt500", length=4.82, forward="auto", tyre_mat=r"^tire$", drop_mat=r"^lambert1$",
+    "ridgeway_sv8": dict(src="gt500", length=4.82, forward="-y", tyre_mat=r"^tire$", drop_mat=r"^lambert1$",
                          drop=r"badge|logo|emblem|license|plate_number|^icosphere", paint=r"^carpaint$", glass=r"tinted_glass", tail=r"rearlight"),
     "ravenna_quaranta": dict(src="f40", length=4.36, forward="auto", tyre_mat=r"^scene_-_root", drop_mat=r"^f40_logos$",
                              drop=r"badge|logo|emblem", paint=r"^material$", glass=r"f40_glass|f40_window", tail=r"brakelight"),
@@ -169,7 +169,7 @@ for o in list(bpy.context.scene.objects):
     parts.append(dict(name=o.name, me=me, tyre=is_tyre, caliper=caliper, src_mats=src_mats))
 print("DROPPED", dropped)
 
-fwd_axis = cfg["forward"]
+fwd_axis = cfg["forward"]   # set it explicitly when the lamp material covers both ends (auto flipped NS-1 and SV8)
 if fwd_axis == "auto":   # the brake lamps are at the back: front is the other end along the long axis
     tail_y = [f.center.y for p in parts for f in p["me"].polygons
               if f.material_index < len(p["me"].materials) and p["me"].materials[f.material_index] == canon("tail")]
@@ -430,9 +430,19 @@ def make(name, meshes, budget):
             if canon("amber") not in mats:
                 o.data.materials.append(canon("amber"))
             ai = list(o.data.materials).index(canon("amber"))
+            # tail_zmin: lamp-material faces below this height are not lamps (the NS-1's number plate shares the
+            # rear-lamp material and glowed red under braking): plain black instead
+            zmin = cfg.get("tail_zmin")
+            bi = None
+            if zmin is not None:
+                if canon("black") not in list(o.data.materials):
+                    o.data.materials.append(canon("black"))
+                bi = list(o.data.materials).index(canon("black"))
             for poly in o.data.polygons:
                 if poly.material_index == ti and poly.center.y < 0:
                     poly.material_index = ai
+                elif poly.material_index == ti and zmin is not None and poly.center.z < zmin:
+                    poly.material_index = bi
     # shading back from the authored surface (see ShadingReference)
     if not os.environ.get("CAR_NORMAL_TRANSFER"):   # off: tested worse than the imported normals (see notes)
         return o
@@ -486,6 +496,16 @@ spec.update(lods, length=round(bmx.y - bmn.y, 3), width=round(bmx.x - bmn.x, 3),
             body_min=[round(v, 3) for v in bmn], body_max=[round(v, 3) for v in bmx], body_tris=tris(body.data),
             materials=sorted(m.name for m in body.data.materials), scale=scale, dropped=dropped, kept=sorted(kept))
 bpy.data.objects.remove(REF)
+# One UV set and no vertex colours: every kept material samples the render UV map only. Extra UV sets reach Godot
+# as UV2 / CUSTOM0 channels, cost memory per vertex, and the rally car's three-UV layout deadlocked Godot 4.7.2's
+# resource load under Vulkan (the dealership card render hung). tools/cars/glb_strip_uv.py does the same to a GLB.
+for o in bpy.data.objects:
+    if o.type == "MESH":
+        keep_uv = next((u.name for u in o.data.uv_layers if u.active_render), None)
+        for u in [u.name for u in o.data.uv_layers if u.name != keep_uv]:
+            o.data.uv_layers.remove(o.data.uv_layers[u])
+        for c in [c.name for c in o.data.color_attributes]:
+            o.data.color_attributes.remove(o.data.color_attributes[c])
 bpy.ops.object.select_all(action="SELECT")
 bpy.ops.export_scene.gltf(filepath=f"{out_dir}/{car_id}.glb", export_format="GLB", use_selection=True, export_yup=True,
                           export_apply=True, export_texcoords=True, export_materials="EXPORT", export_image_format="AUTO",

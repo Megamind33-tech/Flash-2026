@@ -2,26 +2,6 @@
  "id": "hikari_ns1",
  "source": "nsx",
  "wheels": {
-  "Wheel_RR": {
-   "centre": [
-    -0.7781,
-    1.2644,
-    0.2952
-   ],
-   "radius": 0.2952,
-   "width": 0.2344,
-   "tris": 2677
-  },
-  "Wheel_FR": {
-   "centre": [
-    -0.7781,
-    -1.2639,
-    0.2952
-   ],
-   "radius": 0.2952,
-   "width": 0.2344,
-   "tris": 2679
-  },
   "Wheel_FL": {
    "centre": [
     0.7781,
@@ -40,6 +20,26 @@
    ],
    "radius": 0.2952,
    "width": 0.2344,
+   "tris": 2678
+  },
+  "Wheel_RR": {
+   "centre": [
+    -0.7781,
+    1.2644,
+    0.2952
+   ],
+   "radius": 0.2952,
+   "width": 0.2344,
+   "tris": 2679
+  },
+  "Wheel_FR": {
+   "centre": [
+    -0.7781,
+    -1.2639,
+    0.2952
+   ],
+   "radius": 0.2952,
+   "width": 0.2344,
    "tris": 2680
   }
  },
@@ -49,18 +49,19 @@
  "width": 1.953,
  "height": 1.055,
  "body_min": [
-  -0.974,
-  -2.235,
+  -0.979,
+  -2.175,
   0.104
  ],
  "body_max": [
-  0.979,
-  2.175,
+  0.974,
+  2.235,
   1.159
  ],
- "body_tris": 32956,
+ "body_tris": 32955,
  "materials": [
   "GL_amber",
+  "GL_black",
   "GL_glass",
   "GL_paint",
   "GL_tail",

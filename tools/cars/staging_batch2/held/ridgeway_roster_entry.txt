@@ -1,0 +1,2 @@
+38:	"ridgeway_sv8": {"band": 17.0, "steer": 0.9, "brakes": 1.1, "vmax": 61.0, "price": 30000, "name": "Ridgeway SV8", "class": "Muscle", "mass": 1880.0, "power": 1.15, "grip": 0.98, "aero": 1.0, "awd": false,
+39-		"author": "Jiaxing (saitoyang, Sketchfab)", "licence": "CC BY 4.0"},

@@ -13,7 +13,9 @@ func _ready() -> void:
 	var ground := StaticBody3D.new()
 	var cs := CollisionShape3D.new()
 	var plane := BoxShape3D.new()
-	plane.size = Vector3(400, 1, 4000)
+	# wide enough for every lane (30 m apart from x = -150, two runs per car): at 400 m the 12-car roster's later
+	# lanes started beyond the edge and "never landed"
+	plane.size = Vector3(400.0 + CarBuilder.car_ids().size() * 2 * 60.0, 1, 4000)
 	cs.shape = plane
 	cs.position.y = -0.5
 	ground.add_child(cs)

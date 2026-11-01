@@ -1,0 +1,4 @@
+57:	"ridgeway_sv8": {"hero_paint": "ocean", "make": "Ridgeway", "model": "SV8", "year": 2021, "type": "Muscle Car", "t100": 3.6,
+58-		"engine": "5.2 L supercharged V8", "power_hp": 760, "torque_nm": 847, "gearbox": "7-speed dual-clutch",
+59-		"drive": "RWD", "layout": "Front engine",
+60-		"history": "Detroit's most powerful road car ever: a supercharged V8 under a vented bonnet and enough torque to light the rear tyres in fourth gear. Brutal on the straights, a handful in the twisty bits."},

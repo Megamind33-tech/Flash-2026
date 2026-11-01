@@ -52,11 +52,22 @@ func _ready() -> void:
 	vp.size = CAR_SIZE
 	cam.fov = 30.0
 	var only_portraits := OS.get_cmdline_user_args().has("--portraits-only")
-	for id in ([] if only_portraits else CarBuilder.car_ids()):
+	var ids: Array = [] if only_portraits else CarBuilder.car_ids()
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--only="):   # e.g. --only=kaze_r4,arden_gt12
+			ids = Array(a.trim_prefix("--only=").split(","))
+	# --rear: check shot from behind with the brake lamps lit (to user://cards_rear/, not the UI cards)
+	var rear := OS.get_cmdline_user_args().has("--rear")
+	if rear:
+		DirAccess.make_dir_recursive_absolute(OS.get_user_data_dir() + "/cards_rear")
+	for id in ids:
+		print("[cards] ", id)
 		var car := CarBuilder.build(str(CarCatalogue.CARS[id]["hero_paint"]), false, id)
 		car.freeze = true
 		world.add_child(car)
-		car.global_transform = Transform3D(Basis(Vector3.UP, deg_to_rad(-35.0)), Vector3.ZERO)
+		car.global_transform = Transform3D(Basis(Vector3.UP, deg_to_rad(-35.0 + (180.0 if rear else 0.0))), Vector3.ZERO)
+		if rear:
+			car.tail_lights.emission_energy_multiplier = 4.0
 		await _settle()
 		var aabb := _bounds(car)
 		var c := aabb.get_center()
@@ -64,7 +75,7 @@ func _ready() -> void:
 		cam.global_position = c + Vector3(0.0, radius * 0.2, radius * 1.55)
 		cam.look_at(c + Vector3.UP * -0.05, Vector3.UP)
 		await _settle()
-		_save(vp, "res://assets/ui/cars/%s.png" % id)
+		_save(vp, ("user://cards_rear/%s.png" if rear else "res://assets/ui/cars/%s.png") % id)
 		car.queue_free()
 		await get_tree().process_frame
 

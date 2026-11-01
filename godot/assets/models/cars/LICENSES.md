@@ -1,6 +1,6 @@
 # Car models: asset manifest and licence record
 
-All five race cars are Sketchfab downloads with a commercial-use licence: CC BY 4.0, "author must be credited;
+All twelve race cars are Sketchfab downloads with a commercial-use licence: CC BY 4.0, "author must be credited;
 commercial use is allowed". They were downloaded on 2026-11-01 through the Sketchfab download API in glTF format.
 The original licence files are in `tools/cars/licences/sketchfab/`.
 
@@ -17,7 +17,6 @@ The original licence files are in `tools/cars/licences/sketchfab/`.
 | Kaze Rotor 7 (JDM) | `kaze_rotor.glb` | "Mazda RX-7 FD" https://sketchfab.com/3d-models/mazda-rx-7-fd-d35ff630df614771b82e7b2f59035b1e | Lexyc16 (https://sketchfab.com/Lexyc16) | CC BY 4.0 |
 | Hikari NS-1 (Classic) | `hikari_ns1.glb` | "Honda NSX 1990" https://sketchfab.com/3d-models/honda-nsx-1990-1cc15628a00a4739a6b6c01128927c8d | Lexyc16 (https://sketchfab.com/Lexyc16) | CC BY 4.0 |
 | Alba Integra Evo (Rally) | `alba_integra.glb` | "FREE Lancia Delta HF Integrale evo 2" https://sketchfab.com/3d-models/free-lancia-delta-hf-integrale-evo-2-85614131e0dc4613a948472aaa935fc7 | TARANTULA (https://sketchfab.com/begemot.988888) | CC BY 4.0 |
-| Ridgeway SV8 (Muscle) | `ridgeway_sv8.glb` | "Ford Mustang Shelby GT500" https://sketchfab.com/3d-models/ford-mustang-shelby-gt500-0eaa7a16796540f29461ddae05ecdeb3 | Jiaxing (https://sketchfab.com/saitoyang) | CC BY 4.0 |
 | Ravenna Quaranta (Classic supercar) | `ravenna_quaranta.glb` | "Ferrari f40" https://sketchfab.com/3d-models/ferrari-f40-52a66c41cfcd4f999fb1b1c49bf24d70 | Black Snow (https://sketchfab.com/BlackSnow02) | CC BY 4.0 |
 | Kaze GT-35 Wide (GT) | `kaze_gt35.glb` | "Nissan Skyline GTR r35" https://sketchfab.com/3d-models/nissan-skyline-gtr-r35-7b142ea3376e4811a326256c59bbc7a2 | Black Snow (https://sketchfab.com/BlackSnow02) | CC BY 4.0 |
 | Arden GT12 (Grand tourer) | `arden_gt12.glb` | "Aston Martin db11" https://sketchfab.com/3d-models/aston-martin-db11-0ce56f01b1ff40b3a4e36bc56873dbc7 | Black Snow (https://sketchfab.com/BlackSnow02) | CC BY 4.0 |
@@ -61,7 +60,8 @@ textures were scrubbed in a working copy; the downloads themselves are kept unmo
 - The painted shell and everything lying against it is kept at full detail. Decimating these layered body panels
   tore the paint into blotches, so it is never done.
 - Hidden parts (interior, engine bay, underbody, suspension) are decimated.
-- Textures limited to 1024 px. Godot generates the lower LODs on import.
+- Textures limited to 1024 px. Only the first UV set is kept (no material used the others).
+- Hand-made distance LODs (`Body_LOD1` / `Body_LOD2`); Godot's automatic LODs are off for the cars.
 
 ## Triangle counts (LOD0, hero car)
 
@@ -72,8 +72,15 @@ textures were scrubbed in a working copy; the downloads themselves are kept unmo
 | Vesta Evo II | 67.2k | 10.5k | 77.7k |
 | Arden CS Coupé | 65.4k | 12.6k | 77.9k |
 | Arden GT3 R | 88.7k | 11.4k | 100.1k |
+| Kaze Rotor 7 | 24.0k | 10.4k | 34.4k |
+| Arden GT12 | 26.0k | 11.9k | 37.8k |
+| Hikari NS-1 | 33.0k | 10.7k | 43.7k |
+| Kaze R4 GT | 37.3k | 10.4k | 47.7k |
+| Kaze GT-35 Wide | 55.1k | 11.8k | 66.9k |
+| Alba Integra Evo | 74.3k | 10.7k | 85.0k |
+| Ravenna Quaranta | 87.7k | 10.5k | 98.2k |
 
-Opponents use Godot's automatic mesh LODs with a stronger LOD bias (`race.gd`: `lod_bias = 0.35`).
+Opponents use the hand-made hull LODs (`CarBuilder.enable_lods`: full model to 30 m, hull to 90 m, reduced hull beyond).
 
 ## Second batch: brand removal
 
@@ -84,9 +91,20 @@ Opponents use Godot's automatic mesh LODs with a stronger LOD bias (`race.gd`: `
   lettering inpainted (Integra).
 - NS-1: the rear-panel photo had its plate script and maker emblem removed.
 - GT-35: the tuner lettering on the rim was inpainted and the steering-wheel badge blacked out.
-- Ridgeway SV8: a display rock (an icosphere) was removed from the scene.
+- Integra Evo: the maker roundel on the trim sheet and the wheel maker's name around the rim were inpainted.
+- GT-35: the maker name on the centre screen and the tuner lettering on the tachometer face were inpainted.
+- NS-1: the number plate shares the rear-lamp material; it is now plain black, so it no longer glows under braking.
+- Scrubbed textures are written back into each `.glb` (`tools/cars/glb_replace_image.py`), so a re-import keeps them.
 
-All eight are recognisable real designs. The same trademark caveat applies (see below).
+All seven are recognisable real designs. The same trademark caveat applies (see below).
+
+## Held back (converted, not in the game)
+
+- **Ridgeway SV8**, from "Ford Mustang Shelby GT500" by Jiaxing (https://sketchfab.com/saitoyang), CC BY 4.0,
+  https://sketchfab.com/3d-models/ford-mustang-shelby-gt500-0eaa7a16796540f29461ddae05ecdeb3.
+  - The maker and tuner names are modelled into the front bumper: "SHELBY" on the splitter and the grille emblem.
+  - The bumper is unconnected triangle soup, so the letters cannot be separated from the panel without holes.
+  - The converted files are in `tools/cars/staging_batch2/held/`. Needs a hand edit in Blender before it can ship.
 
 ## Rejected candidates (for the record)
 
@@ -99,13 +117,16 @@ All eight are recognisable real designs. The same trademark caveat applies (see 
 
 ## Trademark and design risk (must clear before commercial release)
 
-The CC BY licences cover the 3D files only. They grant no trademark or design rights. All five are recognisable
+The CC BY licences cover the 3D files only. They grant no trademark or design rights. All twelve are recognisable
 reproductions of real, protected car designs:
 - BMW M4 CSL (Arden CS).
 - Porsche 911 GT3 RS (Arden GT3 R).
 - McLaren P1 (Ravenna).
 - Ford GT (Solano).
 - BMW E30 M3 (Vesta).
+- Nissan Skyline R34 GT-R (Kaze R4), Mazda RX-7 FD (Kaze Rotor 7), Honda NSX (Hikari NS-1), Lancia Delta HF
+  Integrale (Alba Integra Evo), Ferrari F40 (Ravenna Quaranta), Nissan GT-R R35 (Kaze GT-35), Aston Martin DB11
+  (Arden GT12).
 
 GRIDLINE removes every badge and uses only fictional names. Even so, car makers do enforce body-shape (trade dress
 and design) rights against games; the M4's kidney grille is the clearest case. **Treat these as development assets

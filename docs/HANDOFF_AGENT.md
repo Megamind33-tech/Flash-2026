@@ -54,46 +54,37 @@ GODOT=$G ./tools_flow.sh                         # menu -> race -> results caree
   - Evidence: `docs/evidence/clarity2`, `docs/evidence/gr27`.
 - **HUD:** built on the owner's reference sprites (`assets/ui/hud27`, baked data inpainted out, live labels on
   top). `network.png` and `players.png` are deliberately unused.
-- **Cars:** five CC BY 4.0 Sketchfab cars made by `tools/cars/export_sketchfab_car.py`. Process and rules:
+- **Cars:** twelve CC BY 4.0 Sketchfab cars made by `tools/cars/export_sketchfab_car.py`. Process and rules:
   `tools/cars/SKETCHFAB_CARS.md`. Manifest: `godot/assets/models/cars/LICENSES.md`.
 
-## In progress: second car batch (8 cars, 5 → 13)
+## Second car batch (5 → 12 cars, on branch `ccr-dbcb6ab3-0k2lya`)
 
-The converted GLBs, specs and the roster/catalogue patch are staged in `tools/cars/staging_batch2/`. The game
-doesn't load them yet; nothing in `main` references them.
+Seven new cars are installed and in the roster: kaze_r4, kaze_rotor, hikari_ns1, alba_integra, ravenna_quaranta,
+kaze_gt35, arden_gt12. Cards: `docs/evidence/cars/cards_all12.jpg`; brake-lamp check from behind:
+`rear_brakes_all12.jpg`.
 
-| id | Source | Class | LOD0 tris | Status |
-|---|---|---|---|---|
-| kaze_r4 | Lexyc16 R34 | JDM GT | 47.7k | converted, needs in-game check |
-| kaze_rotor | Lexyc16 RX-7 FD | JDM | 34.4k | converted, needs in-game check |
-| hikari_ns1 | Lexyc16 NSX | Classic | 43.7k | converted; rear-panel photo texture scrubbed of script and emblem |
-| alba_integra | TARANTULA Delta Integrale | Rally | 85.0k | converted; check that the roof antenna is clamped |
-| ridgeway_sv8 | Jiaxing GT500 | Muscle | 119.7k | **blocked:** a big black display rock is still in the model (height 2.0 m) |
-| ravenna_quaranta | Black Snow F40 | Classic supercar | 98.2k | converted, needs in-game check |
-| kaze_gt35 | Black Snow R35 widebody | GT | 66.9k | converted; check the widebody kit panels in Godot |
-| arden_gt12 | Black Snow DB11 | Grand tourer | 37.8k | converted, needs in-game check |
+Fixes made while verifying them:
+- **Card render deadlock.** The rally car's three UV sets reached Godot as UV2 + CUSTOM0, and loading it under Vulkan
+  deadlocked Godot 4.7.2 (all worker threads blocked on one mutex). The converter now keeps only the render UV map
+  and drops vertex colours. `tools/cars/glb_strip_uv.py` was applied to every car GLB (no material used another UV
+  set; arden_v8 had eight).
+- **Backwards cars.** `forward="auto"` flipped NS-1 and SV8 (their lamp material covers both ends). Both are now
+  explicit `-y`.
+- **NS-1 number plate.** It shares the rear-lamp material: `tail_zmin=0.55` turns lamp faces below 0.55 m plain black.
+- **Logos found in extracted textures**, inpainted and written back into the GLBs with
+  `tools/cars/glb_replace_image.py` (Godot re-extracts embedded images on every re-import, so edit both):
+  - The rally car's maker roundel and the rim maker's name.
+  - The GT-35's screen maker name and tachometer tuner lettering.
+- **Stability test.** Its ground was too narrow for 24 lanes; it is now sized from the roster.
+- **Tool.** `tools/render_cards.tscn` takes `--only=id,id` and `--rear` (a shot from behind with the brakes lit, to
+  `user://cards_rear/`).
 
-### Next steps
+**Held back: Ridgeway SV8** (in `tools/cars/staging_batch2/held/`, with its roster and catalogue entries).
+- The maker and tuner names are modelled into the front-bumper geometry: "SHELBY" on the splitter and the grille
+  emblem.
+- That bumper is unconnected triangle soup, so the letters need a hand edit in Blender before the car can ship.
 
-1. **Ridgeway SV8 rock.** Find the part: in Blender, list parts whose bounding box sits behind or above the car. It
-   is **not** the `lambert1` material. Add the part to `drop` in the `ridgeway_sv8` config and re-convert. The
-   source downloads are in `/home/user/deps/sketchfab/cars/<name>` (re-download with the API if the container was
-   reset; the IDs are in each `license.txt`).
-2. **Install.**
-   - Copy each `.glb` to `godot/assets/models/cars/` and each `.json` to `tools/cars/specs/`.
-   - Run `python3 tools/cars/gen_specs.py`.
-   - Run `git apply tools/cars/staging_batch2/roster_and_catalogue.patch` (it adds the ROSTER and CarCatalogue
-     entries).
-   - Run `--import` once, then set `meshes/generate_lods=false` in every new `*.glb.import` and import again.
-3. **Verify.**
-   - Render the cards (`tools/render_cards.tscn -- --cars-only`) and look at every car in Godot. The Blender preview
-     shows false "camouflage" on these layered bodies; only the Godot render is trustworthy.
-   - Look at every extracted texture (`godot/assets/models/cars/<id>_*.png`) for maker logos and scrub any you find.
-   - Run the drive, ride height, stability, contact and handling tests, plus an AI race with 3 seeds.
-     `min_upright` must stay above 0.9.
-4. **Records.** Add the eight to `LICENSES.md`: source URLs, authors and changes are in
-   `tools/cars/licences/sketchfab/*.license.txt`.
-5. **Release.** Commit, export the APK and deliver it.
+Visual issue to look at: the Integra's white door and wing panels show crumple-like shading in Godot.
 
 ## Known open items
 

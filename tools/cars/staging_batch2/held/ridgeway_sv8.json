@@ -2,40 +2,40 @@
  "id": "ridgeway_sv8",
  "source": "gt500",
  "wheels": {
-  "Wheel_RL": {
+  "Wheel_FR": {
    "centre": [
-    0.8356,
-    1.3683,
+    -0.8356,
+    -1.3683,
     0.354
    ],
    "radius": 0.354,
    "width": 0.2948,
    "tris": 4380
   },
-  "Wheel_FR": {
+  "Wheel_RL": {
    "centre": [
-    -0.8028,
-    -1.3743,
+    0.8028,
+    1.3743,
     0.348
    ],
    "radius": 0.348,
    "width": 0.3174,
-   "tris": 4226
+   "tris": 4229
   },
-  "Wheel_FL": {
+  "Wheel_RR": {
    "centre": [
-    0.8133,
-    -1.3718,
+    -0.8133,
+    1.3718,
     0.348
    ],
    "radius": 0.348,
    "width": 0.3176,
-   "tris": 4310
+   "tris": 4311
   },
-  "Wheel_RR": {
+  "Wheel_FL": {
    "centre": [
-    -0.8385,
-    1.3684,
+    0.8385,
+    -1.3684,
     0.3477
    ],
    "radius": 0.3477,
@@ -44,21 +44,21 @@
   }
  },
  "lod1_tris": 94254,
- "lod2_tris": 28275,
+ "lod2_tris": 28276,
  "length": 4.82,
  "width": 2.081,
  "height": 1.252,
  "body_min": [
-  -1.038,
-  -2.49,
+  -1.044,
+  -2.33,
   0.13
  ],
  "body_max": [
-  1.044,
-  2.33,
+  1.038,
+  2.49,
   1.382
  ],
- "body_tris": 101592,
+ "body_tris": 101593,
  "materials": [
   "GL_amber",
   "GL_glass",
