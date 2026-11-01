@@ -72,6 +72,7 @@ func configure(spec: Dictionary) -> void:
 	top_speed = float(spec.get("vmax", 58.0))   # m/s, per car (CarCatalogue shows it in km/h)
 	gravity_scale = GRAVITY_SCALE
 	angular_damp = 0.6
+	continuous_cd = true   # at 200+ km/h a car moves ~1 m per physics step: no tunnelling through thin barriers
 
 
 func _ready() -> void:

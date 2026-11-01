@@ -16,6 +16,7 @@ echo "== contact";    timeout 200 "$G" --headless --path . --fixed-fps 60 res://
 echo "== props";       timeout 300 "$G" --headless --path . -s res://tests/props_test.gd 2>&1 | grep -E "^PROPS|FAIL"
 echo "== placement";   timeout 600 "$G" --headless --path . res://tests/street_props_test.tscn 2>&1 | grep -E "STREET PROPS|FAIL"
 echo "== graphics";   timeout 200 "$G" --headless --path . res://tests/graphics_settings_test.tscn 2>&1 | grep -E "^GRAPHICS SETTINGS|FAIL"
+echo "== barriers";   timeout 2400 "$G" --headless --path . --fixed-fps 60 res://tests/barrier_test.tscn 2>&1 | grep -E "^BARRIER"
 echo "== handling";   timeout 600 "$G" --headless --path . --fixed-fps 60 res://tests/handling_test.tscn 2>&1 | grep -E "^HANDLING"
 echo "== economy";    timeout 200 "$G" --headless --path . res://tests/economy_test.tscn 2>&1 | grep -E "^ECONOMY|FAIL"
 echo "== pause";      timeout 600 "$G" --headless --path . --fixed-fps 60 res://tests/pause_test.tscn 2>&1 | grep -E "^PAUSE"

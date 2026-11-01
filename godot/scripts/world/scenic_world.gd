@@ -152,7 +152,9 @@ static func _road(root: Node3D, style: Dictionary, track: TrackPath) -> void:
 			var r0 := a + ra * s * (hw + 1.6)
 			var r1 := b + rb * s * (hw + 1.6)
 			rail.quad(r0 + up * 0.45, r0 + up * 0.8, r1 + up * 0.8, r1 + up * 0.45, -ra * s, Vector2(da, 0), Vector2(da, 1), Vector2(db, 1), Vector2(db, 0))
-			faces.append_array([r0, r0 + up * 1.6, r1 + up * 1.6, r0, r1 + up * 1.6, r1])
+			# collision behind the guardrail: 2.6 m tall (like the city barriers), so a car hitting it at speed on a
+			# slope cannot ride over it (it did at 200 km/h on the Great North Highway and the Rift escarpment)
+			faces.append_array([r0, r0 + up * 2.6, r1 + up * 2.6, r0, r1 + up * 2.6, r1])
 			if i % 2 == 0:
 				posts.append(Transform3D(Basis(), r0 + ra * s * 0.15 + up * 0.4))
 		if fmod(da, 9.0) < 3.0:

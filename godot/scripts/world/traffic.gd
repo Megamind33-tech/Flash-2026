@@ -8,6 +8,7 @@ extends Node3D
 const PAINTS := ["player_white", "halden_blue", "corsair_red", "vantor_gold", "northline_green"]
 const MAX_PARKED := 14
 const MAX_MOVING := 6
+const CLEARANCE := 14.0   # metres beyond the road edge that traffic keeps from the circuit (barrier, pavement, margin)
 
 var movers: Array = []   # [node, points: PackedVector3Array, dist, speed, length]
 
@@ -36,10 +37,13 @@ static func build(root: Node3D, data: Dictionary, track: TrackPath) -> CityTraff
 			length += path[i].distance_to(path[i + 1])
 		if length < 60.0:
 			continue
-		# keep well clear of the circuit (the road may cross it; only use stretches > 25 m outside the track)
-		var mid := path[path.size() / 2]
-		var pr := track.project(mid, [-1])
-		if absf(float(pr[1])) < track.half_width + 25.0:
+		# Keep clear of the circuit along the WHOLE route. Side streets often cross the circuit; checking only the
+		# street's midpoint let moving traffic drive through the barriers and across the track (Cairo, Mogadishu).
+		path = clear_stretch(path, track, track.half_width + CLEARANCE)
+		length = 0.0
+		for i in path.size() - 1:
+			length += path[i].distance_to(path[i + 1])
+		if path.size() < 2 or length < 60.0:
 			continue
 		if parked < MAX_PARKED:
 			var s := rng.randf_range(10.0, length - 10.0)
@@ -68,6 +72,39 @@ func _add_car(id: String, paint: String, xf: Transform3D, bias: float) -> Node3D
 	add_child(car)
 	car.global_transform = xf
 	return car
+
+
+## The longest part of a street that stays more than `clear` metres from the circuit centreline at every point
+## (sampled every 4 m), or an empty path.
+static func clear_stretch(path: PackedVector3Array, track: TrackPath, clear: float) -> PackedVector3Array:
+	var samples := PackedVector3Array()
+	for i in path.size() - 1:
+		var seg := path[i].distance_to(path[i + 1])
+		var n := maxi(1, ceili(seg / 4.0))
+		for k in n:
+			samples.append(path[i].lerp(path[i + 1], float(k) / n))
+	samples.append(path[path.size() - 1])
+	var grid := {}
+	for tp in track.points:
+		(grid.get_or_add(Vector2i(floori(tp.x / 40.0), floori(tp.z / 40.0)), []) as Array).append(tp)
+	var best := PackedVector3Array()
+	var run := PackedVector3Array()
+	for q in samples:
+		var g := Vector2i(floori(q.x / 40.0), floori(q.z / 40.0))
+		var lat := INF
+		for dx in [-1, 0, 1]:
+			for dz in [-1, 0, 1]:
+				for tp: Vector3 in grid.get(g + Vector2i(dx, dz), []):
+					lat = minf(lat, Vector2(tp.x - q.x, tp.z - q.z).length())
+		if lat > clear:
+			run.append(q)
+		else:
+			if run.size() > best.size():
+				best = run
+			run = PackedVector3Array()
+	if run.size() > best.size():
+		best = run
+	return best
 
 
 static func _at(path: PackedVector3Array, s: float) -> Vector3:
