@@ -160,11 +160,52 @@ static func plan(data: Dictionary, track: TrackPath, quality: int) -> Dictionary
 		var sx := clampf(facade / float(best["width"]), 0.62, 1.6)
 		var sz := clampf(depth / float(best["depth"]), 0.7, 1.4)
 		var basis := Basis.looking_at(-Vector3(n.x, 0, n.y), Vector3.UP).scaled(Vector3(sx, sx, sz))
-		out[bi2] = {"id": best["id"], "xform": Transform3D(basis, Vector3(c.x, 0, c.y))}
+		var xform := Transform3D(basis, Vector3(c.x, 0, c.y))
+		# The catalogue width / depth describe the main block; some models also carry podiums, plazas or canopies
+		# outside it. Placed on a footprint near the circuit those stood on the road, inside the barriers, where cars
+		# drove straight through them (walls have no collision; only the barriers do). Measure the real mesh outline
+		# and keep the plain building instead if any of it reaches the barrier line.
+		if not _clear_of_road(best["id"], xform, track):
+			continue
+		out[bi2] = {"id": best["id"], "xform": xform}
 		used[best["id"]] = int(used.get(best["id"], 0)) + 1
 		tris += int(best["tris"])
 		last = best["id"]
 	return out
+
+
+## True when the model's ground-level outline (its mesh bounds, as placed) stays at least 1 m outside the barrier
+## line all the way round.
+static func _clear_of_road(id: String, xform: Transform3D, track: TrackPath) -> bool:
+	var m := mesh(id)
+	if m == null:
+		return false
+	var ab := m.get_aabb()
+	var lo := ab.position
+	var hi := ab.end
+	# + 1 m: the barrier face, a metre of margin, and the nearest-point error at 2 m point spacing
+	var keep := track.half_width + CityWorld.BARRIER + 2.0
+	if _grid_track != track:
+		_grid_track = track
+		_grid = {}
+		for tp in track.points:
+			(_grid.get_or_add(Vector2i(floori(tp.x / 30.0), floori(tp.z / 30.0)), []) as Array).append(Vector2(tp.x, tp.z))
+	for fx in 9:
+		for fz in 9:
+			if fx != 0 and fx != 8 and fz != 0 and fz != 8:
+				continue   # the outline only
+			var q := xform * Vector3(lerpf(lo.x, hi.x, fx / 8.0), 0.0, lerpf(lo.z, hi.z, fz / 8.0))
+			var g := Vector2i(floori(q.x / 30.0), floori(q.z / 30.0))
+			for dx in [-1, 0, 1]:
+				for dz in [-1, 0, 1]:
+					for tp: Vector2 in _grid.get(g + Vector2i(dx, dz), []):
+						if tp.distance_to(Vector2(q.x, q.z)) < keep:
+							return false
+	return true
+
+
+static var _grid_track: TrackPath
+static var _grid := {}
 
 
 ## Instances the planned buildings (one MultiMesh per model) and the city's heritage features.
