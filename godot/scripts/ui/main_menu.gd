@@ -235,7 +235,8 @@ func _process(delta: float) -> void:
 			var c := r.get_center()
 			off = rad_to_deg(atan((2.0 * c.x / vw.x - 1.0) * tan(hfov * 0.5)))
 			pitch = rad_to_deg(atan((2.0 * c.y / vw.y - 1.0) * tan(vfov * 0.5)))
-			studio.dist_scale = clampf(maxf(0.9 / (r.size.x / vw.x), 0.7 / (r.size.y / vw.y)), 1.0, 2.4)
+			var narrow := maxf(1.0, (16.0 / 9.0) / (vw.x / vw.y))   # vertical FOV is fixed: narrower screens see less width
+			studio.dist_scale = clampf(maxf(0.9 * narrow / (r.size.x / vw.x), 0.7 / (r.size.y / vw.y)), 1.0, 2.6)
 		studio.frame_offset = off
 		studio.frame_pitch = pitch
 		studio.drive_camera(cam, delta, viewport_car.global_position + Vector3.UP * 0.55)

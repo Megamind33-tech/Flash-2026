@@ -19,6 +19,7 @@ echo "== modes";      timeout 300 "$G" --headless --path . res://tests/modes_tes
 echo "== ad registry"; timeout 200 "$G" --headless --path . res://tests/ad_registry_test.tscn 2>&1 | grep -E "^AD REGISTRY|FAIL"
 echo "== menu nav";   timeout 500 "$G" --headless --path . res://tests/menu_nav_test.tscn 2>&1 | grep -E "^MENU NAV|FAIL"
 echo "== buttons";    timeout 300 "$G" --headless --path . res://tests/ui_buttons_test.tscn 2>&1 | grep -E "^BUTTONS|FAIL"
+echo "== restarts";     ./tools_flow.sh
 echo "== landmarks";   timeout 300 "$G" --headless --path . res://tests/landmark_test.tscn 2>&1 | grep -E "LANDMARK|SCRIPT ERROR"
 echo "== city formats"; for f in "kitwe elimination rain" "mogadishu time_attack clear" "nairobi duel storm" "giza_desert race dust"; do set -- $f; timeout 900 "$G" --headless --path . --fixed-fps 60 res://scenes/race.tscn -- --autotest 2 --seed 7 --city $1 --format $2 --weather $3 2>&1 | grep -E "format=|race complete"; done
 echo "== AI race";     timeout 900 "$G" --headless --path . --fixed-fps 60 res://scenes/race.tscn -- --autotest 2 --seed 7 --log-overlaps 2>&1 | grep -E "race complete|  P[0-9]|car=|OVERLAP"

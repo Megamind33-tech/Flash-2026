@@ -95,6 +95,25 @@ Written at the end of session 018WCsTK. Read this first, then `docs/PRODUCTION_P
   - APK builds and passes apksigner.
 - **Before handover:** a Berlin 1-lap race with `--cam-water` finished cleanly.
 
+## Visual, UI & settings correction (Nov 2026)
+- **Settings:** one screen, `scripts/ui/settings_screen.gd`, from the home menu and the race pause. Sections Audio
+  (master, music, effects, ambience, engines), Display (3D resolution, frame-rate cap limited to the display refresh and
+  labelled as a limit, brightness, edge margin, FPS counter), Graphics (Performance/Balanced/Quality, Ultra only where
+  `Game.available_presets()` allows; advanced per-feature rows), Controls, Accessibility (UI scale, high contrast,
+  reduce motion; developer row only in debug builds). Values live in the save (`Game.settings()`) and the add-on store
+  (`user://settings.json`); `tests/settings_persist_test` checks both across a restart.
+- **Team Owner onboarding:** `scripts/ui/company_formation.gd`, two steps (identity, confirm). `TeamOwner.found()`
+  validates and returns a refusal reason; it refuses a second founding.
+- **Dealership / My Garage:** `scripts/ui/dealership.gd` has browse, inspect and confirm states. Money only moves
+  through the confirmation. The menu frames the car in `Dealership.view_rect()`. Paint prices come only from
+  `Game.paint_cost()`; a car's own factory or current finish is free.
+- **Restart-crossing tests:** `godot/tools_flow.sh` (also run by `tools_build.sh`): settings persistence and the full
+  flow (menu stage, a real race with `--career-race`, verify stage). It backs up and restores the user data.
+- **Profiling:** `--profile N` (with `--shot`) prints mean / p95 frame time, draw calls and primitives over N frames.
+  `--quality 0..3` picks the tier; Ultra needs `--rendering-method forward_plus`.
+- **Evidence flags (main_menu):** `--open-settings <TAB>`, `--page team_owner --formation-name A_B --formation-step 2`,
+  `--page dealership --sel <car> --preview-paint <key> --dealer-state browse|inspect|confirm`.
+
 ## Evidence cameras (race.tscn flags, after `--`)
 `--autotest 3 --city <id> [--weather clear|cloudy|rain|storm|fog|dust] [--time day|dusk|night] --shot <abs.png> <seconds>`
 plus one of:

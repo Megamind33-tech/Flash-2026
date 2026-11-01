@@ -46,7 +46,7 @@ func _ready() -> void:
 		step = int(args[args.find("--formation-step") + 1])
 	var safe := UiStyle.safe_margins(get_viewport())
 	var frame := PanelContainer.new()
-	frame.add_theme_stylebox_override("panel", UiStyle.box(Color(UiStyle.CHARCOAL, 0.97), 1, UiStyle.LINE, 12))
+	frame.add_theme_stylebox_override("panel", UiStyle.box(Color(UiStyle.CHARCOAL, 1.0), 1, UiStyle.LINE, 12))
 	frame.anchor_left = 0.08
 	frame.anchor_right = 0.92
 	frame.anchor_top = 0.13
