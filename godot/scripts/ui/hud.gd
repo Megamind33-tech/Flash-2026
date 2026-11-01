@@ -267,8 +267,8 @@ func _build_skills() -> void:
 	col.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
 	col.offset_left = -560
 	col.offset_right = -40
-	col.offset_top = -170
-	col.offset_bottom = 170
+	col.offset_top = -330   # ends above the NOS / GAS touch buttons (they start ~20 px below the centre line)
+	col.offset_bottom = -10
 	col.alignment = BoxContainer.ALIGNMENT_END
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud_layer.add_child(col)
