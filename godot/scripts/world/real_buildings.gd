@@ -163,9 +163,18 @@ static func plan(data: Dictionary, track: TrackPath, quality: int) -> Dictionary
 		var xform := Transform3D(basis, Vector3(c.x, 0, c.y))
 		# The catalogue width / depth describe the main block; some models also carry podiums, plazas or canopies
 		# outside it. Placed on a footprint near the circuit those stood on the road, inside the barriers, where cars
-		# drove straight through them (walls have no collision; only the barriers do). Measure the real mesh outline
-		# and keep the plain building instead if any of it reaches the barrier line.
-		if not _clear_of_road(best["id"], xform, track):
+		# drove straight through them (walls have no collision; only the barriers do). Measure the real mesh outline;
+		# if it reaches the barrier line, set the building back from the street (away from the circuit) until it is
+		# clear, so the model stays; only if 14 m is not enough keep the plain building.
+		var away := -Vector3(n.x, 0, n.y)
+		var placed := false
+		for back: float in [0.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0]:
+			var tried := Transform3D(basis, Vector3(c.x, 0, c.y) + away * back)
+			if _clear_of_road(best["id"], tried, track):
+				xform = tried
+				placed = true
+				break
+		if not placed:
 			continue
 		out[bi2] = {"id": best["id"], "xform": xform}
 		used[best["id"]] = int(used.get(best["id"], 0)) + 1
