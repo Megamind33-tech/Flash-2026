@@ -141,12 +141,8 @@ func recover() -> void:
 	_rolled = 0.0
 	_off = false
 	recoveries += 1
-	# Ghost for a moment: the recovered car starts at zero speed where the field arrives at racing speed, so it cannot
-	# be hit (or hit anyone) until it is up to speed; walls still collide. Restored by _unghost().
-	car.collision_layer = GHOST_LAYER
-	car.collision_mask = 1
-	_ghost_left = 2.5
-	_fade(0.55)   # it must read as a ghost while it is one, or cars passing through it look like a collision bug
+	# Solid at once (no pass-through ghost period): placed on the side of the road away from the racing line, where
+	# the field (which brakes for cars in its path) can go by.
 	if is_player:
 		notice.emit("CAR RECOVERED")
 

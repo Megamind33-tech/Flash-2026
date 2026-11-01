@@ -267,6 +267,14 @@ func _tab_display() -> void:
 	_choice("Frame-rate counter", ["Off", "On"], 1 if s.get("showFps", false) else 0, func(i):
 		s["showFps"] = i == 1
 		_save())
+	if not in_race:
+		_section("PERFORMANCE TEST")
+		var h := _row("Benchmark", "90 s Lusaka race on autopilot at your current settings: FPS, 1% lows, frame times, memory, temperature")
+		var bb := UiStyle.primary_button("RUN BENCHMARK", Vector2(300, 64), 30)
+		bb.pressed.connect(func():
+			_close()
+			Game.start_benchmark())
+		h.add_child(bb)
 	_note.text = "Edge margin applies to screens opened after the change."
 
 

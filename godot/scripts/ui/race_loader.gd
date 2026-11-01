@@ -46,7 +46,7 @@ func start_race() -> void:
 	active = true
 	_progress = 0.0
 	_shown = 0.0
-	_wait_start = not ("--autotest" in OS.get_cmdline_user_args()) and DisplayServer.get_name() != "headless"
+	_wait_start = not ("--autotest" in OS.get_cmdline_user_args()) and DisplayServer.get_name() != "headless" and not Game.session.get("benchmark", false)
 	_build_ui()
 	_play_music()
 	preload_race()

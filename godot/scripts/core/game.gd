@@ -666,7 +666,22 @@ func register_event(ev: Dictionary) -> void:
 
 
 ## Copies an event's city, conditions, field size and car into the race session.
+## Settings > Display > Run benchmark: a fixed Lusaka race on autopilot at the current graphics settings (no career
+## effect), measured by RaceBenchmark (scripts/race/benchmark.gd).
+func start_benchmark() -> void:
+	var ev := Career.make_event("benchmark", "lusaka", "race", "clear", "day", 1, "Benchmark · Lusaka")
+	prepare_session(ev)
+	session["laps_override"] = 99
+	session["benchmark"] = true
+	session["autopilot"] = true
+	session["affects_career"] = false
+	session["championship"] = false
+	session["entry_paid"] = true
+	RaceLoader.start_race()
+
+
 func prepare_session(ev: Dictionary) -> void:
+	session.erase("benchmark")
 	register_event(ev)
 	session["event"] = ev["id"]
 	session["city"] = str(ev.get("city", "ashford"))

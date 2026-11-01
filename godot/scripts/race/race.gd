@@ -318,6 +318,10 @@ func _ready() -> void:
 		add_child(hud)
 		hud.bind(self)
 	_built = true
+	if Game.session.get("benchmark", false):   # Settings > Display > Run benchmark
+		var bm := RaceBenchmark.new()
+		bm.race = self
+		add_child(bm)
 	# Race briefing: the world is ready; the player starts when they have seen the circuit and the grid.
 	if RaceLoader.active:
 		RaceLoader.finished()
@@ -992,5 +996,6 @@ func restart() -> void:
 
 func quit_to_menu() -> void:
 	get_tree().paused = false
+	Game.session.erase("benchmark")
 	Game.session["entry_paid"] = false
 	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")

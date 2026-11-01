@@ -492,6 +492,26 @@ static func billboards(root: Node3D, list: Array) -> void:
 	var leg := BoxMesh.new()
 	leg.size = Vector3(0.35, 4.4, 0.35)
 	_multimesh(root, leg, _paint(Color(0.3, 0.31, 0.33)), legs, "BillboardLegs")
+	# Solid like pit-side screens: the legs and the panel collide (a car that reaches one stops, never passes through).
+	var body := StaticBody3D.new()
+	body.name = "BillboardCollision"
+	root.add_child(body)
+	for b in list:
+		var base: Vector3 = b[0]
+		var basis := Basis(Vector3.UP, float(b[1]))
+		for lx in [-3.5, 3.5]:
+			var cs := CollisionShape3D.new()
+			var bs := BoxShape3D.new()
+			bs.size = Vector3(0.45, 4.4, 0.45)
+			cs.shape = bs
+			cs.transform = Transform3D(basis, base + basis * Vector3(lx, 2.2, -0.15))
+			body.add_child(cs)
+		var pc := CollisionShape3D.new()
+		var pb := BoxShape3D.new()
+		pb.size = Vector3(12.0, 5.0, 0.3)
+		pc.shape = pb
+		pc.transform = Transform3D(basis, base + basis * Vector3(0, 6.5, -0.05))
+		body.add_child(pc)
 
 
 ## Sponsor banners on the inner barrier face along the straights (one atlas material, one mesh).
@@ -508,7 +528,7 @@ static func barrier_ads(root: Node3D, track: TrackPath, offset: float, height: f
 				var ra := track.right_at(d)
 				var rb := track.right_at(d + 6.0)
 				var r := _ad_uv((ad + (0 if s > 0 else 7)) % 16)
-				var o := offset - 0.03
+				var o := offset - 0.02   # on the barrier face itself: as solid as the barrier
 				var p0 := a + ra * s * o + Vector3.UP * 0.12
 				var p1 := b + rb * s * o + Vector3.UP * 0.12
 				# Text must run left-to-right for a driver looking at the wall: order the ends along the

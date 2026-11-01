@@ -71,7 +71,9 @@ static func build(parent: Node3D, d: Dictionary, style: Dictionary, track: Track
 	_road(root, style, track)
 	_trees(root, d, style)
 	CityWorld.billboards(root, d.get("billboards", []).map(func(b): return [Vector3(b[0], b[2], -float(b[1])), float(b[3]), int(b[4])]))
-	CityWorld.barrier_ads(root, track, track.half_width + 0.95, 0.55)
+	# flush on the guardrail face (hw + 1.6): at hw + 0.95 the boards floated 0.65 m in front of the rail, over the
+	# road edge, where cars drove through them
+	CityWorld.barrier_ads(root, track, track.half_width + 1.6, 0.55)
 	CityWorld.race_furniture(root, track, track.half_width + 1.6)
 	People.spectators(root, track, track.half_width + 1.9, 2.0)
 	CityWorld._gantry(root, track)

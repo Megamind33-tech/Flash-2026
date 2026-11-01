@@ -50,7 +50,7 @@ static func build(root: Node3D, data: Dictionary, track: TrackPath) -> CityTraff
 			var a := _at(path, s)
 			var dir := (_at(path, s + 1.0) - a).normalized()
 			var kerb := dir.cross(Vector3.UP) * (w * 0.5 - 1.2)
-			t._add_car(ids[rng.randi() % ids.size()], PAINTS[rng.randi() % PAINTS.size()], Transform3D(Basis.looking_at(-dir, Vector3.UP), a + kerb), 0.15)
+			t._add_car(ids[rng.randi() % ids.size()], PAINTS[rng.randi() % PAINTS.size()], Transform3D(Basis.looking_at(-dir, Vector3.UP), a + kerb), 0.15, true)
 			parked += 1
 		elif t.movers.size() < MAX_MOVING and length > 150.0:
 			var node := t._add_car(ids[rng.randi() % ids.size()], PAINTS[rng.randi() % PAINTS.size()], Transform3D(), 0.2)
@@ -59,10 +59,11 @@ static func build(root: Node3D, data: Dictionary, track: TrackPath) -> CityTraff
 	return t
 
 
-func _add_car(id: String, paint: String, xf: Transform3D, bias: float) -> Node3D:
+func _add_car(id: String, paint: String, xf: Transform3D, bias: float, solid := false) -> Node3D:
 	var car := CarBuilder.build(paint, false, id)
 	car.freeze = true
-	car.collision_layer = 0
+	# Parked cars are solid (frozen bodies); moving traffic drives a scripted path away from the circuit.
+	car.collision_layer = 1 if solid else 0
 	car.collision_mask = 0
 	car.process_mode = Node.PROCESS_MODE_DISABLED
 	for gi in car.find_children("*", "GeometryInstance3D", true, false):
