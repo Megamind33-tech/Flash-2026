@@ -39,7 +39,7 @@ CARS = {
     # plates = Logo_Plane; the tyre-sidewall lettering (normal map) and the rim centre-cap roundel are scrubbed in
     # the working copy before conversion (see tools/cars/SKETCHFAB_CARS.md). (Replaced the Supra GT300 candidate:
     # its exterior is stacked textured layers that cannot be reduced below ~200k triangles without tearing.)
-    "elektra_egt": dict(src="e30", length=4.35, forward="-y", tyre_mat=r"_tire$",
+    "elektra_egt": dict(src="e30", front_from_rear=True, length=4.35, forward="-y", tyre_mat=r"_tire$",
                         drop_mat=r"emblems|logo_plane", drop=r"plate_number|license",
                         paint=r"_paint$", glass=r"_windows$", tail=r"taillight"),
     # ---- second batch (all CC BY 4.0, Sketchfab; badges / lettering dropped, tyre and rear-panel textures scrubbed) ----
@@ -56,7 +56,7 @@ CARS = {
                          drop=r"badge|logo|emblem|license|plate_number|^icosphere", paint=r"^carpaint$", glass=r"tinted_glass", tail=r"rearlight"),
     "ravenna_quaranta": dict(src="f40", length=4.36, forward="auto", tyre_mat=r"^scene_-_root", drop_mat=r"^f40_logos$",
                              drop=r"badge|logo|emblem", paint=r"^material$", glass=r"f40_glass|f40_window", tail=r"brakelight"),
-    "kaze_gt35": dict(src="r35", length=4.71, forward="auto", tyre_mat=r"^scene_-_root", drop_mat=r"r35_badges|r35_symbols",
+    "kaze_gt35": dict(src="r35", tyre_pure=True, front_from_rear=True, length=4.71, forward="auto", tyre_mat=r"^scene_-_root", drop_mat=r"r35_badges|r35_symbols",
                       drop=r"badge|logo|emblem|lettering|nismo", paint=r"^r35_paint", glass=r"^r35_glass", tail=r"taillight"),
     "arden_gt12": dict(src="db11", length=4.74, forward="auto", tyre_mat=r"^scene_-_root", drop_mat=r"amdb11_amr|amdb11_stickers|amdb11_badging",
                        drop=r"badge|logo|emblem", paint=r"^amdb11$", glass=r"amdb11_glass|amdb11_rearglass", tail=r"amdb11_taillight"),
@@ -562,6 +562,51 @@ def _is_tyre_mat(m):
 
 
 WHEEL_SCALE = []   # (centre, tyre radius, rim scale) per wheel: the calipers on the body follow their rim
+TYRE_PARAMS = {}   # per wheel: what lathe_tyre needs to rebuild the same tyre for the LOD
+WHEEL_STATIC = []  # meshes swept into a wheel that are not part of it (they go back to the body, static)
+
+
+def lathe_tyre(c, xc, half, r_bead, H, R, uv_name, n):
+    """The GRIDLINE tyre: PROFILE lathed around the axle (X) with n segments. Used for the full wheel (TYRE_SEGMENTS)
+    and the distance LOD (32): same size and position, so the LOD switch never changes the wheel."""
+    # lathe the profile around the axle (X)
+    tm = bpy.data.meshes.new("tyre")
+    bm = bmesh.new()
+    reps = max(1, round(2 * math.pi * R / TYRE_TILE_M))
+    ring = []
+    for i in range(n + 1):   # seam column duplicated for the UV wrap
+        a = 2 * math.pi * i / n
+        col = []
+        for px, pr, pv in PROFILE:
+            crown = 1.0 - 0.012 * (abs(px) / 0.62) ** 2 if pr >= 0.999 else 1.0
+            r = (r_bead + pr * H) * crown if pr >= 0.999 else r_bead + pr * H
+            col.append(bm.verts.new((c.x + xc + px * half, c.y + r * math.cos(a), c.z + r * math.sin(a))))
+        ring.append(col)
+    uv = bm.loops.layers.uv.new(uv_name)
+    for i in range(n):
+        for j in range(len(PROFILE) - 1):
+            vs = [ring[i][j], ring[i + 1][j], ring[i + 1][j + 1], ring[i][j + 1]]
+            f = bm.faces.new(vs)
+            # sidewall strips: u once around (raised lettering appears twice per side, like a real tyre);
+            # shoulder and tread strips: u tiled every TYRE_TILE_M of circumference (tools/cars/make_tyre_textures.py)
+            side_strip = max(PROFILE[j][2], PROFILE[j + 1][2]) <= 0.30 or min(PROFILE[j][2], PROFILE[j + 1][2]) >= 0.70
+            k = 1 if side_strip else reps
+            for lp, (ii, jj) in zip(f.loops, [(i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1)]):
+                lp[uv].uv = (ii / n * k, PROFILE[jj][2])
+    # the seam column stays split (UV wrap). Faces must point out of the rubber: test a crown face.
+    bm.faces.ensure_lookup_table()
+    crown = bm.faces[len(PROFILE) // 2]
+    out_dir = crown.calc_center_median() - Vector((crown.calc_center_median().x, c.y, c.z))
+    if crown.normal.dot(out_dir) < 0:
+        bmesh.ops.reverse_faces(bm, faces=bm.faces)
+    bm.to_mesh(tm); bm.free()
+    for f in tm.polygons:
+        f.use_smooth = True
+    if hasattr(tm, "use_auto_smooth"):
+        tm.use_auto_smooth = True
+        tm.auto_smooth_angle = math.radians(80)
+    tm.materials.append(canon("tyre"))
+    return tm
 
 
 def rebuild_tyre(meshes, c, radius, side):
@@ -615,19 +660,103 @@ def rebuild_tyre(meshes, c, radius, side):
     # The rim must turn on the wheel axis. The axis comes from the old tyre's bounding box; on some models (E30) the
     # rim lip ring is centred a few cm away, so rim and new tyre were eccentric (a crescent of barrel showing, and a
     # wobble when spinning). Measure the lip ring and move the rim onto the axis.
-    ring = [f.center - c for me in meshes for f in me.polygons
-            if not _is_tyre_mat(me.materials[f.material_index] if f.material_index < len(me.materials) else None)
-            and r_rim * 0.85 < math.hypot((f.center - c).y, (f.center - c).z) < r_rim * 1.02]
+    # Square the rim to the axle. Source models carry camber / toe in their wheels (the E30's front rims sat 5.6 degrees
+    # off): turned about the axle, a tilted rim tumbles and wobbles. Fit the plane of the visible lip
+    # (x = a*y + b*z + c by least squares) and rotate the rim, disc and hub about the wheel centre so its axis is the
+    # axle (same fit as tests/wheel_inspect_test.gd TILT).
+    sgn_side = 1.0 if side == "L" else -1.0
+    # The rim's own axis: SVD plane fit through the outer lip of the rim material (the non-rubber material with the most
+    # vertices near the rim radius, within the tyre's width). A sector / least-squares fit on mixed geometry rotated the
+    # E30's rim the wrong way; the plane through the lip ring is the robust estimate.
+    import numpy as np
+    byname = {}
+    for me in meshes:
+        for p in me.polygons:
+            m = me.materials[p.material_index] if p.material_index < len(me.materials) else None
+            if _is_tyre_mat(m):
+                continue
+            for vi in p.vertices:
+                d = me.vertices[vi].co - c
+                if abs(d.x - xc) < half + 0.03:
+                    byname.setdefault(m.name if m else "?", {})[(id(me), vi)] = (d.x, d.y, d.z)
+    if byname:
+        P = np.array(list(max(byname.values(), key=len).values()))
+        r = np.hypot(P[:, 1], P[:, 2])
+        lip = P[r > np.percentile(r, 99.5) * 0.97] if len(P) > 50 else P[:0]
+        if len(lip) >= 20:
+            _u, _s, vt = np.linalg.svd(lip - lip.mean(0))
+            n = vt[2] * (1.0 if vt[2][0] >= 0 else -1.0)
+            axis = Vector((float(n[0]), float(n[1]), float(n[2]))).normalized()
+            tilt = math.degrees(axis.angle(Vector((1.0, 0.0, 0.0))))
+            print("RIM tilt %.2f deg (camber / toe / parked steering in the model)" % tilt)
+            # Opt-in only (cfg square_rims): on many rims the lip sample is partial (spoke tips, split rings) and the fit
+            # gave nonsense (90 degrees on the Solano, 15-24 on the GT12), turning good rims into tumbling ones. A car
+            # whose front wheels were posed steered uses front_from_rear instead.
+            if cfg.get("square_rims") and 0.3 < tilt < 25.0:
+                rot = axis.rotation_difference(Vector((1.0, 0.0, 0.0))).to_matrix()
+                for me in meshes:
+                    tyre_idx = {i for i, mm in enumerate(me.materials) if _is_tyre_mat(mm)}
+                    moved = set()
+                    for p in me.polygons:
+                        if p.material_index in tyre_idx:
+                            continue
+                        for vi in p.vertices:
+                            if vi not in moved:
+                                me.vertices[vi].co = c + rot @ (me.vertices[vi].co - c)
+                                moved.add(vi)
+                    if me.attributes.get("gl_n"):   # the saved authored normals turn with the rim
+                        rotate_normals(me, rot)
+    # measured on the lip of the rim proper (the non-rubber material with the most vertices out there): a full circle,
+    # where spoke tips and off-axis remnants do not bias it (same method as tests/wheel_inspect_test.gd)
+    lips = {}
+    for me in meshes:
+        for p in me.polygons:
+            m = me.materials[p.material_index] if p.material_index < len(me.materials) else None
+            if _is_tyre_mat(m):
+                continue
+            for vi in p.vertices:
+                d = me.vertices[vi].co - c
+                r = math.hypot(d.y, d.z)
+                # the visible (outboard) lip: on dished rims the inner barrel lip is not quite concentric with it
+                if r_rim * 0.95 < r < r_rim * 1.02 and abs(d.x) < R and d.x * (1.0 if side == "L" else -1.0) > 0.0:
+                    lips.setdefault(m.name if m else "?", []).append(d)
     rim_off = Vector((0.0, 0.0, 0.0))
-    if len(ring) > 40:
-        ys = sorted(p.y for p in ring); zs = sorted(p.z for p in ring)
-        k = max(1, len(ring) // 200)
-        rim_off = Vector((0.0, (ys[k] + ys[-1 - k]) / 2, (zs[k] + zs[-1 - k]) / 2))
-        if rim_off.length < 0.003:
-            rim_off = Vector((0.0, 0.0, 0.0))
+    if lips:
+        lip = max(lips.values(), key=len)
+        if len(lip) > 40:
+            ys = sorted(p.y for p in lip); zs = sorted(p.z for p in lip)
+            k = max(1, len(lip) // 200)
+            rim_off = Vector((0.0, (ys[k] + ys[-1 - k]) / 2, (zs[k] + zs[-1 - k]) / 2))
+            if rim_off.length < 0.0015:
+                rim_off = Vector((0.0, 0.0, 0.0))
     print("RIM centre offset %.4f %.4f" % (rim_off.y, rim_off.z))
     print("TYRE", side, "R %.3f rim %.3f bead %.3f width %.3f offset %.3f rim scale %.3f" % (R, r_rim, r_bead, half * 2, xc, f_rim))
     out = []
+    static_parts = []
+    # Not part of the wheel: geometry well outside the tyre's width or beyond its radius that the split swept in (the
+    # E30's front wheels carried a black arch/strut panel 28 cm inboard, spinning with the wheel and pulling the rim
+    # centre 3 cm off in measurements). Split off before anything else, kept static on the body where it was.
+    for me in meshes:
+        bm = bmesh.new(); bm.from_mesh(me); bm.faces.ensure_lookup_table()
+        foreign = []
+        for f in bm.faces:
+            m = me.materials[f.material_index] if f.material_index < len(me.materials) else None
+            if _is_tyre_mat(m):
+                continue
+            cc = f.calc_center_median() - c
+            if abs(cc.x - xc) > half + 0.05 or math.hypot(cc.y, cc.z) > R * 1.02:
+                foreign.append(f)
+        if foreign:
+            st = me.copy()
+            sb = bm.copy(); sb.faces.ensure_lookup_table()
+            keep_idx = {f.index for f in foreign}
+            bmesh.ops.delete(sb, geom=[f for f in sb.faces if f.index not in keep_idx], context="FACES")
+            sb.to_mesh(st); sb.free()
+            static_parts.append(st)
+            bmesh.ops.delete(bm, geom=foreign, context="FACES")
+            bm.to_mesh(me)
+            print("WHEEL", side, "foreign faces moved to the body:", len(foreign))
+        bm.free()
     for me in meshes:   # rubber beyond the bead goes, and anything else out there (sidewall lettering, valves)
         bm = bmesh.new(); bm.from_mesh(me); bm.faces.ensure_lookup_table()
         kill = []
@@ -641,7 +770,7 @@ def rebuild_tyre(meshes, c, radius, side):
             # (measured on the rim as authored, before it is scaled to the bead)
             # a tyre material that is only rubber goes entirely (scaled with the rim, the E30's old inner sidewall
             # showed as a dark scrap); a shared one ("scene - root" also covers rims) only beyond the rim lip
-            pure = "scene" not in cfg["tyre_mat"]
+            pure = cfg.get("tyre_pure", "scene" not in cfg["tyre_mat"])
             if (_is_tyre_mat(m) and (pure or rho > r_rim - 0.01 or outside)) or rho > r_rim + 0.12 * (R - r_rim):
                 kill.append(f)
         bmesh.ops.delete(bm, geom=kill, context="FACES")
@@ -653,61 +782,67 @@ def rebuild_tyre(meshes, c, radius, side):
         if len(me.polygons):
             out.append(me)
     WHEEL_SCALE.append((c.copy(), R, f_rim, rim_in))
-    # lathe the profile around the axle (X)
-    tm = bpy.data.meshes.new("tyre")
-    bm = bmesh.new()
-    n = TYRE_SEGMENTS
-    reps = max(1, round(2 * math.pi * R / TYRE_TILE_M))
-    ring = []
-    for i in range(n + 1):   # seam column duplicated for the UV wrap
-        a = 2 * math.pi * i / n
-        col = []
-        for px, pr, pv in PROFILE:
-            crown = 1.0 - 0.012 * (abs(px) / 0.62) ** 2 if pr >= 0.999 else 1.0
-            r = (r_bead + pr * H) * crown if pr >= 0.999 else r_bead + pr * H
-            col.append(bm.verts.new((c.x + xc + px * half, c.y + r * math.cos(a), c.z + r * math.sin(a))))
-        ring.append(col)
     uv_name = next((u.name for me in out for u in me.uv_layers if u.active_render), "UVMap")   # join merges by name
-    uv = bm.loops.layers.uv.new(uv_name)
-    for i in range(n):
-        for j in range(len(PROFILE) - 1):
-            vs = [ring[i][j], ring[i + 1][j], ring[i + 1][j + 1], ring[i][j + 1]]
-            f = bm.faces.new(vs)
-            # sidewall strips: u once around (raised lettering appears twice per side, like a real tyre);
-            # shoulder and tread strips: u tiled every TYRE_TILE_M of circumference (tools/cars/make_tyre_textures.py)
-            side_strip = max(PROFILE[j][2], PROFILE[j + 1][2]) <= 0.30 or min(PROFILE[j][2], PROFILE[j + 1][2]) >= 0.70
-            k = 1 if side_strip else reps
-            for lp, (ii, jj) in zip(f.loops, [(i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1)]):
-                lp[uv].uv = (ii / n * k, PROFILE[jj][2])
-    # the seam column stays split (UV wrap). Faces must point out of the rubber: test a crown face.
-    bm.faces.ensure_lookup_table()
-    crown = bm.faces[len(PROFILE) // 2]
-    out_dir = crown.calc_center_median() - Vector((crown.calc_center_median().x, c.y, c.z))
-    if crown.normal.dot(out_dir) < 0:
-        bmesh.ops.reverse_faces(bm, faces=bm.faces)
-    bm.to_mesh(tm); bm.free()
-    for f in tm.polygons:
-        f.use_smooth = True
-    if hasattr(tm, "use_auto_smooth"):
-        tm.use_auto_smooth = True
-        tm.auto_smooth_angle = math.radians(80)
-    tm.materials.append(canon("tyre"))
-    out.append(tm)
-    return out
+    TYRE_PARAMS[side + ("F" if c.y < 0 else "B")] = (c.copy(), xc, half, r_bead, H, R, uv_name)
+    out.append(lathe_tyre(c, xc, half, r_bead, H, R, uv_name, TYRE_SEGMENTS))
+    return out, static_parts
+
 
 spec = dict(id=car_id, source=cfg["src"], wheels={})
 for k, w in wheels.items():
     if not cfg.get("keep_tyres"):
-        buckets[k] = rebuild_tyre(buckets[k], w["centre"], w["radius"], k[0])
+        buckets[k], _static = rebuild_tyre(buckets[k], w["centre"], w["radius"], k[0])
+        WHEEL_STATIC.extend(_static)
     o = make(names[k], buckets[k], WHEEL_BUDGET)
     c = w["centre"]
     o.data.transform(Matrix.Translation(-c)); o.location = c
-    # distance LOD for opponents: same pivot, reduced
-    lo = bpy.data.objects.new(names[k] + "_LOD1", o.data.copy()); scn.collection.objects.link(lo); lo.location = c
-    if tris(lo.data) > WHEEL_LOD1:
-        mod = lo.modifiers.new("dec", "DECIMATE"); mod.ratio = WHEEL_LOD1 / tris(lo.data)
+    # distance LOD for opponents: the rim reduced, and the same tyre lathed with 32 segments (decimating the whole wheel
+    # once emptied the Solano's tyre entirely and left others polygonal; the LOD switch must not change the wheel)
+    lme = o.data.copy()
+    ti = [i for i, m in enumerate(lme.materials) if m == canon("tyre")]
+    bm = bmesh.new(); bm.from_mesh(lme)
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.material_index in ti], context="FACES")
+    bm.to_mesh(lme); bm.free()
+    lo = bpy.data.objects.new(names[k] + "_LOD1", lme); scn.collection.objects.link(lo); lo.location = c
+    if tris(lme) > WHEEL_LOD1 // 2:
+        mod = lo.modifiers.new("dec", "DECIMATE"); mod.ratio = (WHEEL_LOD1 // 2) / tris(lme)
+        bpy.ops.object.select_all(action="DESELECT"); lo.select_set(True); bpy.context.view_layer.objects.active = lo
+        bpy.ops.object.convert(target="MESH")
+    tp = TYRE_PARAMS.get(k[0] + k[1])
+    if tp:
+        tl = lathe_tyre(tp[0], tp[1], tp[2], tp[3], tp[4], tp[5], tp[6], 32)
+        tl.transform(Matrix.Translation(-tp[0]))
+        to = bpy.data.objects.new("lodtyre", tl); scn.collection.objects.link(to); to.location = c
+        bpy.ops.object.select_all(action="DESELECT"); to.select_set(True); lo.select_set(True)
+        bpy.context.view_layer.objects.active = lo
+        bpy.ops.object.join()
+        lo = bpy.context.view_layer.objects.active
+        lo.name = names[k] + "_LOD1"
     spec["wheels"][names[k]] = dict(centre=[round(c.x, 4), round(c.y, 4), round(c.z, 4)],
                                     radius=round(w["radius"], 4), width=round(w["width"], 4), tris=tris(o.data))
+if cfg.get("front_from_rear"):
+    # The source posed its front wheels steered (turned about the kingpin, outside the wheel): no rotation about the
+    # hub squares them, and they tumble when spinning. The car runs one rim design on all four corners: the front
+    # wheels are the rear wheels (rim, disc, tyre and LOD), mounted on the front hubs.
+    for side in ("L", "R"):
+        fname, rname = names[(side, "F")], names[(side, "B")]
+        for suffix in ("", "_LOD1"):
+            fo = bpy.data.objects.get(fname + suffix); ro = bpy.data.objects.get(rname + suffix)
+            if fo and ro:
+                fo.data = ro.data.copy()
+        spec["wheels"][fname]["tris"] = spec["wheels"][rname]["tris"]
+    print("FRONT wheels built from the rear wheels")
+if WHEEL_STATIC:   # parts the wheel split swept in that are not wheel: static on the car, where they were
+    _so = None
+    for _me in WHEEL_STATIC:
+        _o = bpy.data.objects.new("Body_WheelStatic", _me); scn.collection.objects.link(_o)
+        if _so is None:
+            _so = _o
+        else:
+            bpy.ops.object.select_all(action="DESELECT"); _o.select_set(True); _so.select_set(True)
+            bpy.context.view_layer.objects.active = _so
+            bpy.ops.object.join()
+    _so.name = "Body_WheelStatic"
 # brake calipers stay on the body (they must not spin): scale them with their wheel's rim so they still fit inside it
 _cal = [i for i, m in enumerate(body.data.materials) if m is not None and re.search(r"caliper|brake", orig_name.get(m.name, m.name) + m.name, re.I)]
 if _cal and any(fs < 0.999 or sh for _, _, fs, sh in WHEEL_SCALE):

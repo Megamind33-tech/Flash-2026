@@ -1,0 +1,72 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+[GRIDLINE] save loaded from user://gridline_save.json
+WHEEL arden_v8          Wheel_FL  WARN INBOARD 22 hub/axle vertices reach inboard of the tyre (inside the arch; hubs and axle shafts do turn)
+WHEEL arden_v8          Wheel_FL  WARN ARCH    body vertices inside the tyre: straight 53, lock L 46, lock R 28, bump 213
+WHEEL arden_v8          Wheel_FR  WARN INBOARD 33 hub/axle vertices reach inboard of the tyre (inside the arch; hubs and axle shafts do turn)
+WHEEL arden_v8          Wheel_FR  WARN ARCH    body vertices inside the tyre: straight 27, lock L 14, lock R 32, bump 156
+WHEEL arden_v8          Wheel_RL  WARN INBOARD 25 hub/axle vertices reach inboard of the tyre (inside the arch; hubs and axle shafts do turn)
+WHEEL arden_v8          Wheel_RL  WARN ARCH    body vertices inside the tyre: straight 29, lock L 29, lock R 29, bump 115
+WHEEL arden_v8          Wheel_RR  WARN INBOARD 27 hub/axle vertices reach inboard of the tyre (inside the arch; hubs and axle shafts do turn)
+WHEEL arden_v8          Wheel_RR  WARN ARCH    body vertices inside the tyre: straight 22, lock L 22, lock R 22, bump 102
+CAR arden_v8          FL R0.367 bead0.258 rim0.260 w0.304  FR R0.367 bead0.258 rim0.260 w0.304  RL R0.367 bead0.258 rim0.260 w0.304  RR R0.367 bead0.258 rim0.260 w0.304
+WHEEL arden_gt3         Wheel_FL  WARN INBOARD 24 hub/axle vertices reach inboard of the tyre (inside the arch; hubs and axle shafts do turn)
+WHEEL arden_gt3         Wheel_FL  WARN ARCH    body vertices inside the tyre: straight 103, lock L 47, lock R 38, bump 794
+WHEEL arden_gt3         Wheel_FR  WARN INBOARD 22 hub/axle vertices reach inboard of the tyre (inside the arch; hubs and axle shafts do turn)
+WHEEL arden_gt3         Wheel_FR  WARN ARCH    body vertices inside the tyre: straight 96, lock L 35, lock R 44, bump 790
+WHEEL arden_gt3         Wheel_RL  WARN ARCH    body vertices inside the tyre: straight 1, lock L 1, lock R 1, bump 36
+WHEEL arden_gt3         Wheel_RR  WARN ARCH    body vertices inside the tyre: straight 0, lock L 0, lock R 0, bump 33
+CAR arden_gt3         FL R0.387 bead0.271 rim0.276 w0.320  FR R0.387 bead0.271 rim0.276 w0.320  RL R0.387 bead0.271 rim0.276 w0.320  RR R0.387 bead0.271 rim0.276 w0.320
+WHEEL ravenna_hybrid    Wheel_RL  WARN ARCH    body vertices inside the tyre: straight 14, lock L 14, lock R 14, bump 44
+WHEEL ravenna_hybrid    Wheel_RR  WARN ARCH    body vertices inside the tyre: straight 14, lock L 14, lock R 14, bump 42
+CAR ravenna_hybrid    FL R0.324 bead0.227 rim0.231 w0.252  FR R0.324 bead0.227 rim0.231 w0.252  RL R0.346 bead0.243 rim0.247 w0.327  RR R0.346 bead0.243 rim0.247 w0.327
+WHEEL solano_concept    Wheel_FR  WARN ARCH    body vertices inside the tyre: straight 16, lock L 4, lock R 5, bump 36
+WHEEL solano_concept    Wheel_RL  WARN WOBBLE  axial runout 6.0 mm (rim lip face moves in and out as it turns)
+CAR solano_concept    FL R0.330 bead0.232 rim0.238 w0.269  FR R0.330 bead0.232 rim0.238 w0.269  RL R0.345 bead0.242 rim0.249 w0.305  RR R0.345 bead0.242 rim0.248 w0.302
+WHEEL elektra_egt       Wheel_FL  WARN ARCH    body vertices inside the tyre: straight 30, lock L 7, lock R 7, bump 94
+WHEEL elektra_egt       Wheel_FR  WARN ARCH    body vertices inside the tyre: straight 30, lock L 7, lock R 7, bump 94
+CAR elektra_egt       FL R0.310 bead0.216 rim0.219 w0.247  FR R0.310 bead0.216 rim0.219 w0.247  RL R0.310 bead0.216 rim0.219 w0.247  RR R0.310 bead0.216 rim0.219 w0.247
+WHEEL kaze_r4           Wheel_FL  WARN ARCH    body vertices inside the tyre: straight 39, lock L 15, lock R 18, bump 75
+WHEEL kaze_r4           Wheel_FR  WARN ARCH    body vertices inside the tyre: straight 72, lock L 26, lock R 22, bump 215
+WHEEL kaze_r4           Wheel_RL  WARN ARCH    body vertices inside the tyre: straight 15, lock L 15, lock R 15, bump 73
+WHEEL kaze_r4           Wheel_RR  WARN ARCH    body vertices inside the tyre: straight 28, lock L 28, lock R 28, bump 118
+CAR kaze_r4           FL R0.323 bead0.226 rim0.231 w0.338  FR R0.323 bead0.226 rim0.231 w0.338  RL R0.323 bead0.226 rim0.231 w0.338  RR R0.323 bead0.226 rim0.231 w0.338
+WHEEL kaze_rotor        Wheel_FL  WARN CONC    radial runout 15.9 mm (rim lip off the axle)
+WHEEL kaze_rotor        Wheel_FR  WARN CONC    radial runout 15.9 mm (rim lip off the axle)
+WHEEL kaze_rotor        Wheel_RL  WARN CONC    radial runout 15.9 mm (rim lip off the axle)
+WHEEL kaze_rotor        Wheel_RR  WARN CONC    radial runout 15.9 mm (rim lip off the axle)
+CAR kaze_rotor        FL R0.326 bead0.228 rim0.244 w0.300  FR R0.326 bead0.228 rim0.244 w0.300  RL R0.326 bead0.228 rim0.244 w0.300  RR R0.326 bead0.228 rim0.244 w0.300
+WHEEL hikari_ns1        Wheel_FL  WARN ARCH    body vertices inside the tyre: straight 11, lock L 4, lock R 7, bump 28
+CAR hikari_ns1        FL R0.295 bead0.206 rim0.212 w0.234  FR R0.295 bead0.206 rim0.212 w0.234  RL R0.295 bead0.206 rim0.212 w0.234  RR R0.295 bead0.206 rim0.212 w0.234
+WHEEL alba_integra      Wheel_FL  WARN WOBBLE  axial runout 34.8 mm (rim lip face moves in and out as it turns)
+WHEEL alba_integra      Wheel_FR  WARN WOBBLE  axial runout 5.8 mm (rim lip face moves in and out as it turns)
+WHEEL alba_integra      Wheel_RL  WARN ARCH    body vertices inside the tyre: straight 0, lock L 0, lock R 0, bump 87
+WHEEL alba_integra      Wheel_RR  WARN ARCH    body vertices inside the tyre: straight 0, lock L 0, lock R 0, bump 89
+CAR alba_integra      FL R0.295 bead0.206 rim0.210 w0.236  FR R0.296 bead0.206 rim0.210 w0.238  RL R0.295 bead0.206 rim0.207 w0.236  RR R0.295 bead0.206 rim0.207 w0.237
+WHEEL ravenna_quaranta  Wheel_FL  WARN INBOARD 18 hub/axle vertices reach inboard of the tyre (inside the arch; hubs and axle shafts do turn)
+WHEEL ravenna_quaranta  Wheel_FL  WARN ARCH    body vertices inside the tyre: straight 14, lock L 11, lock R 10, bump 30
+WHEEL ravenna_quaranta  Wheel_FR  WARN INBOARD 19 hub/axle vertices reach inboard of the tyre (inside the arch; hubs and axle shafts do turn)
+WHEEL ravenna_quaranta  Wheel_RL  WARN INBOARD 21 hub/axle vertices reach inboard of the tyre (inside the arch; hubs and axle shafts do turn)
+WHEEL ravenna_quaranta  Wheel_RR  WARN INBOARD 22 hub/axle vertices reach inboard of the tyre (inside the arch; hubs and axle shafts do turn)
+CAR ravenna_quaranta  FL R0.321 bead0.225 rim0.231 w0.275  FR R0.321 bead0.225 rim0.231 w0.275  RL R0.321 bead0.225 rim0.230 w0.331  RR R0.321 bead0.225 rim0.230 w0.331
+WHEEL kaze_gt35         Wheel_FL  WARN INBOARD 34 hub/axle vertices reach inboard of the tyre (inside the arch; hubs and axle shafts do turn)
+WHEEL kaze_gt35         Wheel_FL  WARN ARCH    body vertices inside the tyre: straight 165, lock L 167, lock R 112, bump 235
+WHEEL kaze_gt35         Wheel_FR  WARN INBOARD 35 hub/axle vertices reach inboard of the tyre (inside the arch; hubs and axle shafts do turn)
+WHEEL kaze_gt35         Wheel_FR  WARN ARCH    body vertices inside the tyre: straight 154, lock L 109, lock R 137, bump 221
+WHEEL kaze_gt35         Wheel_RL  WARN INBOARD 34 hub/axle vertices reach inboard of the tyre (inside the arch; hubs and axle shafts do turn)
+WHEEL kaze_gt35         Wheel_RL  WARN ARCH    body vertices inside the tyre: straight 151, lock L 151, lock R 151, bump 269
+WHEEL kaze_gt35         Wheel_RR  WARN INBOARD 35 hub/axle vertices reach inboard of the tyre (inside the arch; hubs and axle shafts do turn)
+WHEEL kaze_gt35         Wheel_RR  WARN ARCH    body vertices inside the tyre: straight 198, lock L 198, lock R 198, bump 322
+CAR kaze_gt35         FL R0.352 bead0.247 rim0.250 w0.292  FR R0.352 bead0.247 rim0.250 w0.292  RL R0.352 bead0.247 rim0.250 w0.292  RR R0.352 bead0.247 rim0.250 w0.292
+WHEEL arden_gt12        Wheel_FL  WARN CONC    radial runout 5.0 mm (rim lip off the axle)
+WHEEL arden_gt12        Wheel_FL  WARN INBOARD 9 hub/axle vertices reach inboard of the tyre (inside the arch; hubs and axle shafts do turn)
+WHEEL arden_gt12        Wheel_FL  WARN ARCH    body vertices inside the tyre: straight 0, lock L 11, lock R 7, bump 113
+WHEEL arden_gt12        Wheel_FR  WARN CONC    radial runout 5.0 mm (rim lip off the axle)
+WHEEL arden_gt12        Wheel_FR  WARN INBOARD 18 hub/axle vertices reach inboard of the tyre (inside the arch; hubs and axle shafts do turn)
+WHEEL arden_gt12        Wheel_FR  WARN ARCH    body vertices inside the tyre: straight 0, lock L 9, lock R 8, bump 66
+WHEEL arden_gt12        Wheel_RL  WARN CONC    radial runout 5.8 mm (rim lip off the axle)
+WHEEL arden_gt12        Wheel_RL  WARN ARCH    body vertices inside the tyre: straight 0, lock L 0, lock R 0, bump 94
+WHEEL arden_gt12        Wheel_RR  WARN CONC    radial runout 5.8 mm (rim lip off the axle)
+WHEEL arden_gt12        Wheel_RR  WARN ARCH    body vertices inside the tyre: straight 0, lock L 0, lock R 0, bump 30
+CAR arden_gt12        FL R0.367 bead0.254 rim0.261 w0.269  FR R0.367 bead0.254 rim0.261 w0.269  RL R0.367 bead0.254 rim0.261 w0.269  RR R0.367 bead0.254 rim0.261 w0.269
+WHEELS PASS failures=0 warnings=56

@@ -76,6 +76,21 @@ func _ready() -> void:
 		car.freeze = true
 		world.add_child(car)
 		car.global_transform = Transform3D(Basis(Vector3.UP, deg_to_rad(-35.0 + (180.0 if rear else 0.0))), Vector3.ZERO)
+		var ua := OS.get_cmdline_user_args()
+		var spi := ua.find("--spin")   # wheel turned by N degrees about its axle (rotation check)
+		var bmi := ua.find("--bump")   # wheels raised N metres (suspension compression check)
+		for wh in car.get_children():
+			if wh is VehicleWheel3D:
+				if spi >= 0:
+					for mm in wh.get_children():
+						if mm is MeshInstance3D:
+							(mm as MeshInstance3D).rotate_x(deg_to_rad(float(ua[spi + 1])))
+				if bmi >= 0:
+					(wh as Node3D).position.y += float(ua[bmi + 1])
+		if OS.get_cmdline_user_args().has("--steer"):   # full steering lock (wheel / arch clearance check)
+			for wh in car.get_children():
+				if wh is VehicleWheel3D and (wh as VehicleWheel3D).use_as_steering:
+					(wh as VehicleWheel3D).rotation.y = (car as RaceCarBody).max_steer
 		if rear:
 			car.tail_lights.emission_energy_multiplier = 4.0
 		await _settle()
