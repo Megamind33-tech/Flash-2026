@@ -1,0 +1,95 @@
+{
+ "id": "kaze_rotor",
+ "source": "rx7fd",
+ "wheels": {
+  "Wheel_FR": {
+   "centre": [
+    -0.731,
+    -1.2223,
+    0.3262
+   ],
+   "radius": 0.3262,
+   "width": 0.3004,
+   "tris": 2599
+  },
+  "Wheel_FL": {
+   "centre": [
+    0.731,
+    -1.2228,
+    0.3262
+   ],
+   "radius": 0.3262,
+   "width": 0.3004,
+   "tris": 2599
+  },
+  "Wheel_RR": {
+   "centre": [
+    -0.731,
+    1.2228,
+    0.3262
+   ],
+   "radius": 0.3262,
+   "width": 0.3004,
+   "tris": 2599
+  },
+  "Wheel_RL": {
+   "centre": [
+    0.731,
+    1.2223,
+    0.3262
+   ],
+   "radius": 0.3262,
+   "width": 0.3004,
+   "tris": 2599
+  }
+ },
+ "lod1_tris": 14962,
+ "lod2_tris": 4488,
+ "length": 4.3,
+ "width": 1.858,
+ "height": 1.116,
+ "body_min": [
+  -0.929,
+  -2.068,
+  0.155
+ ],
+ "body_max": [
+  0.929,
+  2.232,
+  1.271
+ ],
+ "body_tris": 24004,
+ "materials": [
+  "GL_amber",
+  "GL_glass",
+  "GL_paint",
+  "GL_tail",
+  "KEEP_Material",
+  "KEEP_Material_001",
+  "KEEP_Material_002",
+  "KEEP_Material_003",
+  "KEEP_Material_005",
+  "KEEP_Material_006",
+  "KEEP_Material_009",
+  "KEEP_Material_016",
+  "KEEP_Material_017",
+  "KEEP_Material_018"
+ ],
+ "scale": 1.4898923908292123,
+ "dropped": [],
+ "kept": [
+  "KEEP_Material",
+  "KEEP_Material_001",
+  "KEEP_Material_002",
+  "KEEP_Material_003",
+  "KEEP_Material_005",
+  "KEEP_Material_006",
+  "KEEP_Material_009",
+  "KEEP_Material_011",
+  "KEEP_Material_014",
+  "KEEP_Material_015",
+  "KEEP_Material_016",
+  "KEEP_Material_017",
+  "KEEP_Material_018"
+ ]
+}

@@ -42,6 +42,24 @@ CARS = {
     "elektra_egt": dict(src="e30", length=4.35, forward="-y", tyre_mat=r"_tire$",
                         drop_mat=r"emblems|logo_plane", drop=r"plate_number|license",
                         paint=r"_paint$", glass=r"_windows$", tail=r"taillight"),
+    # ---- second batch (all CC BY 4.0, Sketchfab; badges / lettering dropped, tyre and rear-panel textures scrubbed) ----
+    "kaze_r4": dict(src="r34", length=4.60, forward="auto", tyre_mat=r"^material\.010$", drop_mat=r"^material\.032$",
+                    drop=r"badge|logo|emblem|plate_number", paint=r"^material\.001$", glass=r"^material$", tail=r"^material\.009$"),
+    "kaze_rotor": dict(src="rx7fd", length=4.30, forward="auto", tyre_mat=r"^material\.011$", drop_mat=r"^$",
+                       drop=r"badge|logo|emblem", paint=r"^material\.007$", glass=r"^material\.008$", tail=r"^material\.019$"),
+    "hikari_ns1": dict(src="nsx", length=4.41, forward="auto", tyre_mat=r"^material\.011$", drop_mat=r"^$",
+                       drop=r"badge|logo|emblem", paint=r"^material\.003$", glass=r"^material\.007$", tail=r"^material\.016$"),
+    "alba_integra": dict(src="delta", length=3.90, forward="auto", tyre_mat=r"^tire$",
+                         drop_mat=r"^logo$|^number$|^shield_2$|^red_suns$|^legion$|^legend$|^alpha_mask$",
+                         drop=r"badge|logo|emblem|number plate", paint=r"^paint$", glass=r"^glass$", tail=r"light_rear"),
+    "ridgeway_sv8": dict(src="gt500", length=4.82, forward="auto", tyre_mat=r"^tire$", drop_mat=r"^lambert1$",
+                         drop=r"badge|logo|emblem|license|plate_number", paint=r"^carpaint$", glass=r"tinted_glass", tail=r"rearlight"),
+    "ravenna_quaranta": dict(src="f40", length=4.36, forward="auto", tyre_mat=r"^scene_-_root", drop_mat=r"^f40_logos$",
+                             drop=r"badge|logo|emblem", paint=r"^material$", glass=r"f40_glass|f40_window", tail=r"brakelight"),
+    "kaze_gt35": dict(src="r35", length=4.71, forward="auto", tyre_mat=r"^scene_-_root", drop_mat=r"r35_badges|r35_symbols",
+                      drop=r"badge|logo|emblem|lettering|nismo", paint=r"^r35_paint", glass=r"^r35_glass", tail=r"taillight"),
+    "arden_gt12": dict(src="db11", length=4.74, forward="auto", tyre_mat=r"^scene_-_root", drop_mat=r"amdb11_amr|amdb11_stickers|amdb11_badging",
+                       drop=r"badge|logo|emblem", paint=r"^amdb11$", glass=r"amdb11_glass|amdb11_rearglass", tail=r"amdb11_taillight"),
 }
 CANON = {   # base colour, metallic, roughness, emission, alpha
     "paint": ((0.80, 0.80, 0.82), 0.5, 0.25, 0.0, 1.0),
@@ -151,7 +169,14 @@ for o in list(bpy.context.scene.objects):
     parts.append(dict(name=o.name, me=me, tyre=is_tyre, caliper=caliper, src_mats=src_mats))
 print("DROPPED", dropped)
 
-rot = {"-y": 0.0, "-x": math.pi / 2, "+y": math.pi, "+x": -math.pi / 2}[cfg["forward"]]
+fwd_axis = cfg["forward"]
+if fwd_axis == "auto":   # the brake lamps are at the back: front is the other end along the long axis
+    tail_y = [f.center.y for p in parts for f in p["me"].polygons
+              if f.material_index < len(p["me"].materials) and p["me"].materials[f.material_index] == canon("tail")]
+    assert tail_y, "forward=auto needs tail lamp faces"
+    fwd_axis = "-y" if sum(tail_y) / len(tail_y) > 0 else "+y"
+    print("FORWARD auto ->", fwd_axis)
+rot = {"-y": 0.0, "-x": math.pi / 2, "+y": math.pi, "+x": -math.pi / 2}[fwd_axis]
 for p in parts:
     p["me"].transform(Matrix.Rotation(rot, 4, "Z"))
 

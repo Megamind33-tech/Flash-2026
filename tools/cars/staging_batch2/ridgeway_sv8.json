@@ -1,0 +1,100 @@
+{
+ "id": "ridgeway_sv8",
+ "source": "gt500",
+ "wheels": {
+  "Wheel_RL": {
+   "centre": [
+    0.7119,
+    1.1658,
+    0.3016
+   ],
+   "radius": 0.3016,
+   "width": 0.2512,
+   "tris": 4383
+  },
+  "Wheel_FR": {
+   "centre": [
+    -0.6841,
+    -1.171,
+    0.2965
+   ],
+   "radius": 0.2965,
+   "width": 0.2705,
+   "tris": 4228
+  },
+  "Wheel_FL": {
+   "centre": [
+    0.693,
+    -1.1689,
+    0.2965
+   ],
+   "radius": 0.2965,
+   "width": 0.2706,
+   "tris": 4215
+  },
+  "Wheel_RR": {
+   "centre": [
+    -0.7144,
+    1.166,
+    0.2962
+   ],
+   "radius": 0.2962,
+   "width": 0.2462,
+   "tris": 4454
+  }
+ },
+ "lod1_tris": 94978,
+ "lod2_tris": 28493,
+ "length": 4.82,
+ "width": 1.773,
+ "height": 2.017,
+ "body_min": [
+  -0.884,
+  -2.835,
+  -0.839
+ ],
+ "body_max": [
+  0.889,
+  1.985,
+  1.178
+ ],
+ "body_tris": 102387,
+ "materials": [
+  "GL_amber",
+  "GL_glass",
+  "GL_paint",
+  "GL_tail",
+  "KEEP_glossblack",
+  "KEEP_leather",
+  "KEEP_light",
+  "KEEP_mirror",
+  "KEEP_orange",
+  "KEEP_plate",
+  "KEEP_roll",
+  "KEEP_seat",
+  "KEEP_white_gloss"
+ ],
+ "scale": 0.8504711873898836,
+ "dropped": [
+  "GT500.Badge.R_glossblack_0",
+  "GT500.Badge.L_glossblack_0",
+  "GT500.Badge.Rr_glossblack_0",
+  "GT500.Wheel.Ft.R_lambert1_0",
+  "GT500.Wheel.Bk.L_lambert1_0",
+  "GT500.Wheel.Bk.R_lambert1_0",
+  "GT500.Wheel.Ft.L_lambert1_0"
+ ],
+ "kept": [
+  "KEEP_brake",
+  "KEEP_glossblack",
+  "KEEP_leather",
+  "KEEP_light",
+  "KEEP_mirror",
+  "KEEP_orange",
+  "KEEP_plate",
+  "KEEP_roll",
+  "KEEP_seat",
+  "KEEP_tire",
+  "KEEP_white_gloss"
+ ]
+}

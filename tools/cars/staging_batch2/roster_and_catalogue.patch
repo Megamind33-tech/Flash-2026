@@ -1,0 +1,82 @@
+diff --git a/godot/scripts/vehicle/car_builder.gd b/godot/scripts/vehicle/car_builder.gd
+index b8641f6..c18d3b1 100644
+--- a/godot/scripts/vehicle/car_builder.gd
++++ b/godot/scripts/vehicle/car_builder.gd
+@@ -26,6 +26,23 @@ const ROSTER := {
+ 		"author": "kevin (sohyalebret, Sketchfab)", "licence": "CC BY 4.0"},
+ 	"elektra_egt": {"band": 16.0, "steer": 1.1, "brakes": 1.0, "vmax": 57.0, "price": 45000, "name": "Vesta Evo II", "class": "Touring", "mass": 1200.0, "power": 1.12, "grip": 0.98, "aero": 0.9, "awd": false,
+ 		"author": "Martin Trafas (Bexxie, Sketchfab)", "licence": "CC BY 4.0"},
++	# second batch (same pipeline and licence; see assets/models/cars/LICENSES.md)
++	"kaze_r4": {"band": 18.0, "steer": 1.0, "brakes": 1.05, "vmax": 58.0, "price": 26000, "name": "Kaze R4 GT", "class": "JDM GT", "mass": 1560.0, "power": 1.02, "grip": 1.0, "aero": 1.0, "awd": true,
++		"author": "Lexyc16 (Sketchfab)", "licence": "CC BY 4.0"},
++	"kaze_rotor": {"band": 17.0, "steer": 1.12, "brakes": 1.0, "vmax": 56.0, "price": 21000, "name": "Kaze Rotor 7", "class": "JDM", "mass": 1280.0, "power": 0.98, "grip": 1.0, "aero": 1.0, "awd": false,
++		"author": "Lexyc16 (Sketchfab)", "licence": "CC BY 4.0"},
++	"hikari_ns1": {"band": 19.0, "steer": 1.1, "brakes": 1.0, "vmax": 57.0, "price": 24000, "name": "Hikari NS-1", "class": "Classic", "mass": 1370.0, "power": 0.96, "grip": 1.01, "aero": 1.0, "awd": false,
++		"author": "Lexyc16 (Sketchfab)", "licence": "CC BY 4.0"},
++	"alba_integra": {"band": 15.0, "steer": 1.12, "brakes": 1.0, "vmax": 54.0, "price": 22000, "name": "Alba Integra Evo", "class": "Rally", "mass": 1340.0, "power": 1.0, "grip": 1.02, "aero": 0.9, "awd": true,
++		"author": "TARANTULA (begemot.988888, Sketchfab)", "licence": "CC BY 4.0"},
++	"ridgeway_sv8": {"band": 17.0, "steer": 0.9, "brakes": 1.1, "vmax": 61.0, "price": 30000, "name": "Ridgeway SV8", "class": "Muscle", "mass": 1880.0, "power": 1.15, "grip": 0.98, "aero": 1.0, "awd": false,
++		"author": "Jiaxing (saitoyang, Sketchfab)", "licence": "CC BY 4.0"},
++	"ravenna_quaranta": {"band": 18.5, "steer": 1.05, "brakes": 1.0, "vmax": 61.0, "price": 52000, "name": "Ravenna Quaranta", "class": "Classic Supercar", "mass": 1250.0, "power": 1.02, "grip": 1.0, "aero": 1.1, "awd": false,
++		"author": "Black Snow (Sketchfab)", "licence": "CC BY 4.0"},
++	"kaze_gt35": {"band": 17.0, "steer": 1.0, "brakes": 1.15, "vmax": 61.0, "price": 48000, "name": "Kaze GT-35 Wide", "class": "GT", "mass": 1740.0, "power": 1.1, "grip": 1.03, "aero": 1.2, "awd": true,
++		"author": "Black Snow (Sketchfab)", "licence": "CC BY 4.0"},
++	"arden_gt12": {"band": 18.0, "steer": 0.95, "brakes": 1.05, "vmax": 62.0, "price": 40000, "name": "Arden GT12", "class": "Grand Tourer", "mass": 1770.0, "power": 1.08, "grip": 1.0, "aero": 1.0, "awd": false,
++		"author": "Black Snow (Sketchfab)", "licence": "CC BY 4.0"},
+ }
+ ## Team cars (each AI team races one model; the player picks theirs in the Garage).
+ const TEAM_CARS := {"halden": "ravenna_hybrid", "corsair": "arden_gt3", "vantor": "solano_concept", "northline": "elektra_egt"}
+diff --git a/godot/scripts/vehicle/car_catalogue.gd b/godot/scripts/vehicle/car_catalogue.gd
+index 4a4504b..afb9557 100644
+--- a/godot/scripts/vehicle/car_catalogue.gd
++++ b/godot/scripts/vehicle/car_catalogue.gd
+@@ -11,6 +11,10 @@ const MAKES := {
+ 	"Solano": {"country": "ESP", "founded": 2009, "tag": "Barcelona design house"},
+ 	"Elektra": {"country": "DEU", "founded": 2016, "tag": "Stuttgart electric performance"},
+ 	"Vesta": {"country": "DEU", "founded": 1972, "tag": "Munich touring-car homologation specials"},
++	"Kaze": {"country": "JPN", "founded": 1958, "tag": "Yokohama tuner heroes"},
++	"Hikari": {"country": "JPN", "founded": 1948, "tag": "Engineering-first sports cars from Suzuka"},
++	"Alba": {"country": "ITA", "founded": 1906, "tag": "Turin rally champions"},
++	"Ridgeway": {"country": "USA", "founded": 1903, "tag": "Detroit V8 muscle"},
+ }
+ 
+ const CARS := {
+@@ -34,6 +38,38 @@ const CARS := {
+ 		"engine": "2.5 L 16-valve inline-four", "power_hp": 238, "torque_nm": 240, "gearbox": "5-speed dog-leg manual",
+ 		"drive": "RWD", "layout": "Front engine",
+ 		"history": "The homologation special that won touring-car titles on three continents: box arches, a high rear wing and an engine that lives at 7,000 rpm. Light, narrow and nervous - the purist's choice, and still the car to beat on a twisty street circuit."},
++	"kaze_r4": {"hero_paint": "ocean", "make": "Kaze", "model": "R4 GT", "year": 1999, "type": "JDM Grand Tourer", "t100": 4.3,
++		"engine": "2.6 L twin-turbo inline-six", "power_hp": 330, "torque_nm": 392, "gearbox": "6-speed manual",
++		"drive": "AWD", "layout": "Front engine",
++		"history": "The last of the straight-six legends: an all-wheel-drive system that reads the road a hundred times a second and an engine that takes a thousand horsepower in tuner hands. Heavy, clever and devastating out of slow corners."},
++	"kaze_rotor": {"hero_paint": "amber", "make": "Kaze", "model": "Rotor 7", "year": 1997, "type": "JDM Sports Coupé", "t100": 4.8,
++		"engine": "1.3 L twin-rotor, sequential turbos", "power_hp": 280, "torque_nm": 314, "gearbox": "5-speed manual",
++		"drive": "RWD", "layout": "Front-mid engine",
++		"history": "A compact rotary sitting behind the front axle gives near-perfect balance and a 9,000 rpm howl. Light and pointy: the car that turns in before you have finished thinking about the corner."},
++	"hikari_ns1": {"hero_paint": "rosso", "make": "Hikari", "model": "NS-1", "year": 1991, "type": "Mid-engine Sports Car", "t100": 4.9,
++		"engine": "3.0 L V6, variable valve timing", "power_hp": 290, "torque_nm": 304, "gearbox": "5-speed manual",
++		"drive": "RWD", "layout": "Mid engine",
++		"history": "Developed with a world champion behind the wheel and built in aluminium: the everyday supercar that embarrassed the exotics. Precise, forgiving, and happiest on a tight street circuit."},
++	"alba_integra": {"hero_paint": "player_white", "make": "Alba", "model": "Integra Evo", "year": 1992, "type": "Rally Homologation Hatch", "t100": 4.9,
++		"engine": "2.0 L turbo inline-four", "power_hp": 215, "torque_nm": 314, "gearbox": "5-speed manual",
++		"drive": "AWD", "layout": "Front engine",
++		"history": "Six straight world rally titles came from this boxy hatch with blistered arches. Short, tall and four-wheel drive: it finds grip where others slide, and loves broken surfaces and the rain."},
++	"ridgeway_sv8": {"hero_paint": "ocean", "make": "Ridgeway", "model": "SV8", "year": 2021, "type": "Muscle Car", "t100": 3.6,
++		"engine": "5.2 L supercharged V8", "power_hp": 760, "torque_nm": 847, "gearbox": "7-speed dual-clutch",
++		"drive": "RWD", "layout": "Front engine",
++		"history": "Detroit's most powerful road car ever: a supercharged V8 under a vented bonnet and enough torque to light the rear tyres in fourth gear. Brutal on the straights, a handful in the twisty bits."},
++	"ravenna_quaranta": {"hero_paint": "rosso", "make": "Ravenna", "model": "Quaranta", "year": 1987, "type": "Classic Supercar", "t100": 4.1,
++		"engine": "2.9 L twin-turbo V8", "power_hp": 478, "torque_nm": 577, "gearbox": "5-speed manual",
++		"drive": "RWD", "layout": "Mid engine",
++		"history": "Built to celebrate the factory's fortieth birthday: kevlar body, plastic windows, no carpets and a turbo kick that arrives all at once. The last supercar its founder signed off - raw, light and unforgiving."},
++	"kaze_gt35": {"hero_paint": "amber", "make": "Kaze", "model": "GT-35 Wide", "year": 2017, "type": "Widebody GT", "t100": 3.4,
++		"engine": "3.8 L twin-turbo V6", "power_hp": 600, "torque_nm": 652, "gearbox": "6-speed dual-clutch",
++		"drive": "AWD", "layout": "Front engine",
++		"history": "The modern giant-killer in widebody time-attack trim: bolt-on arches, a swan-neck wing and all-wheel drive that makes every launch perfect. Heavy, but it never lets go."},
++	"arden_gt12": {"hero_paint": "racing_green", "make": "Arden", "model": "GT12", "year": 2018, "type": "Grand Tourer", "t100": 3.9,
++		"engine": "5.2 L twin-turbo V12", "power_hp": 630, "torque_nm": 700, "gearbox": "8-speed automatic",
++		"drive": "RWD", "layout": "Front engine",
++		"history": "Arden's continent-crusher: a twin-turbo V12 under a bonnet longer than some city cars, stitched leather and a top speed beyond 320 km/h. Stable and fast in a straight line - asked to hustle, it reminds you of its weight."},
+ }
+ 
+ 
