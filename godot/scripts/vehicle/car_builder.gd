@@ -133,9 +133,7 @@ static func material(slot: String, livery: String) -> Material:
 			m.albedo_color = Color(0.06, 0.055, 0.05)
 			m.roughness = 0.8
 		"tyre":
-			m.albedo_color = Color(0.05, 0.05, 0.052)   # rubber reads lighter and duller than black paint or trim
-			m.roughness = 0.92
-			m.metallic_specular = 0.3
+			return tyre_material()
 		"brake":
 			m.albedo_color = Color(0.36, 0.36, 0.37)
 			m.metallic = 0.85
@@ -255,6 +253,21 @@ static func enable_lods(car: Node3D) -> void:
 			has_lods = true
 	if not has_lods:
 		return
+	for w in car.get_children():   # wheels: full model to 30 m, the reduced wheel beyond
+		if not (w is VehicleWheel3D):
+			continue
+		for m in w.get_children():
+			var lo: GeometryInstance3D = null
+			for ch in m.get_children():
+				if ch.has_meta("gl_lod"):
+					lo = ch
+			if lo == null or not (m is GeometryInstance3D):
+				continue
+			(m as GeometryInstance3D).visibility_range_end = 30.0
+			(m as GeometryInstance3D).visibility_range_end_margin = 3.0
+			lo.visible = true
+			lo.visibility_range_begin = 30.0
+			lo.visibility_range_begin_margin = 3.0
 	for c in visual.get_children():
 		var g := c as GeometryInstance3D
 		if g == null:
@@ -265,6 +278,28 @@ static func enable_lods(car: Node3D) -> void:
 		g.visibility_range_end = [30.0, 90.0, 0.0][lod]
 		g.visibility_range_begin_margin = 0.0 if lod == 0 else 3.0
 		g.visibility_range_end_margin = 3.0 if lod < 2 else 0.0
+
+
+static var _tyre: ORMMaterial3D
+
+
+## GRIDLINE's tyre (every car, one shared material): baked albedo, tangent-space normal (tread grooves, shoulder blocks,
+## rim-protector rib) and ORM (occlusion, roughness: matte worn tread, satin sidewall). Made by
+## tools/cars/make_tyre_textures.py for the lathed tyre in tools/cars/export_sketchfab_car.py (u: 0.2 m of tread per
+## texture repeat, v: bead to bead).
+static func tyre_material() -> ORMMaterial3D:
+	if _tyre:
+		return _tyre
+	var m := ORMMaterial3D.new()
+	m.albedo_texture = load("res://assets/models/cars/tyre_albedo.png")
+	m.orm_texture = load("res://assets/models/cars/tyre_orm.png")
+	m.normal_enabled = true
+	m.normal_texture = load("res://assets/models/cars/tyre_normal.png")
+	m.normal_scale = 1.0
+	m.metallic_specular = 0.35   # rubber: dielectric, weak specular (F0 ~ 0.03)
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	_tyre = m
+	return m
 
 
 static func tail_material() -> StandardMaterial3D:
@@ -329,6 +364,7 @@ static func build(livery: String, with_audio: bool, car_id := DEFAULT_CAR) -> Ra
 	visual.name = "Visual"
 	car.add_child(visual)
 	var wheel_meshes := {}
+	var wheel_lods := {}
 	var tail_pts := []   # tail-light vertices in car space: reverse lamps are placed inside those clusters
 	for mi in model.find_children("*", "MeshInstance3D", true, false):
 		var inst := mi as MeshInstance3D
@@ -347,7 +383,9 @@ static func build(livery: String, with_audio: bool, car_id := DEFAULT_CAR) -> Ra
 					tail_pts.append(xf * verts[vi])
 		var parent_name := String(inst.get_parent().name) if inst.get_parent() else ""
 		var key := String(inst.name) if String(inst.name).begins_with("Wheel_") else parent_name
-		if key.begins_with("Wheel_"):
+		if key.begins_with("Wheel_") and String(inst.name).contains("_LOD"):
+			wheel_lods[key.substr(0, 8)] = copy   # reduced wheel for opponents beyond 30 m (enable_lods)
+		elif key.begins_with("Wheel_"):
 			wheel_meshes[key.substr(0, 8)] = copy   # mesh is centred on the wheel hub
 		else:
 			copy.transform = _accumulated(inst)
@@ -390,6 +428,12 @@ static func build(livery: String, with_audio: bool, car_id := DEFAULT_CAR) -> Ra
 			var m: MeshInstance3D = wheel_meshes[k]
 			m.position = Vector3(centre.x - wheel.position.x, 0, centre.z - wheel.position.z)
 			wheel.add_child(m)
+			if wheel_lods.has(k):   # child of the full wheel: it spins with it (TyreFX turns the first mesh)
+				var lo: MeshInstance3D = wheel_lods[k]
+				lo.transform = Transform3D.IDENTITY
+				lo.visible = false
+				lo.set_meta("gl_lod", 1)
+				m.add_child(lo)
 		car.add_child(wheel)
 
 	if with_audio:

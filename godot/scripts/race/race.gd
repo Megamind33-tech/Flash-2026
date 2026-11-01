@@ -74,6 +74,9 @@ func _ready() -> void:
 	if tsi >= 0 and tsi + 1 < args.size() and autotest:
 		Engine.time_scale = clampf(float(args[tsi + 1]), 1.0, 8.0)
 		Engine.max_physics_steps_per_frame = 16
+	var cari := args.find("--car")   # tests/screenshots: race in a given roster car
+	if cari >= 0 and cari + 1 < args.size():
+		Game.session["car_override"] = args[cari + 1]
 	for key in ["city", "weather", "time"]:   # tests/screenshots: --city cairo --weather dust --time dusk --format duel
 		var ki := args.find("--" + key)
 		if ki >= 0 and ki + 1 < args.size():
@@ -215,6 +218,26 @@ func _ready() -> void:
 		tc.look_at(track.position_at(track.wrapd(dd + 55.0)) + Vector3.UP * (hh * 0.6), Vector3.UP)
 		tc.make_current()
 		camera.set_physics_process(false)
+	var csh := args.find("--cam-showcase")   # before/after evidence: fixed cameras on the player's car on the grid
+	if csh >= 0 and csh + 1 < args.size():
+		var sc := Camera3D.new()
+		player.car.add_child(sc)
+		var view := str(args[csh + 1])
+		if view == "wheel":   # front-left wheel, low and close
+			sc.fov = 40.0
+			sc.position = Vector3(2.3, 0.45, 2.3)
+			sc.look_at(player.car.to_global(Vector3(0.75, 0.32, 1.3)), Vector3.UP)
+		elif view == "chase":   # behind and above, the road ahead
+			sc.fov = 62.0
+			sc.position = Vector3(0.0, 2.0, -6.2)
+			sc.look_at(player.car.to_global(Vector3(0.0, 0.9, 4.0)), Vector3.UP)
+		else:   # front three-quarter at bumper height
+			sc.fov = 45.0
+			sc.position = Vector3(3.4, 1.0, 5.6)
+			sc.look_at(player.car.to_global(Vector3(0.0, 0.55, 0.2)), Vector3.UP)
+		sc.far = 3000.0
+		sc.make_current()
+		camera.set_physics_process(false)
 	if args.has("--cam-card"):   # card art for the event screens: the grid from behind and above, looking down the road
 		var cc := Camera3D.new()
 		add_child(cc)
@@ -329,7 +352,7 @@ func _ready() -> void:
 		if RaceLoader.active:
 			await RaceLoader.go
 	# The opener ends by making the chase camera current, so skip it when a screenshot fixes the camera.
-	if DisplayServer.get_name() != "headless" and not (args.has("--cam-track") or args.has("--cam-card") or args.has("--cam-ad") or args.has("--cam-prop") or args.has("--cam-pothole") or args.has("--cam-people") or args.has("--cam-driver") or args.has("--cam-water") or args.has("--cam-landmark") or args.has("--cam-node") or args.has("--cam-road")):
+	if DisplayServer.get_name() != "headless" and not (args.has("--cam-track") or args.has("--cam-card") or args.has("--cam-ad") or args.has("--cam-prop") or args.has("--cam-pothole") or args.has("--cam-people") or args.has("--cam-driver") or args.has("--cam-showcase") or args.has("--cam-water") or args.has("--cam-landmark") or args.has("--cam-node") or args.has("--cam-road")):
 		await _intro()
 	await get_tree().create_timer(0.75).timeout
 	phase = Phase.COUNTDOWN

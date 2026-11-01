@@ -2,19 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ccx3rdumhjjg7"
-path="res://.godot/imported/ravenna_hybrid_Tyre_baseColor.png-03ffc08a7c3af43ab5c5ced2b6496ed7.ctex"
+uid="uid://bsvht6i1gm7np"
+path="res://.godot/imported/tyre_normal.png-14eaa022782e7cb5d8f42bc33dd88545.ctex"
 metadata={
 "vram_texture": false
-}
-generator_parameters={
-"md5": "dce5944edd1e4cbd200a1d2a1a7d8818"
 }
 
 [deps]
 
-source_file="res://assets/models/cars/ravenna_hybrid_Tyre_baseColor.png"
-dest_files=["res://.godot/imported/ravenna_hybrid_Tyre_baseColor.png-03ffc08a7c3af43ab5c5ced2b6496ed7.ctex"]
+source_file="res://assets/models/cars/tyre_normal.png"
+dest_files=["res://.godot/imported/tyre_normal.png-14eaa022782e7cb5d8f42bc33dd88545.ctex"]
 
 [params]
 
@@ -26,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

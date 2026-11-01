@@ -10,7 +10,7 @@
    ],
    "radius": 0.2945,
    "width": 0.2384,
-   "tris": 2696
+   "tris": 13000
   },
   "Wheel_RL": {
    "centre": [
@@ -20,7 +20,7 @@
    ],
    "radius": 0.2946,
    "width": 0.2384,
-   "tris": 2639
+   "tris": 13000
   },
   "Wheel_RR": {
    "centre": [
@@ -30,7 +30,7 @@
    ],
    "radius": 0.2946,
    "width": 0.2397,
-   "tris": 2639
+   "tris": 13000
   },
   "Wheel_FR": {
    "centre": [
@@ -40,7 +40,7 @@
    ],
    "radius": 0.2953,
    "width": 0.24,
-   "tris": 2695
+   "tris": 13000
   }
  },
  "lod1_tris": 67110,
@@ -58,7 +58,7 @@
   1.869,
   1.711
  ],
- "body_tris": 74303,
+ "body_tris": 74304,
  "materials": [
   "GL_amber",
   "GL_glass",

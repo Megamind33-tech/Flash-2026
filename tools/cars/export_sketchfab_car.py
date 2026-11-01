@@ -68,9 +68,12 @@ CANON = {   # base colour, metallic, roughness, emission, alpha
     "carbon": ((0.05, 0.05, 0.055), 0.3, 0.3, 0.0, 1.0),
     "black": ((0.03, 0.03, 0.03), 0.0, 0.55, 0.0, 1.0),
     "amber": ((1.0, 0.45, 0.02), 0.0, 0.1, 1.0, 1.0),
+    "tyre": ((0.035, 0.035, 0.037), 0.0, 0.85, 0.0, 1.0),
 }
 BODY_BUDGET = 24000     # LOD0 body incl. interior silhouette (tris); the paint / glass shell gets 1.5x its share
-WHEEL_BUDGET = 2600     # per wheel: tyre + rim + disc
+WHEEL_BUDGET = 13000    # per wheel: GRIDLINE tyre (~3k, never reduced) + the author's rim and disc (the rest)
+WHEEL_LOD1 = 1400       # per wheel beyond 30 m (opponents): Wheel_xx_LOD1
+TYRE_SEGMENTS = 72      # around the lathed tyre
 SHELL_CAP = 10 ** 9     # paint + glass shell: never reduced (layered panels tear when decimated: mottled paint)
 if os.environ.get("CAR_NO_REDUCE"):   # diagnostics: full detail, no decimation, no normal transfer
     BODY_BUDGET = SHELL_CAP = WHEEL_BUDGET = 10 ** 9
@@ -365,7 +368,8 @@ def make(name, meshes, budget):
     # millimetres apart, and reducing them separately pushes one through the other (mottled paint). The budget is
     # taken from everything else (interior, engine bay, underbody, trim).
     shell = [me for me in meshes if name == "Body" and (paint in list(me.materials) or glass in list(me.materials))]
-    if shell:
+    shell += [me for me in meshes if name.startswith("Wheel_") and canon("tyre") in list(me.materials)]
+    if shell and name == "Body":
         # Anything lying against the outer skin is part of the hull too (inner panel skins, trim, carbon layers a
         # few millimetres under the paint): reduced, it pokes through the paint as dark blotches. Only parts that
         # are mostly away from the hull (seats, engine, underbody, suspension) are reduced.
@@ -388,6 +392,19 @@ def make(name, meshes, budget):
     ratio = min(1.0, max(budget - min(shell_t, SHELL_CAP), budget * 0.3) / max(rest_t, 1))
     shell_r = min(1.0, SHELL_CAP / max(shell_t, 1))   # very dense shells get a mild, uniform reduction
     print("BUDGET", name, "shell", shell_t, "rest", rest_t, "ratio", round(ratio, 3))
+    cap = None
+    if name.startswith("Wheel_"):
+        # Wheels: the biggest parts give way first (water-filling). A drilled brake disc of 17k triangles, mostly
+        # hidden behind the spokes, must not take the thin rim spokes down with it (a uniform ratio shattered them).
+        rest = sorted(tris(me) for me in meshes if me not in shell)
+        left = max(budget - shell_t, budget * 0.3)
+        cap = float("inf")
+        for i, t in enumerate(rest):
+            if t * (len(rest) - i) > left:
+                cap = left / (len(rest) - i)
+                break
+            left -= t
+        print("WHEEL CAP", name, None if cap == float("inf") else int(cap), rest[-4:])
     objs = []
     for me in meshes:
         if hasattr(me, "use_auto_smooth"):
@@ -395,6 +412,8 @@ def make(name, meshes, budget):
         o = bpy.data.objects.new(name, me); scn.collection.objects.link(o)
         # the painted shell keeps more of its budget (silhouette, reflections); hidden detail gives way
         r = shell_r if me in shell else ratio
+        if cap is not None and me not in shell:
+            r = min(1.0, cap / max(tris(me), 1))
         if r < 0.97 and tris(me) > 120:
             mod = o.modifiers.new("dec", "DECIMATE"); mod.ratio = r
             bpy.ops.object.select_all(action="DESELECT"); o.select_set(True)
@@ -480,11 +499,110 @@ if LOD_PARTS:
     bpy.ops.object.select_all(action="DESELECT"); l2.select_set(True); bpy.context.view_layer.objects.active = l2
     bpy.ops.object.convert(target="MESH")
     lods = {"lod1_tris": tris(l1.data), "lod2_tris": tris(l2.data)}
+
+# ---- GRIDLINE tyre -------------------------------------------------------------------------------------------
+# The authors' tyres ranged from 6k to 48k triangles per wheel (modelled tread blocks, brand lettering); reduced to a
+# mobile budget they turned into saw-toothed or blobby discs. Every car gets the same lathed tyre instead, sized from
+# its own wheel: bead at the rim lip, the measured section width, rounded shoulders and a sidewall bulge, with the
+# shared baked material GL_tyre (tools/cars/make_tyre_textures.py). The author's rim, disc and hub stay.
+TYRE_TILE_M = 0.20
+# (axial position as a fraction of the half width, height above the bead as a fraction of the sidewall, texture v)
+PROFILE = [(-0.80, 0.00, 0.00), (-0.86, 0.05, 0.06), (-0.95, 0.18, 0.11), (-1.00, 0.38, 0.18), (-0.99, 0.56, 0.24),
+           (-0.95, 0.74, 0.30), (-0.88, 0.87, 0.335), (-0.79, 0.95, 0.36), (-0.70, 0.99, 0.375), (-0.62, 1.00, 0.38),
+           (-0.40, 1.00, 0.43), (-0.20, 1.00, 0.47), (0.0, 1.00, 0.50)]
+PROFILE = PROFILE + [(-x, r, 1.0 - v) for x, r, v in reversed(PROFILE[:-1])]
+
+
+def _is_tyre_mat(m):
+    return m is not None and tyre_rx.search(orig_name.get(m.name, m.name)) is not None
+
+
+def rebuild_tyre(meshes, c, radius, side):
+    """Delete the author's rubber from one wheel's meshes and add the lathed GRIDLINE tyre. Returns the new list."""
+    rows = []   # (rho, axial x, is_tyre) per face
+    for me in meshes:
+        for f in me.polygons:
+            m = me.materials[f.material_index] if f.material_index < len(me.materials) else None
+            d = f.center - c
+            rows.append((math.hypot(d.y, d.z), d.x, _is_tyre_mat(m)))
+    R = radius
+    rim = sorted(r for r, x, t in rows if not t and r < R * 0.97)
+    r_rim = rim[int(len(rim) * 0.995)] if rim else R * 0.7
+    r_bead = min(max(r_rim, R * 0.55), R * 0.86) - 0.003
+    if cfg.get("rim_frac"):
+        r_bead = R * cfg["rim_frac"]
+    H = R - r_bead
+    tread_x = [x for r, x, t in rows if t and r > r_bead + 0.5 * H]
+    if len(tread_x) < 10:
+        tread_x = [x for r, x, t in rows if r > r_bead + 0.5 * H]
+    tread_x.sort()
+    x0, x1 = tread_x[int(len(tread_x) * 0.01)], tread_x[int(len(tread_x) * 0.99)]
+    half = max((x1 - x0) / 2, 0.08)
+    xc = (x0 + x1) / 2
+    print("TYRE", side, "R %.3f rim %.3f bead %.3f width %.3f offset %.3f" % (R, r_rim, r_bead, half * 2, xc))
+    out = []
+    for me in meshes:   # rubber beyond the bead goes, and anything else out there (sidewall lettering, valves)
+        bm = bmesh.new(); bm.from_mesh(me); bm.faces.ensure_lookup_table()
+        kill = []
+        for f in bm.faces:
+            m = me.materials[f.material_index] if f.material_index < len(me.materials) else None
+            cc = f.calc_center_median() - c
+            rho = math.hypot(cc.y, cc.z)
+            if (_is_tyre_mat(m) and rho > r_bead - 0.01) or rho > r_bead + 0.12 * H:
+                kill.append(f)
+        bmesh.ops.delete(bm, geom=kill, context="FACES")
+        bm.to_mesh(me); bm.free()
+        if len(me.polygons):
+            out.append(me)
+    # lathe the profile around the axle (X)
+    tm = bpy.data.meshes.new("tyre")
+    bm = bmesh.new()
+    n = TYRE_SEGMENTS
+    reps = max(1, round(2 * math.pi * R / TYRE_TILE_M))
+    ring = []
+    for i in range(n + 1):   # seam column duplicated for the UV wrap
+        a = 2 * math.pi * i / n
+        col = []
+        for px, pr, pv in PROFILE:
+            crown = 1.0 - 0.012 * (abs(px) / 0.62) ** 2 if pr >= 0.999 else 1.0
+            r = (r_bead + pr * H) * crown if pr >= 0.999 else r_bead + pr * H
+            col.append(bm.verts.new((c.x + xc + px * half, c.y + r * math.cos(a), c.z + r * math.sin(a))))
+        ring.append(col)
+    uv_name = next((u.name for me in out for u in me.uv_layers if u.active_render), "UVMap")   # join merges by name
+    uv = bm.loops.layers.uv.new(uv_name)
+    for i in range(n):
+        for j in range(len(PROFILE) - 1):
+            vs = [ring[i][j], ring[i + 1][j], ring[i + 1][j + 1], ring[i][j + 1]]
+            f = bm.faces.new(vs)
+            for lp, (ii, jj) in zip(f.loops, [(i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1)]):
+                lp[uv].uv = (ii / n * reps, PROFILE[jj][2])
+    # the seam column stays split (UV wrap). Faces must point out of the rubber: test a crown face.
+    bm.faces.ensure_lookup_table()
+    crown = bm.faces[len(PROFILE) // 2]
+    out_dir = crown.calc_center_median() - Vector((crown.calc_center_median().x, c.y, c.z))
+    if crown.normal.dot(out_dir) < 0:
+        bmesh.ops.reverse_faces(bm, faces=bm.faces)
+    bm.to_mesh(tm); bm.free()
+    for f in tm.polygons:
+        f.use_smooth = True
+    if hasattr(tm, "use_auto_smooth"):
+        tm.use_auto_smooth = True
+        tm.auto_smooth_angle = math.radians(80)
+    tm.materials.append(canon("tyre"))
+    out.append(tm)
+    return out
+
 spec = dict(id=car_id, source=cfg["src"], wheels={})
 for k, w in wheels.items():
+    if not cfg.get("keep_tyres"):
+        buckets[k] = rebuild_tyre(buckets[k], w["centre"], w["radius"], k[0])
     o = make(names[k], buckets[k], WHEEL_BUDGET)
     c = w["centre"]
     o.data.transform(Matrix.Translation(-c)); o.location = c
+    # distance LOD for opponents: same pivot, reduced
+    lo = bpy.data.objects.new(names[k] + "_LOD1", o.data.copy()); scn.collection.objects.link(lo); lo.location = c
+    if tris(lo.data) > WHEEL_LOD1:
+        mod = lo.modifiers.new("dec", "DECIMATE"); mod.ratio = WHEEL_LOD1 / tris(lo.data)
     spec["wheels"][names[k]] = dict(centre=[round(c.x, 4), round(c.y, 4), round(c.z, 4)],
                                     radius=round(w["radius"], 4), width=round(w["width"], 4), tris=tris(o.data))
 for img in bpy.data.images:   # mobile texture budget

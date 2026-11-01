@@ -2,19 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://vvya7kn54s3n"
-path="res://.godot/imported/alba_integra_Tire_baseColor.png-11d1501fe055d7bcff0e4615feec4522.ctex"
+uid="uid://rwqa4yykk575"
+path="res://.godot/imported/tyre_albedo.png-8992a5596c699b6843816c9180e66fec.ctex"
 metadata={
 "vram_texture": false
-}
-generator_parameters={
-"md5": "4d797334ff50f8376248473288bb9c01"
 }
 
 [deps]
 
-source_file="res://assets/models/cars/alba_integra_Tire_baseColor.png"
-dest_files=["res://.godot/imported/alba_integra_Tire_baseColor.png-11d1501fe055d7bcff0e4615feec4522.ctex"]
+source_file="res://assets/models/cars/tyre_albedo.png"
+dest_files=["res://.godot/imported/tyre_albedo.png-8992a5596c699b6843816c9180e66fec.ctex"]
 
 [params]
 
@@ -26,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

@@ -60,6 +60,10 @@ func _ready() -> void:
 	var rear := OS.get_cmdline_user_args().has("--rear")
 	if rear:
 		DirAccess.make_dir_recursive_absolute(OS.get_user_data_dir() + "/cards_rear")
+	# --wheel: close shot of the front-left wheel (tyre / rim check), to user://cards_wheel/
+	var wheel := OS.get_cmdline_user_args().has("--wheel")
+	if wheel:
+		DirAccess.make_dir_recursive_absolute(OS.get_user_data_dir() + "/cards_wheel")
 	for id in ids:
 		print("[cards] ", id)
 		var car := CarBuilder.build(str(CarCatalogue.CARS[id]["hero_paint"]), false, id)
@@ -74,8 +78,13 @@ func _ready() -> void:
 		var radius := aabb.size.length() * 0.5
 		cam.global_position = c + Vector3(0.0, radius * 0.2, radius * 1.55)
 		cam.look_at(c + Vector3.UP * -0.05, Vector3.UP)
+		if wheel:
+			var w := car.get_node("Wheel_FL") as Node3D
+			var wp := w.global_position
+			cam.global_position = wp + car.global_basis * Vector3(1.6, 0.35, 0.9)
+			cam.look_at(wp, Vector3.UP)
 		await _settle()
-		_save(vp, ("user://cards_rear/%s.png" if rear else "res://assets/ui/cars/%s.png") % id)
+		_save(vp, ("user://cards_wheel/%s.png" if wheel else ("user://cards_rear/%s.png" if rear else "res://assets/ui/cars/%s.png")) % id)
 		car.queue_free()
 		await get_tree().process_frame
 
