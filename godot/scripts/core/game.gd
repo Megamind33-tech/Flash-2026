@@ -218,15 +218,27 @@ func owns_paint(key: String) -> bool:
 	return key == "player_white" or (save["career"].get("paints", []) as Array).has(key)
 
 
+## What applying this finish to this car costs: 0 for a finish already bought, the car's current paint and its
+## factory paint (the car is sold in it); otherwise the paint shop price. The one source for every price label.
+func paint_cost(car_id: String, key: String) -> int:
+	if owns_paint(key) or key == paint_for(car_id) or key == factory_paint(car_id):
+		return 0
+	for p in CarBuilder.PAINT_SHOP:
+		if p[0] == key:
+			return int(p[2])
+	return 0
+
+
+func factory_paint(car_id: String) -> String:
+	return str(CarCatalogue.CARS.get(car_id, {}).get("hero_paint", "player_white"))
+
+
 ## Apply a paint to an owned car, buying the finish the first time (one purchase unlocks it for every car).
 func set_paint(car_id: String, key: String) -> bool:
 	if not owns_car(car_id):
 		return false
-	if not owns_paint(key):
-		var price := 0
-		for p in CarBuilder.PAINT_SHOP:
-			if p[0] == key:
-				price = int(p[2])
+	var price := paint_cost(car_id, key)
+	if price > 0:
 		if int(save["career"]["money"]) < price:
 			return false
 		_post(save["career"], -price, "Car", "Paint: " + key)

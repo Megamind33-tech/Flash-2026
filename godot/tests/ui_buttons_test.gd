@@ -44,7 +44,10 @@ func _ready() -> void:
 			d._refresh()
 			d._do_action()                      # buy
 			check(Game.owns_car("solano_concept"), "dealership buy")
+			var paid := Game.paint_cost("solano_concept", "rosso") > 0
 			d._pick_paint("rosso")
+			check(not paid or (Game.paint_for("solano_concept") == "ocean" and d.preview_paint == "rosso"), "paid paint is a preview until confirmed")
+			d._apply_paint()
 			check(Game.paint_for("solano_concept") == "rosso", "paint applied")
 			d.tab = "sell"
 			d._refresh()

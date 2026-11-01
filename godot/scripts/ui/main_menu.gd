@@ -123,6 +123,16 @@ func _ready() -> void:
 		if overlay is CareerModes and args.has("--tab"):
 			(overlay as CareerModes).tab = args[args.find("--tab") + 1].replace("_", " ")
 			(overlay as CareerModes)._render()
+		if overlay is Dealership:   # evidence: --sel <car> --preview-paint <key> --dealer-state <browse|inspect|confirm>
+			var dd := overlay as Dealership
+			if args.has("--sel"):
+				dd.sel = args[args.find("--sel") + 1]
+			if args.has("--preview-paint"):
+				dd.preview_paint = args[args.find("--preview-paint") + 1]
+			var ds: String = args[args.find("--dealer-state") + 1] if args.has("--dealer-state") else "browse"
+			dd.set_state("inspect" if ds == "inspect" else "browse")
+			if ds == "confirm":
+				dd._request_action()
 		if overlay is DriverCards and args.has("--profile"):
 			(overlay as DriverCards)._profile(DriverCards.all_drivers()[int(args[args.find("--profile") + 1])])
 
@@ -214,8 +224,20 @@ func _process(delta: float) -> void:
 			studio.dist_scale = clampf(0.42 / (hub_band.size.x / vw.x), 1.0, 1.45)
 		if version_label:
 			version_label.visible = not home and overlay == null
-		studio.frame_offset = -9.0 if overlay is Dealership else off
-		studio.frame_pitch = -4.5 if overlay is Dealership else 0.0
+		var pitch := 0.0
+		if overlay is Dealership:
+			# Frame the car in the part of the screen no panel covers (Dealership.view_rect), on any aspect ratio:
+			# yaw / pitch the camera so the car's centre lands in the rect's centre, pull back until it fits.
+			var r: Rect2 = (overlay as Dealership).view_rect()
+			var vw := get_viewport().get_visible_rect().size
+			var vfov := deg_to_rad(cam.fov)
+			var hfov := 2.0 * atan(tan(vfov * 0.5) * vw.x / vw.y)
+			var c := r.get_center()
+			off = rad_to_deg(atan((2.0 * c.x / vw.x - 1.0) * tan(hfov * 0.5)))
+			pitch = rad_to_deg(atan((2.0 * c.y / vw.y - 1.0) * tan(vfov * 0.5)))
+			studio.dist_scale = clampf(maxf(0.9 / (r.size.x / vw.x), 0.7 / (r.size.y / vw.y)), 1.0, 2.4)
+		studio.frame_offset = off
+		studio.frame_pitch = pitch
 		studio.drive_camera(cam, delta, viewport_car.global_position + Vector3.UP * 0.55)
 		return
 	var rot := Basis(Vector3.UP, deg_to_rad(orbit + 200.0))

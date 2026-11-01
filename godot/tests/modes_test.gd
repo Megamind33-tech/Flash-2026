@@ -133,6 +133,27 @@ func _ready() -> void:
 	for t in ["garage", "sell", "showroom"]:
 		dl.tab = t
 		dl._refresh()
+	# buying goes through the confirmation; a double tap charges once; the bought paint matches what was shown
+	dl.tab = "showroom"
+	dl.sel = "elektra_egt"
+	dl._refresh()
+	check(Dealership.paint_caption("elektra_egt", "silver", false).contains("FACTORY"), "factory finish labelled included, not priced")
+	check(Game.paint_cost("arden_v8", "graphite") == 0, "a car's own factory paint costs nothing")
+	dl._pick_paint("copper")
+	check(dl.preview_paint == "copper" and dl._showing_paint() == "copper", "swatch previews on the car")
+	var wallet0 := int(Game.save["career"]["money"])
+	var expect := int(CarCatalogue.spec("elektra_egt")["price"]) + Game.paint_cost("elektra_egt", "copper")
+	dl._request_action()
+	check(dl.modal != null and not Game.owns_car("elektra_egt"), "BUY opens a confirmation, nothing charged yet")
+	var okb := dl.modal.find_child("ConfirmButton", true, false) as Button if dl.modal else null
+	if okb:
+		okb.pressed.emit()
+		okb.pressed.emit()
+	check(Game.owns_car("elektra_egt") and Game.paint_for("elektra_egt") == "copper", "bought in the previewed paint")
+	check(wallet0 - int(Game.save["career"]["money"]) == expect, "charged once: car + paint (%d)" % expect)
+	dl.state = "inspect"
+	dl._refresh()
+	check(dl.view_rect().size.x > 0.5 * dl.get_viewport_rect().size.x, "inspect leaves most of the screen to the car")
 	dl.queue_free()
 	var dc := DriverCards.open(host)
 	await get_tree().process_frame
