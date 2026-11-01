@@ -84,7 +84,23 @@ Fixes made while verifying them:
   emblem.
 - That bumper is unconnected triangle soup, so the letters need a hand edit in Blender before the car can ship.
 
-Visual issue to look at: the Integra's white door and wing panels show crumple-like shading in Godot.
+### Tyres, textures and paint (after the batch)
+
+- **Tyres.** One GRIDLINE tyre for every car: the converter lathes it from each wheel's measured rim radius, tyre
+  radius and width, and deletes the authors' rubber, including old rubber outboard of the new tyre.
+  - Material: `GL_tyre` → `CarBuilder.tyre_material()` (`ORMMaterial3D`, textures from
+    `tools/cars/make_tyre_textures.py`).
+  - Rims get 13k triangles per wheel, largest parts reduced first; `Wheel_xx_LOD1` is used beyond 30 m.
+- **Textures.** All car textures import with mipmaps and VRAM compression; normal maps are flagged. Without mipmaps,
+  tread and rims aliased into "crumpled" bands. Car texture memory dropped from 241 MB to 49 MB (ETC2).
+- **Paint.** It is exported as its own mesh, `Body_Paint`. Blender 4.0's glTF exporter bent paint normals that
+  shared a mesh with some trim, which caused the crumpled Integra and the blotchy Arden CS and Ravenna. Check any new
+  car with a GLB normal check like the one described in the commit message.
+- **Shadows.** Shadow level 1 uses `SOFT_VERY_LOW` PCF instead of hard shadows.
+- **Re-converting.** After re-converting, re-apply the four hand-scrubbed textures with
+  `tools/cars/glb_replace_image.py`. The scrubbed copies are the PNGs in `godot/assets/models/cars/`:
+  - alba_integra `material_baseColor` and `rim_2_baseColor`
+  - kaze_gt35 `r35_gauges_baseColor` and `r35_screen_baseColor`
 
 ## Known open items
 

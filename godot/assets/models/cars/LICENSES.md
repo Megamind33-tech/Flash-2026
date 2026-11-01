@@ -51,6 +51,10 @@ textures were scrubbed in a working copy; the downloads themselves are kept unmo
   discs, light lenses, carbon and interior.
 
 **Geometry**
+- **Tyres replaced.** Every car's tyre rubber is replaced by GRIDLINE's own lathed tyre with a shared, baked PBR
+  material (`tools/cars/make_tyre_textures.py`, no lettering), sized from the original wheel. The authors' rims, brake
+  discs and hubs are kept, reduced to 13k triangles per wheel.
+- The paint shell is exported as its own mesh (`Body_Paint`) with the authors' normals kept.
 - Oriented with the front at Godot +Z and scaled to real lengths.
 - Tyre contact patch at y = 0; the four wheels split out with hub pivots. Brake calipers stay on the body, so they
   don't spin.
