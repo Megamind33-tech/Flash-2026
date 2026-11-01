@@ -186,7 +186,7 @@ func _build_board() -> void:
 	hr.add_child(posv)
 	info["position"] = posv
 	var lapcol := VBoxContainer.new()
-	lapcol.add_theme_constant_override("separation", -8)
+	lapcol.add_theme_constant_override("separation", -2)
 	lapcol.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hr.add_child(lapcol)
 	lapcol.add_child(UiStyle.label("LAP", UiStyle.cond_bold(), 18, UiStyle.MUTED, HORIZONTAL_ALIGNMENT_RIGHT, false))
