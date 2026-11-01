@@ -29,7 +29,7 @@ var hub_band: Control
 var version_label: Label
 const ORANGE := Color(1.0, 0.42, 0.0)
 const HUB_CARDS := [["modes", "CAREER", "Driver · Owner · Clubs"], ["campaigns", "CAMPAIGNS", "Story chapters"],
-	["competitions", "COMPETITIONS", "Daily · City Cups"], ["pvp", "PVP RIVALS", "Ghost duels"],
+	["competitions", "COMPETITIONS", "City Cups · daily challenge"], ["pvp", "PVP RIVALS", "Ghost duels"],
 	["quick", "QUICK RACE", "11 venues · any weather"], ["garage", "MY GARAGE", "Your cars · paint"], ["dealership", "DEALERSHIP", "Buy · sell · trade in"],
 	["drivers", "DRIVERS", "Cards · profiles"]]
 const CARD_ART := {"modes": "res://assets/ui/cards/career.jpg", "drivers": "res://assets/ui/portraits/Male_Adult_05.png"}
@@ -682,6 +682,9 @@ func _go(p: String) -> void:
 		return
 	if p == "settings":   # the one Settings screen (scripts/ui/settings_screen.gd)
 		_open_settings()
+		return
+	if p in ["competitions", "challenges", "campaigns", "pvp", "quick"]:   # card screens (scripts/ui/event_screens.gd)
+		_overlay_opened(EventScreens.open(self, p))
 		return
 	if p in ["drivers", "team_owner", "clubs", "modes"] and has_method("_open_" + p):
 		call("_open_" + p)

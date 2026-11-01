@@ -37,10 +37,43 @@ func _process(delta: float) -> void:
 				step = -1   # this step awaits frames; keep _process from re-entering it
 				menu = get_tree().current_scene
 				check(menu != null and menu.has_method("_go"), "main menu loaded")
-				for p in ["career", "campaigns", "competitions", "pvp", "quick", "credits", "profile"]:   # garage = Dealership overlay (ui_buttons_test)
+				for p in ["career", "credits", "profile"]:   # garage = Dealership overlay (ui_buttons_test)
 					menu._go(p)
 					check(menu.page == p and menu.list.get_child_count() > 0, "page %s (%d items)" % [p, menu.list.get_child_count()])
 					menu._back()
+				# Race events: one card screen, five tabs; every tab builds, every card has its action, nothing launches.
+				for p in ["competitions", "challenges", "campaigns", "pvp", "quick"]:
+					menu._go(p)
+					var es := menu.overlay as EventScreens
+					check(es != null and es.tab == p, "%s opens the race events screen" % p)
+					if es:
+						es.launch = func(_ev, _c): pass
+						await get_tree().process_frame
+						var actions := es.find_children("Action", "Button", true, false)
+						var buttons := es._body.find_children("*", "Button", true, false)
+						check(buttons.size() >= 3, "%s: %d buttons, %d cards" % [p, buttons.size(), actions.size()])
+						if not actions.is_empty():
+							(actions[0] as Button).pressed.emit()
+						check(p in ["campaigns", "challenges", "quick"] or not es.last_launch.is_empty(), "%s: first card launches a real event" % p)
+						if p == "campaigns":   # a campaign card opens the chapter ladder; its PLAY launches chapter 1
+							await get_tree().process_frame
+							var play := es._body.find_children("*", "Button", true, false).filter(func(b): return (b as Button).text.begins_with("PLAY"))
+							check(play.size() == 1, "campaign ladder has one PLAY (next chapter)")
+							if play.size() == 1:
+								(play[0] as Button).pressed.emit()
+							check(es.last_launch.get("event", {}).get("chapter", -1) == 0, "campaign PLAY launches chapter 1")
+						if p == "quick":   # the selectors change the event that START launches
+							es.quick["weather"] = "rain"
+							es.quick["format"] = "duel"
+							es.render()
+							await get_tree().process_frame
+							var start := es._body.find_children("*", "Button", true, false).filter(func(b): return (b as Button).text.begins_with("START"))
+							if start.size() == 1:
+								(start[0] as Button).pressed.emit()
+							var ev: Dictionary = es.last_launch.get("event", {})
+							check(ev.get("weather", "") == "rain" and ev.get("format", "") == "duel" and int(ev.get("ai", -1)) == 1, "quick race START uses the chosen weather and format")
+						es.queue_free()
+						await get_tree().process_frame
 				# Two places: the dealership (its own showroom venue, buy/sell) and my garage (team HQ, owned cars only).
 				menu._go("dealership")
 				check(menu.studio is DealershipStudio and menu.studio.is_inside_tree(), "dealership opens the showroom venue")

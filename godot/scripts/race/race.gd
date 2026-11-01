@@ -187,6 +187,16 @@ func _ready() -> void:
 		pc.look_at(player.car.to_global(Vector3(0.36, 0.75, -0.25)), Vector3.UP)
 		pc.make_current()
 		camera.set_physics_process(false)
+	if args.has("--cam-card"):   # card art for the event screens: the grid from behind and above, looking down the road
+		var cc := Camera3D.new()
+		add_child(cc)
+		cc.far = 3000.0
+		cc.fov = 52.0
+		var d0 := track.wrapd(-58.0)
+		cc.global_position = track.position_at(d0) + Vector3.UP * 4.2 + track.right_at(d0) * 1.5
+		cc.look_at(track.position_at(track.wrapd(40.0)) + Vector3.UP * 1.2, Vector3.UP)
+		cc.make_current()
+		camera.set_physics_process(false)
 	if args.has("--cam-landmark"):   # evidence: the city landmark from the start line, 3 m up
 		var lmk := find_child("Landmark", true, false) as Node3D
 		if lmk:
@@ -281,7 +291,7 @@ func _ready() -> void:
 		add_child(hud)
 		hud.bind(self)
 	# The opener ends by making the chase camera current, so skip it when a screenshot fixes the camera.
-	if DisplayServer.get_name() != "headless" and not (args.has("--cam-ad") or args.has("--cam-prop") or args.has("--cam-pothole") or args.has("--cam-people") or args.has("--cam-driver") or args.has("--cam-water") or args.has("--cam-landmark") or args.has("--cam-node") or args.has("--cam-road")):
+	if DisplayServer.get_name() != "headless" and not (args.has("--cam-card") or args.has("--cam-ad") or args.has("--cam-prop") or args.has("--cam-pothole") or args.has("--cam-people") or args.has("--cam-driver") or args.has("--cam-water") or args.has("--cam-landmark") or args.has("--cam-node") or args.has("--cam-road")):
 		await _intro()
 	await get_tree().create_timer(0.75).timeout
 	phase = Phase.COUNTDOWN

@@ -58,6 +58,8 @@ func bind(p_race) -> void:
 	_build_buttons()
 	_build_controls()
 	_build_pause()
+	if "--hide-hud" in OS.get_cmdline_user_args():   # card art / evidence: the 3D scene only
+		root.visible = false
 	if "--show-pause" in OS.get_cmdline_user_args():   # screenshots: the pause menu over the grid
 		pause_panel.call_deferred("pause")
 	race.notice.connect(_on_notice)
