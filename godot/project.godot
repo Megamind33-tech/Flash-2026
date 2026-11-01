@@ -19,6 +19,8 @@ Game="*res://scripts/core/game.gd"
 Settings="*res://addons/settings_menus/settings_manager.gd"
 VisualsManager="*res://scripts/core/visuals_manager.gd"
 RaceLoader="*res://scripts/ui/race_loader.gd"
+Net="*res://scripts/net/net.gd"
+Voice="*res://scripts/net/voice.gd"
 
 [display]
 
@@ -74,3 +76,7 @@ road_rain={
 "type": "float",
 "value": 0.0
 }
+
+[audio]
+
+driver/enable_input=true

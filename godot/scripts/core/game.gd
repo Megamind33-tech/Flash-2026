@@ -716,6 +716,7 @@ func start_benchmark() -> void:
 
 func prepare_session(ev: Dictionary) -> void:
 	session.erase("benchmark")
+	session.erase("online")   # Net._start sets it again for an online match
 	register_event(ev)
 	session["event"] = ev["id"]
 	session["city"] = str(ev.get("city", "ashford"))

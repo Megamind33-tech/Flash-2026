@@ -381,6 +381,9 @@ func _ready() -> void:
 	if DisplayServer.get_name() != "headless" and not (args.has("--cam-track") or args.has("--cam-card") or args.has("--cam-ad") or args.has("--cam-prop") or args.has("--cam-pothole") or args.has("--cam-people") or args.has("--cam-driver") or args.has("--cam-showcase") or args.has("--cam-water") or args.has("--cam-landmark") or args.has("--cam-node") or args.has("--cam-road")):
 		await _intro()
 	await get_tree().create_timer(0.75).timeout
+	if Game.session.has("online") and Net.is_online():   # every player's countdown starts together
+		Net.notify_loaded()
+		await Net.match_go
 	phase = Phase.COUNTDOWN
 	notice.emit(Weather.label().to_upper())
 
@@ -670,6 +673,9 @@ func _briefing_rows() -> Array:
 
 
 func _spawn_grid() -> void:
+	if Game.session.has("online"):
+		_spawn_online_grid()
+		return
 	var order := _order
 	var ai_count := order.size()
 	var field := ai_count + 1
@@ -710,6 +716,73 @@ func _spawn_grid() -> void:
 	standings = _classify()
 
 
+var _net_cars := {}      # online: peer -> Racer of a remote player's car (kinematic, driven by Net snapshots)
+var _net_send := 0.0
+var _net_reported := false
+
+
+## Online team race (scripts/net/net.gd): one car per participant in the server's grid order. The local player's car
+## is simulated here; every other car is kinematic and follows that player's interpolated snapshots.
+func _spawn_online_grid() -> void:
+	var cfg: Dictionary = Game.session["online"]
+	var grid: Array = cfg["grid"]
+	for slot in grid.size():
+		var g: Dictionary = grid[slot]
+		var is_player := int(g["peer"]) == Net.my_id()
+		var d := track.wrapd(-(12.0 + slot * 8.0))
+		var lat := -2.6 if slot % 2 == 0 else 2.6
+		var pos := track.position_at(d) + track.right_at(d) * lat + Vector3.UP * 0.35
+		var car_id := str(g["car"]) if CarBuilder.ROSTER.has(str(g["car"])) else CarBuilder.DEFAULT_CAR
+		var livery := "halden_blue" if g["team"] == "A" else "corsair_red"   # team colours
+		var car := CarBuilder.build(livery, is_player and not autotest, car_id)
+		car.name = "Car_player" if is_player else "Car_net_%d" % int(g["peer"])
+		People.seat_driver(car, slot)
+		if not is_player:
+			CarBuilder.enable_lods(car)
+			car.freeze_mode = RigidBody3D.FREEZE_MODE_KINEMATIC   # moved by the network, not by local physics
+			car.freeze = true
+		add_child(car)
+		TyreFX.attach(car)
+		car.global_transform = Transform3D(Basis.looking_at(-track.tangent_at(d), Vector3.UP), pos)
+		var r := Racer.new()
+		r.id = "player" if is_player else "net_%d" % int(g["peer"])
+		r.display_name = "%s (%s)" % [g["name"], g["team"]]
+		r.is_player = is_player
+		r.grid_slot = slot
+		r.driver = {"name": g["name"], "team": g["team"]}
+		r.car = car
+		r.setup(track, total_laps)
+		r.notice.connect(func(m): if r.is_player: notice.emit(m))
+		r.laps.lap_completed.connect(func(lap, ms): _on_lap(r, lap, ms))
+		racers.append(r)
+		if is_player:
+			player = r
+			if Game.session["autopilot"]:
+				ais.append(AIDriver.new(r, track, {"skill": 70, "experience": 50, "aggression": 40, "consistency": 80}, race_seed + 1000 + slot * 7919))
+		else:
+			_net_cars[int(g["peer"])] = r
+	Net.results_received.connect(func(res: Dictionary):
+		var tp: Dictionary = res["team_points"]
+		notice.emit("TEAM %s WINS  %d - %d" % [res["winner"], int(tp.get("A", 0)), int(tp.get("B", 0))]))
+	standings = _classify()
+
+
+## Online: send the local car 20 times a second; place remote cars from their interpolated snapshots.
+func _net_tick(delta: float) -> void:
+	_net_send += delta
+	if _net_send >= 1.0 / Net.STATE_HZ:
+		_net_send = 0.0
+		Net.send_state(race_time, player.car.global_transform, player.car.linear_velocity)
+	var now := Time.get_ticks_msec() / 1000.0
+	for peer in _net_cars:
+		var xf = Net.remote_transform(peer, now)
+		if xf != null:
+			(_net_cars[peer] as Racer).car.global_transform = xf
+	if not _net_reported and player.laps.finished:
+		_net_reported = true
+		Net.report_finish(int(player.laps.finish_time * 1000.0))
+
+
 ## Slipstream for the AI cars, by the same rule the player's skill system uses (3-16 m behind, within 1.5 m
 ## sideways, above 24 m/s): it cuts aero drag (RaceCarBody.draft), so a following car closes on the straights.
 func _ai_slipstream(delta: float) -> void:
@@ -744,6 +817,8 @@ func _physics_process(delta: float) -> void:
 		for r in racers:
 			car_pos.append(r.car.global_position)
 		People.feed_cars(car_pos)
+	if not _net_cars.is_empty() or (Game.session.has("online") and player != null):
+		_net_tick(delta)
 	if phase == Phase.COUNTDOWN:
 		var shown := ceili(countdown_left)
 		countdown_left -= delta
@@ -953,11 +1028,15 @@ func _process(delta: float) -> void:
 		standings = _classify()
 	if phase == Phase.RACING and player.laps.finished:
 		phase = Phase.FINISHING
-		_finish_timer = FINISH_WINDOW
+		_finish_timer = Net.FINISH_GRACE + 10.0 if Game.session.has("online") else FINISH_WINDOW
 		if ais.filter(func(a): return a.racer == player).is_empty():
 			ais.append(AIDriver.new(player, track, {"skill": 60, "experience": 50, "aggression": 20, "consistency": 90}, 7))
 		notice.emit("FINISH")
 	var all_done := racers.all(func(r): return r.laps.finished or r.eliminated)
+	if Game.session.has("online") and Net.is_online():
+		# online the server decides the result: stay in the race (and connected, so the finish report is delivered)
+		# until its result arrives; the server itself gives up on missing drivers after Net.FINISH_GRACE
+		all_done = not Net.last_result.is_empty()
 	if phase == Phase.FINISHING:
 		_finish_timer -= delta
 		if all_done or _finish_timer <= 0.0:
