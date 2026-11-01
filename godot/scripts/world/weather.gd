@@ -176,15 +176,23 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 	# Day sky 0.85 (was 1.1): the panorama was the brightest thing on screen and clipped toward white behind the
 	# skyline; the sun and the lit facades should carry the brightness, not the backdrop.
 	pano.energy_multiplier = {"night": 0.12, "sunset": 1.0}.get(sky_name, 0.85)
+	# GR27: rain cloud is heavier than a bright overcast - the sky (and so its reflection in a wet road) drops while
+	# the ambient multiplier below keeps lit surfaces as bright as before. With the sky at full energy the wet film
+	# mirrored it and the wet road measured brighter than the dry one (near road 86 vs 57).
+	var rain_sky: float = {"rain": 0.55, "clearing": 0.55, "storm": 0.42}.get(kind, 0.0)
+	if rain_sky > 0.0 and time_of_day != "night":
+		pano.energy_multiplier = rain_sky
 	sky.sky_material = pano
 	sky.radiance_size = Sky.RADIANCE_SIZE_64 if Game.quality() == 0 else Sky.RADIANCE_SIZE_128
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	# Sunny scenes get less sky fill so shadows keep their depth; overcast light is soft and comes from the sky.
-	var overcast: bool = kind in ["cloudy", "rain", "storm", "fog"]
-	var wet_day: bool = kind in ["rain", "storm"]
+	var overcast: bool = kind in ["cloudy", "rain", "storm", "fog", "clearing"]
+	var wet_day: bool = kind in ["rain", "storm", "clearing"]
 	env.ambient_light_energy = {"day": (0.68 if wet_day else 0.85) if overcast else 0.55, "dusk": 0.6, "night": 0.45}[time_of_day]
+	if rain_sky > 0.0 and time_of_day != "night":
+		env.ambient_light_energy *= 0.85 / rain_sky   # same light on surfaces from a darker sky
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
 	# A clear dusk is lifted to keep its glow; a rainy or overcast dusk is already bright with haze (it washed out).
@@ -197,7 +205,9 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 	var haze := Color(str(style.get("haze", "#c0c4c8")))
 	if kind == "dust":
 		haze = Color(0.78, 0.6, 0.4)
-	elif kind in ["rain", "storm", "fog"]:
+	elif kind in ["rain", "storm", "clearing"]:
+		haze = Color(0.46, 0.5, 0.55)   # rain haze is blue-grey and darker than the cloud (it was near-white)
+	elif kind == "fog":
 		haze = Color(0.62, 0.65, 0.68)
 	if time_of_day == "night":
 		haze = haze.darkened(0.85)
