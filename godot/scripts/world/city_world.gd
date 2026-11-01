@@ -1212,7 +1212,7 @@ static func _props(root: Node3D, data: Dictionary, style: Dictionary, track: Tra
 						return false
 		return true)
 	var tmesh := WorldDressing._tree_mesh("jacaranda_tree", 19.47)
-	var tint := Color.WHITE.lerp(Color(str(style["tree_tint"])), 0.45)
+	var tint := Color.WHITE.lerp(Color(str(style["tree_tint"])), 0.3)   # (0.45 on top of the dark texture blackened crowns)
 	var tmat: Material = tmesh.surface_get_material(0).duplicate()
 	(tmat as StandardMaterial3D).albedo_color = tint
 	var xf := []

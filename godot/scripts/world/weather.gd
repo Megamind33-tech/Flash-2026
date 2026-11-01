@@ -346,7 +346,7 @@ static func attach_particles(camera: Node3D) -> GPUParticles3D:
 	parts.position = Vector3(0, 12, -14)
 	var pm := ParticleProcessMaterial.new()
 	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	pm.emission_box_extents = Vector3(26, 6, 26)
+	pm.emission_box_extents = Vector3(26, 6, 26) if kind == "dust" else Vector3(13, 6, 16)
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -368,8 +368,13 @@ static func attach_particles(camera: Node3D) -> GPUParticles3D:
 		pm.spread = 3.0
 		pm.initial_velocity_min = 8.0
 		pm.initial_velocity_max = 11.0
-		pm.color = Color(0.8, 0.84, 0.9, 0.32)
-		quad.size = Vector2(0.025, 0.75)
+		# Real rain reads as many short, faint, soft streaks (a drop smears ~0.4 m in a frame), densest close to the
+		# viewer; long solid bars over a 52 m box read as lines drawn on the screen.
+		pm.color = Color(0.74, 0.78, 0.84, 0.2)
+		pm.scale_min = 0.6
+		pm.scale_max = 1.25
+		quad.size = Vector2(0.016, 0.45)
+		mat.albedo_texture = rain_streak()
 		mat.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
 		# GR27: a drop passing right in front of the lens was drawn as a huge white bar across the frame
 		mat.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_ALPHA
@@ -379,7 +384,87 @@ static func attach_particles(camera: Node3D) -> GPUParticles3D:
 	quad.material = mat
 	parts.draw_pass_1 = quad
 	camera.add_child(parts)
+	if kind != "dust":
+		camera.add_child(_rain_splashes(amount))
 	return parts
+
+
+static var _streak_tex: ImageTexture
+static var _splash_tex: ImageTexture
+
+
+## One raindrop's motion streak: tapered at both ends, soft across (a solid quad reads as a ruled line).
+static func rain_streak() -> ImageTexture:
+	if _streak_tex:
+		return _streak_tex
+	var img := Image.create(8, 64, true, Image.FORMAT_RGBA8)
+	for y in 64:
+		for x in 8:
+			var across := 1.0 - absf((x + 0.5) / 8.0 * 2.0 - 1.0)
+			var along := sin((y + 0.5) / 64.0 * PI)
+			img.set_pixel(x, y, Color(1, 1, 1, clampf(across * across * along * 1.3, 0.0, 1.0)))
+	img.generate_mipmaps()
+	_streak_tex = ImageTexture.create_from_image(img)
+	return _streak_tex
+
+
+## Tiny splash crown: a bright rim of droplets around a faint centre.
+static func _splash_texture() -> ImageTexture:
+	if _splash_tex:
+		return _splash_tex
+	var n := 32
+	var img := Image.create(n, n, true, Image.FORMAT_RGBA8)
+	for y in n:
+		for x in n:
+			var d := Vector2(x - n * 0.5 + 0.5, (y - n * 0.5 + 0.5) * 1.6).length() / (n * 0.5)
+			var rim := clampf(1.0 - absf(d - 0.62) / 0.22, 0.0, 1.0)
+			img.set_pixel(x, y, Color(1, 1, 1, clampf(rim * 0.9 + clampf(1.0 - d, 0.0, 1.0) * 0.15, 0.0, 1.0)))
+	img.generate_mipmaps()
+	_splash_tex = ImageTexture.create_from_image(img)
+	return _splash_tex
+
+
+## Drops hitting the road ahead of the camera: short-lived splash crowns on the ground, as many as the rain allows.
+static func _rain_splashes(rain_amount: int) -> GPUParticles3D:
+	var sp := GPUParticles3D.new()
+	sp.name = "RainSplashes"
+	sp.amount = maxi(60, rain_amount / 6)
+	sp.lifetime = 0.22
+	sp.local_coords = false
+	sp.visibility_aabb = AABB(Vector3(-30, -10, -40), Vector3(60, 20, 60))
+	sp.position = Vector3(0, -1.95, -11.0)   # the road under the chase camera's view (camera ~2 m up)
+	var pm := ParticleProcessMaterial.new()
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	pm.emission_box_extents = Vector3(9.0, 0.02, 10.0)
+	pm.gravity = Vector3.ZERO
+	pm.initial_velocity_min = 0.0
+	pm.initial_velocity_max = 0.0
+	var sc := Curve.new()
+	sc.add_point(Vector2(0, 0.3))
+	sc.add_point(Vector2(1, 1.0))
+	var sct := CurveTexture.new()
+	sct.curve = sc
+	pm.scale_curve = sct
+	pm.scale_min = 0.6
+	pm.scale_max = 1.2
+	var ramp := Gradient.new()
+	ramp.set_color(0, Color(0.85, 0.88, 0.92, 0.45))
+	ramp.set_color(ramp.get_point_count() - 1, Color(0.85, 0.88, 0.92, 0.0))
+	var rt := GradientTexture1D.new()
+	rt.gradient = ramp
+	pm.color_ramp = rt
+	sp.process_material = pm
+	var q := QuadMesh.new()
+	q.size = Vector2(0.09, 0.06)
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.vertex_color_use_as_albedo = true
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
+	m.albedo_texture = _splash_texture()
+	q.material = m
+	sp.draw_pass_1 = q
+	return sp
 
 
 ## Tyre spray at one rear wheel's contact patch on a wet track. race.gd drives it every frame from the car's speed

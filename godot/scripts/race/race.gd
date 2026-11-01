@@ -790,6 +790,9 @@ func _physics_process(delta: float) -> void:
 		_rain_audio.volume_db = -80.0 if Weather.rain < 0.01 else lerpf(-26.0, -8.0, Weather.rain)
 	if _rain_parts and is_instance_valid(_rain_parts):
 		_rain_parts.amount_ratio = clampf(Weather.rain / maxf(float(Weather.PRESET[Weather.kind]["rain"]), 0.01), 0.0, 1.0)
+		var _spl := _rain_parts.get_parent().get_node_or_null("RainSplashes") as GPUParticles3D
+		if _spl:
+			_spl.amount_ratio = _rain_parts.amount_ratio   # drops hitting the road stop with the rain
 		_rain_parts.emitting = Weather.rain > 0.005
 	if Weather.kind == "clearing" and _env.has("sun"):   # the shower passes: light and visibility come back
 		var k := 1.0 - Weather.rain / float(Weather.PRESET["clearing"]["rain"])

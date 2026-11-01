@@ -142,7 +142,7 @@ func _skid(i: int, p: Vector3, fwd: Vector3, s: float) -> void:
 	if d < MARK_STEP:
 		return
 	if d < 3.0:
-		_add_mark(lp, p, 0.24, clampf((s - MARK_AT) / (1.0 - MARK_AT) * 0.75 + 0.25, 0.0, 1.0))
+		_add_mark(lp, p, 0.22, clampf((s - MARK_AT) / (1.0 - MARK_AT) * 0.75 + 0.25, 0.0, 1.0))
 	_last_mark[i] = p
 
 
@@ -153,10 +153,62 @@ func _puff(i: int, p: Vector3, vc: Vector3, s: float, delta: float) -> void:
 	_smoke_acc[i] += delta * 34.0 * s * float(VisualsManager.effective()["effects"]["particles"])
 	while _smoke_acc[i] >= 1.0:
 		_smoke_acc[i] -= 1.0
-		var vel := vc * 0.25 + Vector3(randf_range(-0.6, 0.6), randf_range(0.6, 1.4), randf_range(-0.6, 0.6))
-		em.emit_particle(Transform3D(Basis(), p + Vector3.UP * 0.15), vel, Color(1, 1, 1, clampf(s, 0.4, 1.0)), Color(), \
+		# from this wheel's contact patch, just behind the axle, carried off the tyre by the car's motion
+		var back := -vc.normalized() * 0.25 if vc.length() > 0.5 else Vector3.ZERO
+		var vel := vc * 0.4 + Vector3(randf_range(-0.7, 0.7), randf_range(0.4, 1.1), randf_range(-0.7, 0.7))
+		em.emit_particle(Transform3D(Basis(), p + back + Vector3.UP * 0.12), vel, Color(1, 1, 1, clampf(s, 0.4, 1.0)), Color(), \
 			GPUParticles3D.EMIT_FLAG_POSITION | GPUParticles3D.EMIT_FLAG_VELOCITY | GPUParticles3D.EMIT_FLAG_COLOR)
 		puffs += 1
+
+
+static var _skid_tex: ImageTexture
+static var _smoke_tex: ImageTexture
+
+
+## Rubber trace across one tyre width (u) along the travel (v): soft edges, faint tread-groove streaks, grain.
+static func _skid_texture() -> ImageTexture:
+	if _skid_tex:
+		return _skid_tex
+	var img := Image.create(64, 128, true, Image.FORMAT_RGBA8)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 27
+	var streak := PackedFloat32Array()
+	for x in 64:
+		streak.append(rng.randf_range(0.82, 1.0))
+	for y in 128:
+		for x in 64:
+			var u := (x + 0.5) / 64.0
+			var edge := sin(u * PI)
+			edge = clampf(edge * 1.6, 0.0, 1.0)
+			var grooves := 1.0 - 0.45 * float(absf(fmod(u * 4.0, 1.0) - 0.5) < 0.05)
+			var a := edge * grooves * streak[x] * rng.randf_range(0.9, 1.0)
+			img.set_pixel(x, y, Color(1, 1, 1, a))
+	img.generate_mipmaps()
+	_skid_tex = ImageTexture.create_from_image(img)
+	return _skid_tex
+
+
+## Soft, irregular smoke puff: layered value noise inside a round falloff (a smooth disc reads as a sprite).
+static func _smoke_texture() -> ImageTexture:
+	if _smoke_tex:
+		return _smoke_tex
+	var n := 128
+	var img := Image.create(n, n, true, Image.FORMAT_RGBA8)
+	var noise := FastNoiseLite.new()
+	noise.seed = 2027
+	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	noise.fractal_octaves = 4
+	noise.frequency = 0.035
+	for y in n:
+		for x in n:
+			var d := Vector2(x - n * 0.5, y - n * 0.5).length() / (n * 0.5)
+			var fall := clampf(1.0 - d, 0.0, 1.0)
+			fall = fall * fall * (3.0 - 2.0 * fall)
+			var v := noise.get_noise_2d(x, y) * 0.5 + 0.5
+			img.set_pixel(x, y, Color(1, 1, 1, clampf(fall * (0.35 + 0.9 * v), 0.0, 1.0)))
+	img.generate_mipmaps()
+	_smoke_tex = ImageTexture.create_from_image(img)
+	return _smoke_tex
 
 
 static func _smoke_node(from: Node) -> GPUParticles3D:
@@ -165,36 +217,38 @@ static func _smoke_node(from: Node) -> GPUParticles3D:
 	var host := from.get_tree().current_scene if from.get_tree().current_scene else from.get_tree().root
 	var p := GPUParticles3D.new()
 	p.name = "TyreSmoke"
-	p.amount = 220 if VisualsManager.level("effects") > 0 else 90
-	p.lifetime = 1.9
+	p.amount = 280 if VisualsManager.level("effects") > 0 else 110
+	p.lifetime = 2.8
 	p.emitting = true
 	p.amount_ratio = 1.0
 	p.local_coords = false
 	p.visibility_aabb = AABB(Vector3(-4000, -100, -4000), Vector3(8000, 300, 8000))
 	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var pm := ParticleProcessMaterial.new()
-	pm.gravity = Vector3(0, 0.35, 0)        # warm smoke rises slowly
-	pm.damping_min = 1.2
-	pm.damping_max = 2.0
+	pm.gravity = Vector3(0, 0.3, 0)         # warm smoke rises slowly
+	pm.damping_min = 1.6                    # thrown off the tyre, then hangs in the air
+	pm.damping_max = 2.4
 	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_POINT
 	pm.direction = Vector3.UP
 	pm.spread = 0.0
 	pm.initial_velocity_min = 0.0
 	pm.initial_velocity_max = 0.0
 	var sc := Curve.new()
-	sc.add_point(Vector2(0, 0.35))
+	sc.add_point(Vector2(0, 0.25))
+	sc.add_point(Vector2(0.35, 0.7))
 	sc.add_point(Vector2(1, 1.0))
 	var sct := CurveTexture.new()
 	sct.curve = sc
 	pm.scale_curve = sct
-	pm.scale_min = 1.6
-	pm.scale_max = 2.6
+	pm.scale_min = 2.6                      # grows to a 4-5 m cloud
+	pm.scale_max = 4.6
 	pm.angle_min = -180.0
 	pm.angle_max = 180.0
 	var ramp := Gradient.new()
-	ramp.set_color(0, Color(0.86, 0.86, 0.86, 0.0))
-	ramp.add_point(0.08, Color(0.86, 0.86, 0.86, 0.34))
-	ramp.set_color(ramp.get_point_count() - 1, Color(0.8, 0.8, 0.8, 0.0))
+	ramp.set_color(0, Color(0.92, 0.92, 0.92, 0.0))
+	ramp.add_point(0.06, Color(0.92, 0.92, 0.92, 0.3))
+	ramp.add_point(0.45, Color(0.88, 0.88, 0.88, 0.16))
+	ramp.set_color(ramp.get_point_count() - 1, Color(0.85, 0.85, 0.85, 0.0))
 	var rt := GradientTexture1D.new()
 	rt.gradient = ramp
 	pm.color_ramp = rt
@@ -202,11 +256,16 @@ static func _smoke_node(from: Node) -> GPUParticles3D:
 	var quad := QuadMesh.new()
 	quad.size = Vector2(1.0, 1.0)
 	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	# lit by the scene (bright in the sun, grey in shade, warm at dusk): unshaded smoke glowed like paper cut-outs
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.vertex_color_use_as_albedo = true
 	mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	mat.albedo_texture = Weather.soft_puff()
+	mat.albedo_texture = _smoke_texture()
+	mat.roughness = 1.0
+	mat.metallic_specular = 0.0
+	mat.backlight_enabled = true            # light through the cloud from behind
+	mat.backlight = Color(0.55, 0.55, 0.55)
 	mat.disable_receive_shadows = true
 	quad.material = mat
 	p.draw_pass_1 = quad
@@ -229,12 +288,13 @@ static func _marks_node(from: Node) -> MultiMeshInstance3D:
 	mm.instance_count = cap
 	mm.visible_instance_count = 0
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.03, 0.03, 0.03)
+	mat.albedo_color = Color(0.045, 0.043, 0.042)   # rubber deposit
 	mat.vertex_color_use_as_albedo = false
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.roughness = 0.6
+	mat.roughness = 0.45                            # laid rubber is slightly polished against the asphalt
 	mat.disable_receive_shadows = false
-	mat.albedo_texture = null
+	mat.albedo_texture = _skid_texture()
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	mat.render_priority = 1
 	# instance colour alpha = darkness (StandardMaterial reads COLOR.a through vertex colour alpha)
 	mat.vertex_color_use_as_albedo = true
@@ -260,9 +320,10 @@ func _add_mark(a: Vector3, b: Vector3, width: float, dark: float) -> void:
 	var z := dir / maxf(length, 0.001)
 	var x := up.cross(z).normalized()
 	var y := z.cross(x).normalized()
-	var basis := Basis(x * width, y, z * (length + 0.05))
-	mm.set_instance_transform(_mark_next, Transform3D(basis, (a + b) * 0.5 + y * 0.018))
-	mm.set_instance_color(_mark_next, Color(0.035, 0.035, 0.035, 0.55 * dark))
+	# segments end to end (1 cm overlap): the 5 cm overlap doubled the alpha every 0.45 m into dark dashes
+	var basis := Basis(x * width, y, z * (length + 0.01))
+	mm.set_instance_transform(_mark_next, Transform3D(basis, (a + b) * 0.5 + y * 0.012))
+	mm.set_instance_color(_mark_next, Color(1, 1, 1, clampf(0.5 * dark * randf_range(0.85, 1.0), 0.0, 1.0)))
 	_mark_next = (_mark_next + 1) % mm.instance_count
 	_mark_count = mini(_mark_count + 1, mm.instance_count)
 	mm.visible_instance_count = _mark_count

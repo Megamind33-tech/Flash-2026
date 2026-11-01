@@ -37,7 +37,8 @@ static func _tree_mesh(prefix: String, height: float) -> ArrayMesh:
 		var uvs := [Vector2(0, 1), Vector2(1, 1), Vector2(1, 0), Vector2(0, 0)]
 		for idx in [0, 1, 2, 0, 2, 3]:
 			var c: Vector3 = corners[idx]
-			var n := (c - crown).normalized().lerp(Vector3.UP, 0.25).normalized()
+			# biased to the sky: the shaded side of a real crown still gathers skylight between the leaves
+			var n := (c - crown).normalized().lerp(Vector3.UP, 0.5).normalized()
 			st.set_normal(n)
 			st.set_uv(uvs[idx])
 			st.add_vertex(c)
@@ -51,7 +52,7 @@ static func _tree_mesh(prefix: String, height: float) -> ArrayMesh:
 		m.roughness = 0.85
 		m.metallic_specular = 0.2
 		m.backlight_enabled = true
-		m.backlight = Color(0.5, 0.55, 0.34)
+		m.backlight = Color(0.62, 0.7, 0.42)   # leaf translucency: thin leaves glow green against the light
 		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 		st.set_material(m)
 		st.commit(mesh)
