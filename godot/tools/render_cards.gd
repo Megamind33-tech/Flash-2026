@@ -68,6 +68,9 @@ func _ready() -> void:
 		car.queue_free()
 		await get_tree().process_frame
 
+	if OS.get_cmdline_user_args().has("--cars-only"):
+		get_tree().quit()
+		return
 	# Driver portraits from the idle pose of each avatar (head and shoulders).
 	vp.size = PORTRAIT_SIZE
 	cam.fov = 24.0
@@ -116,7 +119,10 @@ func _settle() -> void:
 func _bounds(n: Node) -> AABB:
 	var out := AABB()
 	var first := true
-	for gi in n.find_children("*", "VisualInstance3D", true, false):
+	# visible geometry only: decals (contact shadow) and lights (the reverse lamp's 9 m spot) would inflate the frame
+	for gi in n.find_children("*", "GeometryInstance3D", true, false):
+		if not (gi as GeometryInstance3D).is_visible_in_tree():
+			continue
 		var b: AABB = (gi as VisualInstance3D).global_transform * (gi as VisualInstance3D).get_aabb()
 		out = b if first else out.merge(b)
 		first = false

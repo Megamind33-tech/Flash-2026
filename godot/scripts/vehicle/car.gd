@@ -105,6 +105,9 @@ func configure(spec: Dictionary) -> void:
 	# changes; Great North Highway seed 7: 15 contacts with it, 0 without). Barrier containment holds without it
 	# (tests/barrier_test: 480 strikes at 200 km/h, 0 escapes; the 2.6 m collision walls stop ride-overs).
 	continuous_cd = false
+	# Never sleep: a sleeping VehicleBody3D keeps reporting its last velocity (the HUD read 0.4 km/h at a standstill)
+	# and engine force alone does not wake it, so a car brought to rest on the brake could ignore the throttle.
+	can_sleep = false
 
 
 func _ready() -> void:

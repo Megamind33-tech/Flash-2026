@@ -13,16 +13,19 @@ const DEFAULT_CAR := "arden_v8"
 ## brakes and corners best, the Ravenna has the most top-end. steer: steering rate/lock multiplier (the GT3
 ## turns in sharpest, the 2-tonne EV is the heaviest to place).
 const ROSTER := {
-	"arden_v8": {"band": 17.0, "steer": 0.92, "brakes": 1.0, "vmax": 60.0, "price": 0, "name": "Arden V8 Coupé", "class": "GT", "mass": 1570.0, "power": 1.10, "grip": 1.00, "aero": 1.0, "awd": true,
-		"author": "Neubi (BlendSwap #17183)", "licence": "CC0"},
-	"arden_gt3": {"band": 19.5, "steer": 1.15, "brakes": 1.3, "vmax": 62.5, "price": 32000, "name": "Arden GT3 R", "class": "GT3", "mass": 1310.0, "power": 0.92, "grip": 1.04, "aero": 1.6, "awd": false,
-		"author": "BlendSwap #91200 author", "licence": "CC0"},
+	# Sketchfab models (CC-BY-4.0, credited in assets/models/cars/LICENSES.md and Settings > Credits), converted by
+	# tools/cars/export_sketchfab_car.py: badges and maker lettering removed, sponsor liveries replaced by GRIDLINE
+	# paint, textured tyres / rims / brakes kept. Fictional names only.
+	"arden_v8": {"band": 17.0, "steer": 0.95, "brakes": 1.05, "vmax": 60.0, "price": 0, "name": "Arden CS Coupé", "class": "GT4", "mass": 1625.0, "power": 1.08, "grip": 1.00, "aero": 1.0, "awd": false,
+		"author": "Black Snow (Sketchfab)", "licence": "CC BY 4.0"},
+	"arden_gt3": {"band": 19.5, "steer": 1.15, "brakes": 1.3, "vmax": 62.5, "price": 32000, "name": "Arden GT3 R", "class": "GT3", "mass": 1420.0, "power": 0.94, "grip": 1.05, "aero": 1.6, "awd": false,
+		"author": "Black Snow (Sketchfab)", "licence": "CC BY 4.0"},
 	"ravenna_hybrid": {"band": 18.0, "steer": 1.0, "brakes": 1.2, "vmax": 64.0, "price": 60000, "name": "Ravenna Ibrido", "class": "Hypercar", "mass": 1480.0, "power": 1.08, "grip": 1.00, "aero": 1.2, "awd": false,
-		"author": "zenox3d (BlendSwap #74782)", "licence": "CC BY-SA 3.0"},
-	"solano_concept": {"band": 18.0, "steer": 1.04, "brakes": 1.08, "vmax": 60.5, "price": 18000, "name": "Solano Concepto S", "class": "GT", "mass": 1530.0, "power": 1.02, "grip": 0.99, "aero": 1.0, "awd": false,
-		"author": "zenox3d (BlendSwap #74332)", "licence": "CC BY-SA 3.0"},
-	"elektra_egt": {"band": 15.5, "steer": 0.86, "brakes": 0.95, "vmax": 59.0, "price": 45000, "name": "Elektra E-GT", "class": "EV", "mass": 2050.0, "power": 1.20, "grip": 0.98, "aero": 0.9, "awd": true,
-		"author": "Lee Rosario (BlendSwap #86736)", "licence": "CC BY 3.0"},
+		"author": "vecarz (Sketchfab)", "licence": "CC BY 4.0"},
+	"solano_concept": {"band": 18.0, "steer": 1.04, "brakes": 1.15, "vmax": 61.0, "price": 18000, "name": "Solano GT-LM", "class": "GT1", "mass": 1350.0, "power": 1.0, "grip": 1.02, "aero": 1.3, "awd": false,
+		"author": "kevin (sohyalebret, Sketchfab)", "licence": "CC BY 4.0"},
+	"elektra_egt": {"band": 16.0, "steer": 1.1, "brakes": 1.0, "vmax": 57.0, "price": 45000, "name": "Vesta Evo II", "class": "Touring", "mass": 1200.0, "power": 1.12, "grip": 0.98, "aero": 0.9, "awd": false,
+		"author": "Martin Trafas (Bexxie, Sketchfab)", "licence": "CC BY 4.0"},
 }
 ## Team cars (each AI team races one model; the player picks theirs in the Garage).
 const TEAM_CARS := {"halden": "ravenna_hybrid", "corsair": "arden_gt3", "vantor": "solano_concept", "northline": "elektra_egt"}
@@ -224,6 +227,31 @@ static func _reverse_lamps(car: RaceCarBody, pts: Array) -> void:
 	group.add_child(spot)
 
 
+## Opponent cars: full model to 30 m, the hull only (no interior / engine bay / underbody) to 90 m, a reduced hull
+## beyond (tools/cars/export_sketchfab_car.py makes the LOD meshes; Godot's automatic LODs tear the layered paint
+## panels, so they are off for the cars). Visibility ranges fade per mesh, at no CPU cost per frame.
+static func enable_lods(car: Node3D) -> void:
+	var visual := car.get_node_or_null("Visual")
+	if visual == null:
+		return
+	var has_lods := false
+	for c in visual.get_children():
+		if c.has_meta("gl_lod"):
+			has_lods = true
+	if not has_lods:
+		return
+	for c in visual.get_children():
+		var g := c as GeometryInstance3D
+		if g == null:
+			continue
+		var lod: int = int(g.get_meta("gl_lod", 0))
+		g.visible = true
+		g.visibility_range_begin = [0.0, 30.0, 90.0][lod]
+		g.visibility_range_end = [30.0, 90.0, 0.0][lod]
+		g.visibility_range_begin_margin = 0.0 if lod == 0 else 3.0
+		g.visibility_range_end_margin = 3.0 if lod < 2 else 0.0
+
+
 static func tail_material() -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
@@ -237,6 +265,8 @@ static func tail_material() -> StandardMaterial3D:
 
 static func _slot(surface_material: Material) -> String:
 	var n := surface_material.resource_name if surface_material else ""
+	if n.begins_with("KEEP_"):
+		return "keep"   # the author's textured material (tyre tread / sidewall, rims, discs, lenses, interior, carbon)
 	return n.trim_prefix("GL_") if n.begins_with("GL_") else "black"
 
 
@@ -259,7 +289,8 @@ static func build(livery: String, with_audio: bool, car_id := DEFAULT_CAR) -> Ra
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
 	var bottom := 0.24
-	box.size = Vector3((bmax.x - bmin.x) * 0.9, (bmax.y - bottom) * 0.88, (bmax.z - bmin.z) * 0.96)
+	var roof := minf(bmax.y, 1.45)   # a roof antenna must not make a 1.8 m collision box
+	box.size = Vector3((bmax.x - bmin.x) * 0.9, (roof - bottom) * 0.88, (bmax.z - bmin.z) * 0.96)
 	shape.shape = box
 	shape.position = Vector3(0, bottom + box.size.y * 0.5, (bmin.z + bmax.z) * 0.5)
 	car.add_child(shape)
@@ -271,7 +302,10 @@ static func build(livery: String, with_audio: bool, car_id := DEFAULT_CAR) -> Ra
 	car.physics_material_override = pm
 	# Low centre of mass (engine, battery and driver sit low) keeps the car planted over kerbs.
 	car.center_of_mass_mode = RigidBody3D.CENTER_OF_MASS_MODE_CUSTOM
-	car.center_of_mass = Vector3(0, 0.36, (bmin.z + bmax.z) * 0.5 * 0.3)
+	# Narrow cars carry it lower: the 1.40 m-track touring car leaned 64 degrees in a side contact with the 0.36 m
+	# used for the 1.55-1.70 m-track cars (same stability margin: height scales with half the track).
+	var track_w: float = absf((geo["Wheel_FL"][0] as Vector3).x) * 2.0
+	car.center_of_mass = Vector3(0, minf(0.36, 0.36 * track_w / 1.56), (bmin.z + bmax.z) * 0.5 * 0.3)
 
 	var tail := tail_material()
 	car.tail_lights = tail
@@ -289,7 +323,8 @@ static func build(livery: String, with_audio: bool, car_id := DEFAULT_CAR) -> Ra
 		copy.layers = CAR_LAYER
 		for s in inst.mesh.get_surface_count():
 			var slot := _slot(inst.mesh.surface_get_material(s))
-			copy.set_surface_override_material(s, tail if slot == "tail" else material(slot, livery))
+			if slot != "keep":
+				copy.set_surface_override_material(s, tail if slot == "tail" else material(slot, livery))
 			if slot == "tail":
 				var xf := _accumulated(inst)
 				var verts: PackedVector3Array = inst.mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]
@@ -301,6 +336,9 @@ static func build(livery: String, with_audio: bool, car_id := DEFAULT_CAR) -> Ra
 			wheel_meshes[key.substr(0, 8)] = copy   # mesh is centred on the wheel hub
 		else:
 			copy.transform = _accumulated(inst)
+			if String(inst.name).begins_with("Body_LOD"):
+				copy.visible = false   # distance LODs: only opponents in a race use them (enable_lods)
+				copy.set_meta("gl_lod", int(String(inst.name).right(1)))
 			visual.add_child(copy)
 	model.free()
 	_reverse_lamps(car, tail_pts)

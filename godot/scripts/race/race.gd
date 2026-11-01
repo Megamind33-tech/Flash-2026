@@ -624,9 +624,8 @@ func _spawn_grid() -> void:
 		var car := CarBuilder.build(livery, is_player and not autotest, car_id)
 		car.name = "Car_player" if is_player else "Car_" + driver["id"]
 		People.seat_driver(car, slot)
-		if not is_player:   # rivals drop to lighter LODs sooner; the player's car keeps full detail
-			for gi in car.find_children("*", "GeometryInstance3D", true, false):
-				(gi as GeometryInstance3D).lod_bias = 0.35
+		if not is_player:   # rivals switch to the hull-only LODs with distance; the player's car keeps full detail
+			CarBuilder.enable_lods(car)
 		add_child(car)
 		TyreFX.attach(car)   # slip-driven wheel spin, smoke, skid marks, squeal
 		car.global_transform = Transform3D(Basis.looking_at(-track.tangent_at(d), Vector3.UP), pos)

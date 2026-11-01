@@ -211,10 +211,17 @@ func _car_tests(id: String) -> void:
 	var dip := 0.0
 	var pz := car.global_basis.z.y
 	n = 0
-	while car.linear_velocity.length() > 0.1 and n < _secs(15.0):
+	var trail := []   # stopped = the hubs moved < 3 cm in the last 0.5 s (the solver can report a small residual
+	                  # velocity on a car that is not moving at all: displacement is the honest measure)
+	while n < _secs(15.0):
 		car.brake_input = 1.0
 		await get_tree().physics_frame
 		n += 1
+		trail.append(_hubs(car))
+		if trail.size() > _secs(0.5):
+			trail.pop_front()
+			if car.linear_velocity.length() < 0.1 or (trail[-1] - trail[0]).length() < 0.03:
+				break
 		if car.tail_lights:
 			lights_on = lights_on and car.tail_lights.emission_energy_multiplier > 2.0
 		for wl in ["Wheel_FL", "Wheel_FR", "Wheel_RL", "Wheel_RR"]:

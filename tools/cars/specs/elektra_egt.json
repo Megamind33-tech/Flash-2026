@@ -1,80 +1,95 @@
 {
  "id": "elektra_egt",
+ "source": "e30",
  "wheels": {
   "Wheel_FL": {
    "centre": [
-    0.8425,
-    -1.457,
-    0.358
+    0.6954,
+    -1.2915,
+    0.3111
    ],
-   "radius": 0.358,
-   "width": 0.3093,
-   "tris": 2998
+   "radius": 0.3111,
+   "width": 0.4728,
+   "tris": 2647
   },
   "Wheel_FR": {
    "centre": [
-    -0.8425,
-    -1.457,
-    0.358
+    -0.6954,
+    -1.2915,
+    0.3111
    ],
-   "radius": 0.358,
-   "width": 0.3093,
-   "tris": 3003
+   "radius": 0.3111,
+   "width": 0.4728,
+   "tris": 2648
   },
   "Wheel_RL": {
    "centre": [
-    0.8387,
-    1.4479,
-    0.3671
+    0.7075,
+    1.2924,
+    0.3102
    ],
-   "radius": 0.3671,
-   "width": 0.3172,
-   "tris": 2974
+   "radius": 0.3102,
+   "width": 0.2527,
+   "tris": 2599
   },
   "Wheel_RR": {
    "centre": [
-    -0.8387,
-    1.4479,
-    0.3671
+    -0.7075,
+    1.2924,
+    0.3102
    ],
-   "radius": 0.3671,
-   "width": 0.3172,
-   "tris": 3025
+   "radius": 0.3102,
+   "width": 0.2527,
+   "tris": 2598
   }
  },
- "length": 4.84,
- "width": 1.993,
- "height": 1.194,
+ "lod1_tris": 60154,
+ "lod2_tris": 18045,
+ "length": 4.35,
+ "width": 1.739,
+ "height": 1.207,
  "body_min": [
-  -0.997,
-  -2.456,
-  0.086
+  -0.87,
+  -2.061,
+  0.14
  ],
  "body_max": [
-  0.997,
-  2.384,
-  1.28
+  0.87,
+  2.289,
+  1.347
  ],
- "body_tris": 72513,
+ "body_tris": 67347,
  "materials": [
-  "GL_black",
-  "GL_carbon",
+  "GL_amber",
   "GL_glass",
-  "GL_head",
-  "GL_interior",
   "GL_paint",
-  "GL_tail"
+  "GL_tail",
+  "KEEP_BMW_E30_M3_BLACKOUT",
+  "KEEP_BMW_E30_M3_CHROME",
+  "KEEP_BMW_E30_M3_HEADLIGHT_REFLECTOR",
+  "KEEP_BMW_E30_M3_LENS",
+  "KEEP_BMW_E30_M3_PLASTIC",
+  "KEEP_BMW_E30_M3_SIDE_MIRROR",
+  "KEEP_Brembo_Calipers"
  ],
- "scale": 0.001111689121008113,
+ "scale": 0.9972381785673526,
  "dropped": [
-  "Vert.005",
-  "Plane.001",
-  "show lights",
-  "Sphere.000(studio mat)",
-  "Sphere.001(studio mat)",
-  "Plane.025(oversize)",
-  "Plane.024(oversize)",
-  "Plane.028(outside)"
+  "Object_12",
+  "Object_23",
+  "Object_33",
+  "Object_43",
+  "Object_53"
  ],
- "badges_erased": 0
+ "kept": [
+  "KEEP_BMW_E30_M3_BLACKOUT",
+  "KEEP_BMW_E30_M3_CHROME",
+  "KEEP_BMW_E30_M3_HEADLIGHT_REFLECTOR",
+  "KEEP_BMW_E30_M3_LENS",
+  "KEEP_BMW_E30_M3_PLASTIC",
+  "KEEP_BMW_E30_M3_RIM",
+  "KEEP_BMW_E30_M3_SIDE_MIRROR",
+  "KEEP_BMW_E30_M3_TIRE",
+  "KEEP_Brake_Disc",
+  "KEEP_Brembo_Calipers"
+ ]
 }

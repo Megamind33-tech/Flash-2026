@@ -1,82 +1,151 @@
 {
  "id": "solano_concept",
+ "source": "gt_lm",
  "wheels": {
   "Wheel_RL": {
    "centre": [
-    0.9161,
-    1.3226,
-    0.3404
+    0.7752,
+    1.2902,
+    0.3453
    ],
-   "radius": 0.3404,
-   "width": 0.3037,
-   "tris": 1491
+   "radius": 0.3453,
+   "width": 0.3084,
+   "tris": 3157
   },
   "Wheel_RR": {
    "centre": [
-    -0.9161,
-    1.3198,
-    0.3404
+    -0.7772,
+    1.2902,
+    0.3446
    ],
-   "radius": 0.3404,
-   "width": 0.3037,
-   "tris": 1492
-  },
-  "Wheel_FR": {
-   "centre": [
-    -0.8807,
-    -1.3226,
-    0.3404
-   ],
-   "radius": 0.3404,
-   "width": 0.3037,
-   "tris": 1492
+   "radius": 0.3446,
+   "width": 0.3044,
+   "tris": 3113
   },
   "Wheel_FL": {
    "centre": [
-    0.8826,
-    -1.3168,
-    0.3404
+    0.7793,
+    -1.3052,
+    0.3303
    ],
-   "radius": 0.3404,
-   "width": 0.3037,
-   "tris": 1491
+   "radius": 0.3303,
+   "width": 0.2709,
+   "tris": 3064
+  },
+  "Wheel_FR": {
+   "centre": [
+    -0.787,
+    -1.3052,
+    0.3303
+   ],
+   "radius": 0.3303,
+   "width": 0.2711,
+   "tris": 3102
   }
  },
- "length": 4.5,
- "width": 2.207,
- "height": 1.092,
+ "lod1_tris": 24644,
+ "lod2_tris": 7393,
+ "length": 4.618,
+ "width": 2.009,
+ "height": 1.834,
  "body_min": [
-  -1.107,
-  -2.299,
-  0.115
+  -1.005,
+  -2.376,
+  -0.287
  ],
  "body_max": [
-  1.1,
-  2.202,
-  1.208
+  1.004,
+  2.242,
+  1.547
  ],
- "body_tris": 62306,
+ "body_tris": 33169,
  "materials": [
   "GL_amber",
   "GL_black",
-  "GL_black",
-  "GL_chrome",
   "GL_glass",
-  "GL_head",
-  "GL_head",
-  "GL_head",
   "GL_paint",
-  "GL_paint",
-  "GL_rim",
-  "GL_tail"
+  "GL_tail",
+  "KEEP_Default___Default",
+  "KEEP_FordGT_interior_10",
+  "KEEP_FordGT_interior_11",
+  "KEEP_FordGT_interior_14",
+  "KEEP_FordGT_interior_3",
+  "KEEP_FordGT_interior_4",
+  "KEEP_FordGT_interior_5",
+  "KEEP_FordGT_interior_6",
+  "KEEP_FordGT_interior_7",
+  "KEEP_FordGT_interior_8",
+  "KEEP_FordGT_interior_9",
+  "KEEP_Glass___Glass",
+  "KEEP_boot_ok_8",
+  "KEEP_chassi_1",
+  "KEEP_chassi_11",
+  "KEEP_chassi_12",
+  "KEEP_chassi_13",
+  "KEEP_chassi_15",
+  "KEEP_chassi_19",
+  "KEEP_chassi_2",
+  "KEEP_chassi_3",
+  "KEEP_chassi_4",
+  "KEEP_chassi_5",
+  "KEEP_chassi_7",
+  "KEEP_chassi_8",
+  "KEEP_chassis_vlo_3",
+  "KEEP_door_rf_ok_13",
+  "KEEP_glass",
+  "KEEP_left_front_light",
+  "KEEP_right_front_light"
  ],
- "scale": 0.46652506899240803,
+ "scale": 0.9194750192986767,
  "dropped": [
-  "Circle.015",
-  "Plane.002",
-  "Plane.001",
-  "Plane",
-  "Plane.005"
+  "door_rf_ok.005_chassi.9_0",
+  "door_lf_ok.005_chassi.9_0",
+  "boot_ok.006_chassi.9_0",
+  "chassi.010_chassi.6_0",
+  "chassi.011_chassi.9_0",
+  "wheel.006_chassi.9_0",
+  "wheel.012_chassi.9_0",
+  "wheel.018_chassi.9_0",
+  "wheel.024_chassi.9_0",
+  "infernus.dff.bullet_col.ShadowMesh_Misc_0(outside)"
  ],
- "badges_erased": 0
+ "kept": [
+  "KEEP_Default___Default",
+  "KEEP_FordGT_interior_10",
+  "KEEP_FordGT_interior_11",
+  "KEEP_FordGT_interior_14",
+  "KEEP_FordGT_interior_3",
+  "KEEP_FordGT_interior_4",
+  "KEEP_FordGT_interior_5",
+  "KEEP_FordGT_interior_6",
+  "KEEP_FordGT_interior_7",
+  "KEEP_FordGT_interior_8",
+  "KEEP_FordGT_interior_9",
+  "KEEP_Glass___Glass",
+  "KEEP_Misc",
+  "KEEP_black_metallic",
+  "KEEP_boot_ok_8",
+  "KEEP_chassi_1",
+  "KEEP_chassi_11",
+  "KEEP_chassi_12",
+  "KEEP_chassi_13",
+  "KEEP_chassi_15",
+  "KEEP_chassi_19",
+  "KEEP_chassi_2",
+  "KEEP_chassi_3",
+  "KEEP_chassi_4",
+  "KEEP_chassi_5",
+  "KEEP_chassi_7",
+  "KEEP_chassi_8",
+  "KEEP_chassis_vlo_3",
+  "KEEP_door_rf_ok_13",
+  "KEEP_glass",
+  "KEEP_left_front_light",
+  "KEEP_right_front_light",
+  "KEEP_semi_chrome",
+  "KEEP_spoon",
+  "KEEP_wheel_0",
+  "KEEP_wheel_2",
+  "KEEP_wheel_6"
+ ]
 }

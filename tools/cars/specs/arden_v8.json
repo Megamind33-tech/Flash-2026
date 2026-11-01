@@ -1,84 +1,187 @@
 {
  "id": "arden_v8",
+ "source": "m4csl",
  "wheels": {
-  "Wheel_RR": {
+  "Wheel_FL": {
    "centre": [
-    -0.8052,
-    1.3218,
-    0.3214
+    0.7769,
+    -1.4259,
+    0.3671
    ],
-   "radius": 0.3214,
-   "width": 0.2761,
-   "tris": 2060
-  },
-  "Wheel_FR": {
-   "centre": [
-    -0.7773,
-    -1.3047,
-    0.3214
-   ],
-   "radius": 0.3214,
-   "width": 0.2761,
-   "tris": 2063
+   "radius": 0.3671,
+   "width": 0.3121,
+   "tris": 3087
   },
   "Wheel_RL": {
    "centre": [
-    0.7946,
-    1.3217,
-    0.3214
+    0.7769,
+    1.4259,
+    0.3671
    ],
-   "radius": 0.3214,
-   "width": 0.2761,
-   "tris": 2041
+   "radius": 0.3671,
+   "width": 0.3121,
+   "tris": 3246
   },
-  "Wheel_FL": {
+  "Wheel_FR": {
    "centre": [
-    0.8052,
-    -1.3218,
-    0.3214
+    -0.7769,
+    -1.4259,
+    0.3671
    ],
-   "radius": 0.3214,
-   "width": 0.2761,
-   "tris": 2267
+   "radius": 0.3671,
+   "width": 0.3121,
+   "tris": 3065
+  },
+  "Wheel_RR": {
+   "centre": [
+    -0.7769,
+    1.4259,
+    0.3671
+   ],
+   "radius": 0.3671,
+   "width": 0.3121,
+   "tris": 3137
   }
  },
- "length": 4.43,
- "width": 1.969,
- "height": 1.115,
+ "lod1_tris": 55219,
+ "lod2_tris": 16565,
+ "length": 4.859,
+ "width": 2.083,
+ "height": 1.37,
  "body_min": [
-  -0.99,
-  -2.322,
-  0.124
+  -1.042,
+  -2.358,
+  0.13
  ],
  "body_max": [
-  0.98,
-  2.108,
-  1.239
+  1.04,
+  2.501,
+  1.5
  ],
- "body_tris": 261865,
+ "body_tris": 64947,
  "materials": [
   "GL_amber",
-  "GL_black",
-  "GL_brake",
-  "GL_carbon",
-  "GL_chrome",
   "GL_glass",
-  "GL_head",
-  "GL_interior",
   "GL_paint",
-  "GL_rim",
-  "GL_tail"
+  "GL_tail",
+  "KEEP_M4xNME_Black",
+  "KEEP_M4xNME_Black_001",
+  "KEEP_M4xNME_Black_002",
+  "KEEP_M4xNME_Black_003",
+  "KEEP_M4xNME_Black_005",
+  "KEEP_M4xNME_Black_006",
+  "KEEP_M4xNME_Blackint",
+  "KEEP_M4xNME_Blackint_001",
+  "KEEP_M4xNME_Buttons",
+  "KEEP_M4xNME_Buttons2",
+  "KEEP_M4xNME_Buttons2_001",
+  "KEEP_M4xNME_Buttons_002",
+  "KEEP_M4xNME_Buttons_005",
+  "KEEP_M4xNME_Carbon1",
+  "KEEP_M4xNME_Carbon1_001",
+  "KEEP_M4xNME_Carbon1_002",
+  "KEEP_M4xNME_Carbon1_004",
+  "KEEP_M4xNME_EngineA",
+  "KEEP_M4xNME_EngineB",
+  "KEEP_M4xNME_Grille2_003",
+  "KEEP_M4xNME_Grille3",
+  "KEEP_M4xNME_Grille3_003",
+  "KEEP_M4xNME_Grille4",
+  "KEEP_M4xNME_Grille5",
+  "KEEP_M4xNME_Grille7",
+  "KEEP_M4xNME_LS8_001",
+  "KEEP_M4xNME_Leather",
+  "KEEP_M4xNME_Leather_002",
+  "KEEP_M4xNME_Leather_005",
+  "KEEP_M4xNME_Lights",
+  "KEEP_M4xNME_brake",
+  "KEEP_M4xNME_brake_002",
+  "KEEP_M4xNME_fog",
+  "KEEP_M4xNME_highbeam",
+  "KEEP_M4xNME_hud2_003",
+  "KEEP_M4xNME_lowhighbeam_001",
+  "KEEP_M4xNME_mechanical",
+  "KEEP_M4xNME_mechanical_001",
+  "KEEP_M4xNME_net",
+  "KEEP_M4xNME_red_001",
+  "KEEP_M4xNME_runningY",
+  "KEEP_M4xNME_signal_L",
+  "KEEP_M4xNME_signal_R",
+  "KEEP_M4xNME_silver",
+  "KEEP_M4xNME_silver_001",
+  "KEEP_M4xNME_silver_004",
+  "KEEP_M4xNME_stitch",
+  "KEEP_M4xNME_stitch_001",
+  "KEEP_amdb11_caliper_002",
+  "KEEP_mirror",
+  "KEEP_mirror_001",
+  "KEEP_mirror_002"
  ],
- "scale": 0.20215053531343616,
+ "scale": 1.0569612812143674,
  "dropped": [
-  "Earth",
-  "Audi_Emblem.001",
-  "R8_Font_Logo.001",
-  "Audi_Emblem",
-  "Light_Plane",
-  "R8_Font_Logo",
-  "Nr_Schild",
-  "Motor"
+  "M4xNME_steer_stitch_M4xNME_Badge_0",
+  "M4xNME_bumper_F_M4xNME_Badge_0",
+  "M4xNME_grille_F_csl_M4xNME_badge_csl_0",
+  "M4xNME_trunk_csl_M4xNME_Badge_0",
+  "M4xNME_steer_stitch.001_M4xNME_Badge_0",
+  "overlay:M4xNME_Paint2"
  ],
- "badges_erased": 0
+ "kept": [
+  "KEEP_M4xNME_Black",
+  "KEEP_M4xNME_Black_001",
+  "KEEP_M4xNME_Black_002",
+  "KEEP_M4xNME_Black_003",
+  "KEEP_M4xNME_Black_005",
+  "KEEP_M4xNME_Black_006",
+  "KEEP_M4xNME_Blackint",
+  "KEEP_M4xNME_Blackint_001",
+  "KEEP_M4xNME_Buttons",
+  "KEEP_M4xNME_Buttons2",
+  "KEEP_M4xNME_Buttons2_001",
+  "KEEP_M4xNME_Buttons_002",
+  "KEEP_M4xNME_Buttons_005",
+  "KEEP_M4xNME_Carbon1",
+  "KEEP_M4xNME_Carbon1_001",
+  "KEEP_M4xNME_Carbon1_002",
+  "KEEP_M4xNME_Carbon1_004",
+  "KEEP_M4xNME_EngineA",
+  "KEEP_M4xNME_EngineB",
+  "KEEP_M4xNME_Grille2_003",
+  "KEEP_M4xNME_Grille3",
+  "KEEP_M4xNME_Grille3_003",
+  "KEEP_M4xNME_Grille4",
+  "KEEP_M4xNME_Grille5",
+  "KEEP_M4xNME_Grille7",
+  "KEEP_M4xNME_LS8_001",
+  "KEEP_M4xNME_Leather",
+  "KEEP_M4xNME_Leather_002",
+  "KEEP_M4xNME_Leather_005",
+  "KEEP_M4xNME_Lights",
+  "KEEP_M4xNME_brake",
+  "KEEP_M4xNME_brake_002",
+  "KEEP_M4xNME_fog",
+  "KEEP_M4xNME_highbeam",
+  "KEEP_M4xNME_hud2_003",
+  "KEEP_M4xNME_lowhighbeam_001",
+  "KEEP_M4xNME_mechanical",
+  "KEEP_M4xNME_mechanical_001",
+  "KEEP_M4xNME_net",
+  "KEEP_M4xNME_red_001",
+  "KEEP_M4xNME_runningY",
+  "KEEP_M4xNME_signal_L",
+  "KEEP_M4xNME_signal_R",
+  "KEEP_M4xNME_silver",
+  "KEEP_M4xNME_silver_001",
+  "KEEP_M4xNME_silver_004",
+  "KEEP_M4xNME_stitch",
+  "KEEP_M4xNME_stitch_001",
+  "KEEP_Scene___Root_002",
+  "KEEP_amdb11_brake_002",
+  "KEEP_amdb11_caliper_002",
+  "KEEP_amdb11_misc_002",
+  "KEEP_amdb11_misc_chrome_002",
+  "KEEP_mirror",
+  "KEEP_mirror_001",
+  "KEEP_mirror_002"
+ ]
 }

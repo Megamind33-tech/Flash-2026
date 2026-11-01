@@ -1,72 +1,140 @@
 {
  "id": "ravenna_hybrid",
+ "source": "p1",
  "wheels": {
   "Wheel_FR": {
    "centre": [
-    -0.8268,
-    -1.3031,
-    0.3618
+    -0.8221,
+    -1.3463,
+    0.3241
    ],
-   "radius": 0.3618,
-   "width": 0.3246,
-   "tris": 1580
-  },
-  "Wheel_RR": {
-   "centre": [
-    -0.8136,
-    1.3043,
-    0.3618
-   ],
-   "radius": 0.3618,
-   "width": 0.3246,
-   "tris": 1497
+   "radius": 0.3241,
+   "width": 0.2525,
+   "tris": 2787
   },
   "Wheel_RL": {
    "centre": [
-    0.8228,
-    1.3043,
-    0.3618
+    0.7929,
+    1.3239,
+    0.3465
    ],
-   "radius": 0.3618,
-   "width": 0.3246,
-   "tris": 1496
+   "radius": 0.3465,
+   "width": 0.3281,
+   "tris": 2776
   },
   "Wheel_FL": {
    "centre": [
-    0.8268,
-    -1.3043,
-    0.3618
+    0.8221,
+    -1.3463,
+    0.3241
    ],
-   "radius": 0.3618,
-   "width": 0.3246,
-   "tris": 1581
+   "radius": 0.3241,
+   "width": 0.2525,
+   "tris": 2796
+  },
+  "Wheel_RR": {
+   "centre": [
+    -0.7929,
+    1.3239,
+    0.3465
+   ],
+   "radius": 0.3465,
+   "width": 0.3281,
+   "tris": 2776
   }
  },
- "length": 4.7,
- "width": 2.093,
- "height": 1.17,
+ "lod1_tris": 36939,
+ "lod2_tris": 11081,
+ "length": 4.592,
+ "width": 2.145,
+ "height": 1.125,
  "body_min": [
-  -1.046,
-  -2.623,
-  0.059
+  -1.073,
+  -2.447,
+  0.063
  ],
  "body_max": [
-  1.047,
-  2.077,
-  1.229
+  1.073,
+  2.145,
+  1.188
  ],
- "body_tris": 68904,
+ "body_tris": 45709,
  "materials": [
-  "GL_black",
-  "GL_chrome",
+  "GL_amber",
   "GL_glass",
-  "GL_head",
   "GL_paint",
-  "GL_tail"
+  "GL_tail",
+  "KEEP_Brake_Caliper",
+  "KEEP_Carbon_Mult50",
+  "KEEP_Carpaint_Black",
+  "KEEP_Chrome",
+  "KEEP_Grid1_Mult70",
+  "KEEP_Grid2",
+  "KEEP_Headlights",
+  "KEEP_INT_Carpet",
+  "KEEP_INT_Cuciture",
+  "KEEP_INT_DISPLAY",
+  "KEEP_INT_Decals_FLAT",
+  "KEEP_INT_Decals_REF_AT_GLOSS",
+  "KEEP_INT_Decals_REF_GLOSS",
+  "KEEP_INT_Decals_REF_spec",
+  "KEEP_INT_METAL_Aluminium",
+  "KEEP_INT_PLASTIC_Black",
+  "KEEP_INT_PLASTIC_Rubber",
+  "KEEP_INT_PLASTIC_Speakers",
+  "KEEP_INT_Skin_A",
+  "KEEP_INT_Velvet",
+  "KEEP_INT_carbon",
+  "KEEP_IN_Cinture",
+  "KEEP_Matte_Black",
+  "KEEP_Mechanicals",
+  "KEEP_Mirror",
+  "KEEP_Plastics"
  ],
- "scale": 0.4218466658985793,
+ "scale": 2.257332088265959,
  "dropped": [
-  "Circle.005"
+  "Rim_RF1_SUB1_Details_0",
+  "g_Susp_Hub_RF_SUB2_Details_0",
+  "Rim_LR1_SUB1_Details_0",
+  "g_Susp_Hub_LF_SUB2_Details_0",
+  "Rim_LF1_SUB1_Details_0",
+  "g_Susp_Hub_RR_SUB2_Details_0",
+  "g_Wing_Guide_SUB1_Details_0",
+  "g_Wing_SUB3_Details_0",
+  "g_Susp_Hub_LR_SUB2_Details_0",
+  "g_Body_SUB10_Details_0",
+  "GEO_HOOD_SUB2_Details_0",
+  "Rim_RR1_SUB1_Details_0"
  ],
- "badges_erased": 0
+ "kept": [
+  "KEEP_Brake_Caliper",
+  "KEEP_Brake_Disk",
+  "KEEP_Carbon_Mult50",
+  "KEEP_Carpaint_Black",
+  "KEEP_Chrome",
+  "KEEP_Grid1_Mult70",
+  "KEEP_Grid2",
+  "KEEP_Headlights",
+  "KEEP_INT_Carpet",
+  "KEEP_INT_Cuciture",
+  "KEEP_INT_DISPLAY",
+  "KEEP_INT_Decals_FLAT",
+  "KEEP_INT_Decals_REF_AT_GLOSS",
+  "KEEP_INT_Decals_REF_GLOSS",
+  "KEEP_INT_Decals_REF_spec",
+  "KEEP_INT_METAL_Aluminium",
+  "KEEP_INT_PLASTIC_Black",
+  "KEEP_INT_PLASTIC_Rubber",
+  "KEEP_INT_PLASTIC_Speakers",
+  "KEEP_INT_Skin_A",
+  "KEEP_INT_Velvet",
+  "KEEP_INT_carbon",
+  "KEEP_IN_Cinture",
+  "KEEP_Matte_Black",
+  "KEEP_Mechanicals",
+  "KEEP_Mirror",
+  "KEEP_Plastics",
+  "KEEP_Tyre",
+  "KEEP_material"
+ ]
 }
