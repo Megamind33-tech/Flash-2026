@@ -69,6 +69,7 @@ func _track_limits() -> void:
 
 
 func _recovery(delta: float) -> void:
+	_unghost(delta)
 	_rolled = _rolled + delta if car.global_basis.y.y < 0.3 else 0.0
 	# Stuck: stopped, or pinned sideways/backwards against a rail or another car while still sliding along it (a pile
 	# against the Giza guardrail crawled for minutes at 5 m/s with no forward speed).
@@ -81,6 +82,33 @@ func _recovery(delta: float) -> void:
 		recover()
 
 
+const GHOST_LAYER := 1 << 3
+var _ghost_left := 0.0
+
+
+## Ends the post-recovery ghost period once no other car overlaps this one.
+func _unghost(delta: float) -> void:
+	if _ghost_left <= 0.0:
+		return
+	_ghost_left -= delta
+	if _ghost_left <= 0.0:
+		if rivals.any(func(o): return o != self and not o.eliminated and o.car.global_position.distance_to(car.global_position) < 4.5):
+			_ghost_left = 0.3   # still overlapping someone: stay a ghost a little longer
+			return
+		car.collision_layer = 1
+		car.collision_mask = 1
+		_fade(0.0)
+
+
+func _fade(amount: float) -> void:
+	for gi in car.find_children("*", "GeometryInstance3D", true, false):
+		(gi as GeometryInstance3D).transparency = amount
+
+
+func is_ghost() -> bool:
+	return _ghost_left > 0.0
+
+
 ## Other competitors (set by the race) so a recovered car is never dropped on top of one.
 var rivals: Array = []
 
@@ -91,8 +119,11 @@ func recover() -> void:
 	var d := track.wrapd(distance - 8.0)
 	var pos := track.position_at(d) + Vector3.UP * 0.6
 	var found := false
+	# Off the racing line: the side of the road away from where the field is driving, then the other side, then centre.
+	var off_line := -signf(track.line_offset_at(d)) if absf(track.line_offset_at(d)) > 0.3 else 1.0
+	var edge := track.half_width - 1.8
 	for back: float in [8.0, 16.0, 24.0, 36.0, 50.0]:
-		for lane: float in [0.0, -2.8, 2.8]:
+		for lane: float in [off_line * edge, -off_line * edge, 0.0]:
 			var dd := track.wrapd(distance - back)
 			var p := track.position_at(dd) + track.right_at(dd) * lane + Vector3.UP * 0.6
 			if rivals.all(func(o): return o == self or o.eliminated or o.car.global_position.distance_to(p) > 6.5):
@@ -110,6 +141,12 @@ func recover() -> void:
 	_rolled = 0.0
 	_off = false
 	recoveries += 1
+	# Ghost for a moment: the recovered car starts at zero speed where the field arrives at racing speed, so it cannot
+	# be hit (or hit anyone) until it is up to speed; walls still collide. Restored by _unghost().
+	car.collision_layer = GHOST_LAYER
+	car.collision_mask = 1
+	_ghost_left = 2.5
+	_fade(0.55)   # it must read as a ghost while it is one, or cars passing through it look like a collision bug
 	if is_player:
 		notice.emit("CAR RECOVERED")
 

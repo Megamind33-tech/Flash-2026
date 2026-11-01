@@ -150,7 +150,10 @@ func _traffic(d: float, speed: float, delta: float) -> float:
 	_lane_timer -= delta
 	var space := car.get_world_3d().direct_space_state
 	var from := car.global_position + Vector3.UP * 0.7
-	var range := 26.0 + maxf(speed, 0.0) * 0.4
+	# Look at least as far as this car needs to stop (a car stopped or spun ahead was seen too late: 38 m of look-ahead
+	# at 110 km/h against ~56 m of braking, the hard shunts in Cairo).
+	var v := maxf(speed, 0.0)
+	var range := maxf(26.0 + v * 0.4, v * v / (2.0 * 8.0 * clampf(Weather.grip, 0.5, 1.0)) + 15.0)
 	# A narrow cone (straight ahead and 9 degrees either side): in a corner the car ahead is off-axis, and a single
 	# straight ray missed it on corner entry (opening-lap contacts in turn 1).
 	var hit := {}
@@ -164,7 +167,9 @@ func _traffic(d: float, speed: float, delta: float) -> float:
 			best = from.distance_to(h["position"])
 			hit = h
 	if hit.is_empty():
-		if _lane_timer <= 0.0:
+		# Back onto the racing line only when nobody is alongside: cutting back too early, a passing car swept across
+		# the nose of the car it had just passed (the 27 m/s shunt in Cairo).
+		if _lane_timer <= 0.0 and absf(_side_room()) < 0.05:
 			_target_lane = 0.0
 		return INF
 	var other: RaceCarBody = hit["collider"]

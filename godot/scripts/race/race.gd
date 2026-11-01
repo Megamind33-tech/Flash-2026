@@ -27,6 +27,7 @@ var _crowd: AudioStreamPlayer3D
 var race_seed := 0
 var overtakes := 0        # places gained on track after the start (each pass counted once, by the passer)
 var car_contacts := 0     # car-to-car impacts above 2 m/s
+var hard_contacts := 0    # of which above 12 m/s (shunts)
 var player: Racer
 var standings: Array = []
 var reward := {}
@@ -130,7 +131,8 @@ func _ready() -> void:
 	for rr in racers:   # racecraft metric: car-to-car contacts (impact with another car within 6 m)
 		rr.car.impact.connect(func(strength: float):
 			if strength > 2.0 and racers.any(func(o): return o != rr and o.car.global_position.distance_to(rr.car.global_position) < 6.0):
-				car_contacts += 1)
+				car_contacts += 1
+				hard_contacts += 1 if strength > 12.0 else 0)
 	if "--log-impacts" in args:   # diagnostics: every hard speed change, with what was near the car
 		for r in racers:
 			r.car.impact.connect(func(strength: float): _log_impact(r, strength))
@@ -899,7 +901,7 @@ func _complete() -> void:
 	var gaps := []
 	for i in range(1, standings.size()):
 		gaps.append("%.1f" % ((racers.filter(func(x): return x.id == standings[i]["id"])[0].laps.finish_time - racers.filter(func(x): return x.id == standings[i - 1]["id"])[0].laps.finish_time)))
-	print("[GRIDLINE] racecraft overtakes=%d car_contacts=%d finish_gaps_s=%s" % [overtakes, car_contacts, str(gaps)])
+	print("[GRIDLINE] racecraft overtakes=%d car_contacts=%d hard_contacts=%d finish_gaps_s=%s" % [overtakes, car_contacts, hard_contacts, str(gaps)])
 	for s in standings:
 		var r: Racer = racers.filter(func(x): return x.id == s["id"])[0]
 		print("[GRIDLINE]   P%d %-16s finished=%s laps=%d progress=%.0f best=%s recoveries=%d rejected=%d finish=%.4f laps_ms=%s" % [r.position, r.display_name, str(s["finished"]), s["laps"], s["progress"], Racer.format_ms(s["best"]), r.recoveries, r.laps.rejected_steps, r.laps.finish_time, str(r.laps.lap_times)])
