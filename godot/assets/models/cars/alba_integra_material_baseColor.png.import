@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dyl3e4jcaq402"
-path="res://.godot/imported/alba_integra_material_baseColor.png-f62d6d7db70a794e47a62799ee350b91.ctex"
+path.s3tc="res://.godot/imported/alba_integra_material_baseColor.png-f62d6d7db70a794e47a62799ee350b91.s3tc.ctex"
+path.etc2="res://.godot/imported/alba_integra_material_baseColor.png-f62d6d7db70a794e47a62799ee350b91.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "0fbd20cf20ae959a8b3d093f283fd743"
@@ -14,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/cars/alba_integra_material_baseColor.png"
-dest_files=["res://.godot/imported/alba_integra_material_baseColor.png-f62d6d7db70a794e47a62799ee350b91.ctex"]
+dest_files=["res://.godot/imported/alba_integra_material_baseColor.png-f62d6d7db70a794e47a62799ee350b91.s3tc.ctex", "res://.godot/imported/alba_integra_material_baseColor.png-f62d6d7db70a794e47a62799ee350b91.etc2.ctex"]
 
 [params]
 

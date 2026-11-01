@@ -134,6 +134,41 @@ def tris(me):
     return sum(len(p.vertices) - 2 for p in me.polygons)
 
 
+# Authored normals survive the BMesh steps (badge delete, wheel split, overlay removal) only as a mesh attribute:
+# BMesh drops custom split normals, and a body split from its wheels fell back to automatic normals (the rally car's
+# low-poly panels shaded crumpled). Saved per corner at import, rotated with the car, restored in make().
+def save_normals(me, matrix):
+    if hasattr(me, "calc_normals_split"):
+        me.calc_normals_split()
+    rot = matrix.to_3x3().inverted().transposed()
+    a = me.attributes.new("gl_n", "FLOAT_VECTOR", "CORNER")
+    for i, lp in enumerate(me.loops):
+        n = rot @ lp.normal
+        n.normalize()
+        a.data[i].vector = n
+
+
+def rotate_normals(me, m3):
+    a = me.attributes.get("gl_n")
+    if a:
+        for d in a.data:
+            d.vector = m3 @ d.vector
+
+
+def restore_normals(me):
+    a = me.attributes.get("gl_n")
+    if a is None:
+        return
+    ns = []
+    for d in a.data:
+        v = Vector(d.vector)
+        ns.append(v.normalized() if v.length > 1e-6 else Vector((0, 0, 1)))
+    if hasattr(me, "use_auto_smooth"):
+        me.use_auto_smooth = True
+    me.normals_split_custom_set(ns)
+    me.attributes.remove(me.attributes["gl_n"])
+
+
 drop_rx = re.compile(cfg["drop"], re.I)
 dmat_rx = re.compile(cfg["drop_mat"], re.I) if cfg["drop_mat"] != r"^$" else None
 tyre_rx = re.compile(cfg["tyre_mat"], re.I)
@@ -150,6 +185,7 @@ for o in list(bpy.context.scene.objects):
     me = bpy.data.meshes.new_from_object(ev, preserve_all_data_layers=True, depsgraph=dg)
     if len(me.polygons) == 0:
         continue
+    save_normals(me, ev.matrix_world)
     me.transform(ev.matrix_world)
     is_tyre = any(m is not None and tyre_rx.search(orig_name.get(m.name, m.name)) for m in mats)
     src_mats = {i: (orig_name.get(m.name, m.name) if m is not None else "?") for i, m in enumerate(mats)}
@@ -182,6 +218,7 @@ if fwd_axis == "auto":   # the brake lamps are at the back: front is the other e
 rot = {"-y": 0.0, "-x": math.pi / 2, "+y": math.pi, "+x": -math.pi / 2}[fwd_axis]
 for p in parts:
     p["me"].transform(Matrix.Rotation(rot, 4, "Z"))
+    rotate_normals(p["me"], Matrix.Rotation(rot, 3, "Z"))
 
 
 def bbox(mes):
@@ -419,6 +456,7 @@ def make(name, meshes, budget):
             bpy.ops.object.select_all(action="DESELECT"); o.select_set(True)
             bpy.context.view_layer.objects.active = o
             bpy.ops.object.convert(target="MESH")
+        restore_normals(o.data)
         objs.append(o)
     if name == "Body":   # hull-only copies for the distance LODs (no interior, engine bay or underbody)
         hull_objs = []
@@ -437,11 +475,12 @@ def make(name, meshes, budget):
     # shades with dents and blotches on models that rely on them).
     if hasattr(o.data, "use_auto_smooth"):
         o.data.use_auto_smooth = True
-    tri = o.modifiers.new("tri", "TRIANGULATE")
-    tri.keep_custom_normals = True
-    tri.quad_method = "BEAUTY"; tri.ngon_method = "BEAUTY"
-    bpy.ops.object.select_all(action="DESELECT"); o.select_set(True); bpy.context.view_layer.objects.active = o
-    bpy.ops.object.modifier_apply(modifier="tri")
+    if os.environ.get("CAR_TRIANGULATE"):   # off: the glTF exporter triangulates and keeps the authored normals;
+        tri = o.modifiers.new("tri", "TRIANGULATE")   # applying this modifier bent 22% of the rally car's paint normals
+        tri.keep_custom_normals = True
+        tri.quad_method = "BEAUTY"; tri.ngon_method = "BEAUTY"
+        bpy.ops.object.select_all(action="DESELECT"); o.select_set(True); bpy.context.view_layer.objects.active = o
+        bpy.ops.object.modifier_apply(modifier="tri")
     if name == "Body":   # a lamp material shared by front indicators and rear lamps: only the rear half brakes red
         mats = list(o.data.materials)
         if canon("tail") in mats:
@@ -498,6 +537,7 @@ if LOD_PARTS:
     mod = l2.modifiers.new("dec", "DECIMATE"); mod.ratio = 0.3
     bpy.ops.object.select_all(action="DESELECT"); l2.select_set(True); bpy.context.view_layer.objects.active = l2
     bpy.ops.object.convert(target="MESH")
+    l2.data.validate(clean_customdata=False)   # decimation can leave degenerate faces ("not valid" on export)
     lods = {"lod1_tris": tris(l1.data), "lod2_tris": tris(l2.data)}
 
 # ---- GRIDLINE tyre -------------------------------------------------------------------------------------------
@@ -627,6 +667,31 @@ for o in bpy.data.objects:
             o.data.uv_layers.remove(o.data.uv_layers[u])
         for c in [c.name for c in o.data.color_attributes]:
             o.data.color_attributes.remove(o.data.color_attributes[c])
+# The paint shell goes out as its own mesh (Body_Paint). In one mesh with some trim materials (the rally car's "Black")
+# Blender 4.0's glTF exporter wrote bent normals for the paint (crumpled panels on the rally car, blotches on the CS
+# coupe and the hybrid); alone, or with any other material, the authored normals survive. Same draw calls in Godot.
+for o in list(bpy.data.objects):
+    if o.type != "MESH" or o.name != "Body" or canon("paint") not in list(o.data.materials):
+        continue
+    pi = list(o.data.materials).index(canon("paint"))
+    for part, keep_paint in (("Body_Paint", True), ("Body", False)):
+        src = o.data
+        me = src.copy()
+        if hasattr(me, "calc_normals_split"):
+            src.calc_normals_split()
+        a = me.attributes.new("gl_n", "FLOAT_VECTOR", "CORNER")
+        for i, lp in enumerate(src.loops):
+            a.data[i].vector = lp.normal
+        bm = bmesh.new(); bm.from_mesh(me)
+        bmesh.ops.delete(bm, geom=[f for f in bm.faces if (f.material_index == pi) != keep_paint], context="FACES")
+        bm.to_mesh(me); bm.free()
+        me.validate(clean_customdata=False)   # degenerate trim faces made the exporter warn "not valid"
+        restore_normals(me)
+        if part == "Body_Paint":
+            po = bpy.data.objects.new("Body_Paint", me); scn.collection.objects.link(po); po.matrix_world = o.matrix_world
+        else:
+            o.data = me
+    print("PAINT split", len(o.data.polygons), "trim faces +", len(bpy.data.objects["Body_Paint"].data.polygons), "paint faces")
 bpy.ops.object.select_all(action="SELECT")
 bpy.ops.export_scene.gltf(filepath=f"{out_dir}/{car_id}.glb", export_format="GLB", use_selection=True, export_yup=True,
                           export_apply=True, export_texcoords=True, export_materials="EXPORT", export_image_format="AUTO",
