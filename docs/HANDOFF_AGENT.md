@@ -57,7 +57,7 @@ GODOT=$G ./tools_flow.sh                         # menu -> race -> results caree
 - **Cars:** twelve CC BY 4.0 Sketchfab cars made by `tools/cars/export_sketchfab_car.py`. Process and rules:
   `tools/cars/SKETCHFAB_CARS.md`. Manifest: `godot/assets/models/cars/LICENSES.md`.
 
-## Second car batch (5 → 12 cars, on branch `ccr-dbcb6ab3-0k2lya`)
+## Second car batch (5 → 12 cars)
 
 Seven new cars are installed and in the roster: kaze_r4, kaze_rotor, hikari_ns1, alba_integra, ravenna_quaranta,
 kaze_gt35, arden_gt12. Cards: `docs/evidence/cars/cards_all12.jpg`; brake-lamp check from behind:
@@ -90,7 +90,8 @@ Fixes made while verifying them:
   radius and width, and deletes the authors' rubber, including old rubber outboard of the new tyre.
   - Material: `GL_tyre` → `CarBuilder.tyre_material()` (`ORMMaterial3D`, textures from
     `tools/cars/make_tyre_textures.py`).
-  - Rims get 13k triangles per wheel, largest parts reduced first; `Wheel_xx_LOD1` is used beyond 30 m.
+  - Rims get 16k triangles per wheel, largest parts reduced first. `Wheel_xx_LOD1` (used beyond 30 m) is the same
+    tyre lathed with 32 segments plus the reduced rim.
 - **Textures.** All car textures import with mipmaps and VRAM compression; normal maps are flagged. Without mipmaps,
   tread and rims aliased into "crumpled" bands. Car texture memory dropped from 241 MB to 49 MB (ETC2).
 - **Paint.** It is exported as its own mesh, `Body_Paint`. Blender 4.0's glTF exporter bent paint normals that
@@ -101,6 +102,39 @@ Fixes made while verifying them:
   `tools/cars/glb_replace_image.py`. The scrubbed copies are the PNGs in `godot/assets/models/cars/`:
   - alba_integra `material_baseColor` and `rim_2_baseColor`
   - kaze_gt35 `r35_gauges_baseColor` and `r35_screen_baseColor`
+
+### Wheel assemblies (validated fleet-wide)
+
+- **Validator.** `godot --headless --path godot res://tests/wheel_inspect_test.tscn` builds every roster car exactly
+  as the game does and checks every wheel. It must say `WHEELS PASS`. FAILs are geometry errors:
+  - missing or foreign parts (a body piece spinning with the wheel);
+  - non-unit or mirrored scale;
+  - tyre radius against the physics radius;
+  - a gap between bead and rim;
+  - calipers in the spinning mesh;
+  - LOD1 not matching LOD0.
+
+  WARNs are for a look: arch contact (straight, full lock, 4 cm bump), inboard hub parts, runout.
+- **Spin renders decide runout.** Run `tools/render_cards.tscn -- --cars-only --wheel --wheel-close --spin 120` at
+  0 / 120 / 240 degrees. The rim must stay centred and flush in the tyre in every frame. Evidence:
+  `docs/evidence/wheels/fleet_spin_test.jpg`.
+- **Converter rules learned the hard way:**
+  - Geometry outside the wheel envelope goes back to the body as `Body_WheelStatic`.
+  - Rim centring uses the visible outer lip.
+  - Automatic rim squaring (`square_rims`) is opt-in: its plane fit is unreliable on many rims.
+  - Cars whose source posed the front wheels steered use their own rear wheels on the front hubs
+    (`front_from_rear`: elektra_egt, kaze_gt35).
+- **Other `render_cards` checks:** `--steer` (full lock), `--bump 0.05` (suspension), `--wheel-right`, `--wet`.
+
+### Weather (merged from the other agent's branch `ccr-b4448911-xsbjt9`)
+
+Full write-up: `docs/GR27_REPORT.md`.
+- **Weather states:** rain, standing water and film as deterministic curves in race time, with drainage-map puddles
+  and drying (a dry line appears after rain).
+- **Reflections and effects:** reflection probes on wet roads, tyre spray, tail-light streaks, rain audio.
+- **Wet braking:** tyre-limited, so rain stops about 25 % longer.
+- **Race-start test:** `tests/race_start_test.tscn -- --autotest 1 --seed 4`. It needs the `--autotest` flags or the
+  player does not drive.
 
 ## Known open items
 
@@ -115,7 +149,15 @@ Fixes made while verifying them:
   - `CARRUSTED.glb`: a plain saloon with no rust textures and no licence or source info.
   - The trophy STL: a UEFA Champions League trophy replica, a protected design. Don't use it; make or source an
     original trophy instead.
-- **Environment work not done:** building geometry (recessed windows, shopfronts); a better tree model (the
-  3.86M-triangle Poly Haven jacaranda is unusable as-is).
+- **Environment work not done** (directive phase 6):
+  - Building geometry: recessed windows, shopfronts.
+  - A better tree model: the 3.86M-triangle Poly Haven jacaranda is unusable as-is.
+  - Tents, banners and marshals beyond what the venue pass added.
+  - The scenery shortlist from Sketchfab (Chicago shopfronts, crowd barriers, palms) is downloaded in
+    `/home/user/deps/sketchfab/scenery/` (container-local) but not integrated.
+- **Triangle budget:** the Lusaka grid draws about 1.6 M triangles and 345 draw calls on default settings; it needs a
+  budget pass on a real device.
+- **Windscreen wipers:** there is no cockpit or wiper geometry to animate.
+- **Video:** no gameplay recording can be captured in this container.
 - **Recordings:** the motion recordings in `docs/evidence/motion` are desktop renders, and the `.mp4` files are
   git-ignored.
