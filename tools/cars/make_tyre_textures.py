@@ -4,14 +4,18 @@
   python3 tools/cars/make_tyre_textures.py   ->  godot/assets/models/cars/tyre_{albedo,normal,orm}.png
 
 UV layout (matches the lathed tyre made by tools/cars/export_sketchfab_car.py):
-  u: around the circumference, one texture width = TILE_M metres of tread (4 shoulder blocks)
   v: across the section, bead (0) -> sidewall -> shoulder -> tread -> shoulder -> sidewall -> bead (1)
+  u: tread and shoulders (0.30 < v < 0.70): one texture width = TILE_M metres of tread (4 shoulder blocks), tiled;
+     sidewalls: one texture width = once around the tyre, so the raised lettering (our own fictional mark, twice per
+     side) appears like on a real tyre instead of every 20 cm.
 """
 import os
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
-N = 1024
+N = 1024          # v (across the section)
+NU = 2048         # u (around): the sidewall lettering needs the width
+FONT = os.path.join(os.path.dirname(__file__), '..', '..', 'godot', 'assets', 'fonts', 'BarlowCondensed-ExtraBold.ttf')
 TILE_M = 0.20
 OUT = os.path.join(os.path.dirname(__file__), "..", "..", "godot", "assets", "models", "cars")
 
@@ -23,7 +27,7 @@ GROOVES = [0.415, 0.47, 0.53, 0.585]
 GROOVE_W = 0.011
 BLOCKS = 4           # shoulder blocks per tile
 
-u = (np.arange(N) + 0.5) / N
+u = (np.arange(NU) + 0.5) / NU
 v = (np.arange(N) + 0.5) / N
 U, V = np.meshgrid(u, v)          # rows = v, cols = u
 Vs = np.minimum(V, 1.0 - V)       # symmetric section: distance from the nearer bead
@@ -43,7 +47,7 @@ def band(x, centre, half, soft):
 
 def tile_noise(scale, octaves=3):
     """Tileable value noise in u (wraps), smooth in v."""
-    acc = np.zeros((N, N))
+    acc = np.zeros((N, NU))
     amp = 1.0
     for o in range(octaves):
         cells = scale * 2 ** o
@@ -61,7 +65,7 @@ def tile_noise(scale, octaves=3):
     return acc / (2 - 2 ** (1 - octaves))
 
 
-h = np.zeros((N, N))
+h = np.zeros((N, NU))
 tread = (Vs >= SHOULDER_END).astype(float)
 shoulder = ((Vs >= SIDE_END) & (Vs < SHOULDER_END)).astype(float)
 side = ((Vs >= BEAD) & (Vs < SIDE_END)).astype(float)
@@ -84,12 +88,40 @@ h -= lat_groove * reach * 0.5
 h += side * (0.35 + 0.08 * np.sin((Vs - BEAD) / (SIDE_END - BEAD) * np.pi))
 h += band(Vs, 0.085, 0.012, 0.012) * 0.12
 h += band(Vs, 0.26, 0.003, 0.004) * 0.04
-h += side * (tile_noise(32, 2) - 0.5) * 0.004
 # bead seat
 h += bead * (0.15 + 0.2 * smoothstep(0.0, BEAD, Vs))
 # rubber grain everywhere
 grain = tile_noise(96, 3)
-h += (grain - 0.5) * 0.008
+# (no rubber grain in the height: under the race renderer's sharpening it glittered as speckle)
+
+# raised sidewall lettering: GRIDLINE's own mark, twice per side. Image rows 0.70-0.94 are one sidewall (glTF flips
+# v), rows 0.06-0.30 the other (drawn rotated 180 degrees: outward points the other way there). Letters are drawn at
+# physical proportions for a ~2.1 m circumference and a ~7 cm sidewall.
+def lettering():
+    W, H = NU, int(N * 0.24)
+    img = Image.new("L", (W, H), 0)
+    d = ImageDraw.Draw(img)
+    big = ImageFont.truetype(FONT, 400)
+    small = ImageFont.truetype(FONT, 400)
+    def put(text, font, u0, u1, v0, v1):
+        bb = font.getbbox(text)
+        t = Image.new("L", (bb[2] - bb[0] + 20, bb[3] - bb[1] + 20), 0)
+        ImageDraw.Draw(t).text((10 - bb[0], 10 - bb[1]), text, fill=255, font=font)
+        t = t.resize((int((u1 - u0) * W), int((v1 - v0) * H)), Image.LANCZOS)
+        img.paste(t, (int(u0 * W), int(v0 * H)), t)
+    for k in (0.0, 0.5):
+        put("GRIDLINE", big, 0.04 + k, 0.17 + k, 0.30, 0.78)
+        put("PRO R   255/35 ZR19   96Y", small, 0.22 + k, 0.40 + k, 0.42, 0.66)
+    a = np.asarray(img, dtype=float) / 255.0
+    return a
+L = lettering()
+band = L.shape[0]
+r_a = int(N * 0.70)                     # rows 0.70 .. 0.94: letters upright
+LET = np.zeros((N, NU))   # letter mask, also used for albedo and roughness below
+LET[r_a:r_a + band, :] = L
+r_b = int(N * 0.06)                     # rows 0.06 .. 0.30: rotated 180 degrees
+LET[r_b:r_b + band, :] = L[::-1, ::-1]
+h += LET * 0.45
 
 # normal map (OpenGL convention): slope scale tuned so grooves read at car-card distance without aliasing
 dx = (np.roll(h, -1, axis=1) - np.roll(h, 1, axis=1)) * 0.5
@@ -109,12 +141,14 @@ ao = np.clip(1.0 - np.maximum(blur - h, 0) * 2.2, 0.45, 1.0)
 # roughness: worn tread matte, sidewall satin, grooves dusty
 rough = 0.72 * side + 0.8 * bead + 0.86 * shoulder + 0.9 * tread
 rough += (blur - h > 0.15) * 0.05 + (grain - 0.5) * 0.03
-rough = np.clip(rough, 0.55, 1.0)
+rough -= LET * 0.22   # raised letters are smoother (moulded, not worn): they catch the light
+rough = np.clip(rough, 0.45, 1.0)
 
 # albedo (sRGB): black rubber, tread lighter from wear and road dust, grooves darker
 base = 34 * side + 33 * bead + 40 * shoulder + 43 * tread
 base += (grain - 0.5) * 3
 base *= 0.85 + 0.15 * ao
+base += LET * 10
 alb = np.clip(np.stack([base, base, base * 1.03], -1), 0, 255)
 
 os.makedirs(OUT, exist_ok=True)

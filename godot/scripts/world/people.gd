@@ -205,6 +205,18 @@ static func seat_driver(car: Node3D, index: int) -> void:
 	mi.mesh = m
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.scale = Vector3.ONE * 0.8
-	mi.position = Vector3(0.36, -0.05, -0.25)
+	# Feet on the cabin floor of this car, not on the road: one fixed height for every car put the shoes below the
+	# floor pan, visible under the sills. Floor = 12 cm above the body's underside (at least 0.22 m off the ground).
+	var floor_y := 0.22
+	var roof := 1.3
+	var cid := str(car.get("car_id")) if car.get("car_id") != null else ""
+	if CarSpecs.GEOMETRY.has(cid):
+		floor_y = maxf(0.22, float((CarSpecs.GEOMETRY[cid]["body_min"] as Vector3).y) + 0.12)
+		roof = float((CarSpecs.GEOMETRY[cid]["body_max"] as Vector3).y)
+	var box := m.get_aabb()
+	# low supercars (1.0 m roofs): a slightly smaller driver keeps the head 10 cm under the roof
+	var sc := minf(0.8, (roof - 0.10 - floor_y) / maxf(box.size.y, 0.01))
+	mi.scale = Vector3.ONE * sc
+	mi.position = Vector3(0.36, floor_y - box.position.y * sc, -0.25)
 	var visual := car.get_node_or_null("Visual")
 	(visual if visual else car).add_child(mi)

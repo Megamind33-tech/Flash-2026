@@ -617,8 +617,12 @@ def rebuild_tyre(meshes, c, radius, side):
         for j in range(len(PROFILE) - 1):
             vs = [ring[i][j], ring[i + 1][j], ring[i + 1][j + 1], ring[i][j + 1]]
             f = bm.faces.new(vs)
+            # sidewall strips: u once around (raised lettering appears twice per side, like a real tyre);
+            # shoulder and tread strips: u tiled every TYRE_TILE_M of circumference (tools/cars/make_tyre_textures.py)
+            side_strip = max(PROFILE[j][2], PROFILE[j + 1][2]) <= 0.30 or min(PROFILE[j][2], PROFILE[j + 1][2]) >= 0.70
+            k = 1 if side_strip else reps
             for lp, (ii, jj) in zip(f.loops, [(i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1)]):
-                lp[uv].uv = (ii / n * reps, PROFILE[jj][2])
+                lp[uv].uv = (ii / n * k, PROFILE[jj][2])
     # the seam column stays split (UV wrap). Faces must point out of the rubber: test a crown face.
     bm.faces.ensure_lookup_table()
     crown = bm.faces[len(PROFILE) // 2]

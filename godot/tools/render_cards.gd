@@ -83,9 +83,14 @@ func _ready() -> void:
 		cam.global_position = c + Vector3(0.0, radius * 0.2, radius * 1.55)
 		cam.look_at(c + Vector3.UP * -0.05, Vector3.UP)
 		if wheel:
-			var w := car.get_node("Wheel_FL") as Node3D
+			var right := OS.get_cmdline_user_args().has("--wheel-right")   # the other side's tyre (mirrored sidewall band)
+			var w := car.get_node("Wheel_FR" if right else "Wheel_FL") as Node3D
 			var wp := w.global_position
-			cam.global_position = wp + car.global_basis * Vector3(1.6, 0.35, 0.9)
+			var close := OS.get_cmdline_user_args().has("--wheel-close")   # sidewall straight on (tyre lettering check)
+			var off := Vector3(1.05, 0.05, 0.12) if close else Vector3(1.6, 0.35, 0.9)
+			if right:
+				off.x = -off.x
+			cam.global_position = wp + car.global_basis * off
 			cam.look_at(wp, Vector3.UP)
 		await _settle()
 		_save(vp, ("user://cards_wheel/%s.png" if wheel else ("user://cards_rear/%s.png" if rear else "res://assets/ui/cars/%s.png")) % id)
