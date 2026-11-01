@@ -147,7 +147,7 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 	# dust (in clear weather and rain it fogged the whole frame and washed out the contrast).
 	env.fog_height = 3.0
 	env.fog_height_density = 0.08 if kind in ["fog", "dust"] else 0.0
-	if Game.quality() >= 1:
+	if true:   # glow is wanted here; VisualsManager gates it by the Post Processing option
 		env.glow_enabled = true
 		env.glow_intensity = 0.65 if time_of_day == "night" else 0.4
 		env.glow_strength = 1.0
@@ -175,8 +175,8 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 			sun.rotation_degrees = Vector3(-30, -35, 0)
 			sun.light_color = Color(1.0, 0.94, 0.85) if kind != "dust" else Color(1.0, 0.82, 0.6)
 			sun.light_energy = float(p["sun"]) * 1.1
-	var q := Game.quality()
-	sun.shadow_enabled = q >= 1 and time_of_day != "night"
+	var q := VisualsManager.level("shadows")
+	sun.shadow_enabled = time_of_day != "night"   # wanted; VisualsManager applies the Shadows option (range, cascades)
 	# High and Ultra: two cascades (crisp around the car, coarser beyond). Medium, the phone default, keeps one
 	# cascade, sharpened by the 2048 px atlas: a second cascade costs ~180k extra shadow triangles per frame.
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS if q >= 2 else DirectionalLight3D.SHADOW_ORTHOGONAL
@@ -188,7 +188,7 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 	sun.directional_shadow_blend_splits = q >= 2
 	sun.directional_shadow_fade_start = 0.6 if time_of_day == "dusk" else 0.8
 	sun.shadow_blur = 1.2
-	RenderingServer.directional_shadow_atlas_set_size(1024 if q == 0 else 2048, true)
+	sun.set_meta("gl_reach", reach)
 	parent.add_child(sun)
 	return {"env": env, "sun": sun}
 
@@ -241,7 +241,7 @@ static func attach_particles(camera: Node3D) -> GPUParticles3D:
 	var p: Dictionary = PRESET[kind]
 	var amount := 0
 	if float(p["rain"]) > 0.0:
-		amount = int(lerpf(900.0, 2600.0, float(p["rain"])) * (0.5 if Game.quality() == 0 else 1.0))
+		amount = int(lerpf(900.0, 2600.0, float(p["rain"])) * (0.5 if VisualsManager.level("effects") == 0 else 1.0))
 	elif kind == "dust":
 		amount = 220
 	if amount == 0:
@@ -290,7 +290,7 @@ static func attach_particles(camera: Node3D) -> GPUParticles3D:
 
 ## Road spray behind a car on a wet track; emission is driven by speed from race.gd.
 static func make_spray() -> GPUParticles3D:
-	if float(PRESET[kind]["wet"]) < 0.5 or Game.quality() == 0:
+	if float(PRESET[kind]["wet"]) < 0.5 or not VisualsManager.effective()["effects"]["spray"]:
 		return null
 	var parts := GPUParticles3D.new()
 	parts.name = "Spray"

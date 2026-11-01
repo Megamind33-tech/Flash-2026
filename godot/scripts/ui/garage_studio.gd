@@ -416,7 +416,7 @@ func set_preset(name: String) -> void:
 ## Called every frame by the menu with its camera: eases toward the current shot target.
 func drive_camera(cam: Camera3D, delta: float, focus: Vector3) -> void:
 	_idle += delta
-	if preset == "" and _idle > 6.0:
+	if preset == "" and _idle > 6.0 and not Game.reduce_motion():   # reduce motion: the camera holds its shot
 		_shot_t += delta
 		if _shot_t > 7.0:
 			_shot_t = 0.0

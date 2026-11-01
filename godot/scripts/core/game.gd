@@ -26,6 +26,8 @@ var session := {"city": "lusaka", "weather": "clear", "time": "day", "event": "s
 
 
 func _ready() -> void:
+	if not ultra_switches_renderer() and FileAccess.file_exists(RENDERER_OVERRIDE):   # older builds wrote it on phones
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(RENDERER_OVERRIDE))
 	_load_economy()
 	load_game()
 	_ensure_input_actions()
@@ -47,6 +49,13 @@ func _bind_settings_addon() -> void:
 		if key == "display.fps_visible":
 			settings()["showFps"] = bool(value)
 			persist())
+
+
+## Accessibility > Reduce motion: calmer cameras (no drift, less speed FOV, no shake / boost kick), fewer transitions.
+## Steering, physics and gameplay information are never changed by it.
+func reduce_motion() -> bool:
+	var st := get_node_or_null("/root/Settings")
+	return st != null and bool(st.get_value("a11y.reduce_motion", false))
 
 
 ## Whether a motion effect is on (Accessibility: reduce motion / camera shake toggles).
@@ -461,15 +470,13 @@ func apply_settings() -> void:
 	# Mesh LOD aggressiveness per tier (pixels of error allowed before a coarser LOD is used): the hero cars are
 	# 60k-280k triangles at full detail, so phones must drop LODs much earlier than desktop.
 	var tree := get_tree()
-	if tree and tree.root:
-		tree.root.mesh_lod_threshold = [12.0, 6.0, 2.0][clampi(int(s["quality"]), 0, 2)]
 	set_render_scale(base_render_scale())
 	if tree and tree.root:
 		tree.root.content_scale_factor = clampf(float(s.get("uiScale", 1.0)), 0.8, 1.4)
 	var vm := get_node_or_null("/root/VisualsManager")
 	if vm:
-		vm.apply_brightness()
-	_renderer_override(int(s["quality"]) >= 3)
+		vm.apply_live()   # shadows, textures, effects, view distance, post processing (and brightness)
+	_renderer_override(int(s["quality"]) >= 3 and ultra_switches_renderer())
 
 
 const RENDERER_OVERRIDE := "user://override.cfg"
@@ -479,6 +486,13 @@ const RENDERER_OVERRIDE := "user://override.cfg"
 ## volumetric fog (Weather._ultra). The renderer is fixed when the engine starts, so the choice is written to
 ## user://override.cfg, which project.godot names as its settings override: it takes effect at the next launch.
 ## Choosing any other tier deletes the file and the game returns to the Mobile renderer.
+## Ultra moves to Forward+ only on desktop. On Android it stays on the Mobile renderer at maximum detail: Forward+
+## cannot be validated on phones here, and a renderer that fails at start-up would relaunch into the same failure,
+## because the choice is stored. An override left by an older build is removed at start-up (_ready).
+func ultra_switches_renderer() -> bool:
+	return not OS.has_feature("mobile")
+
+
 func _renderer_override(ultra: bool) -> void:
 	if ultra:
 		var f := FileAccess.open(RENDERER_OVERRIDE, FileAccess.WRITE)

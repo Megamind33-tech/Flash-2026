@@ -274,7 +274,7 @@ func _tab_graphics() -> void:
 		names.append(p["name"])
 	var cur := Game.preset_index()
 	_choice("Graphics", names, cur if cur < names.size() else -1, func(i):
-		Game.apply_preset(i), "Custom" if cur < 0 else ("Ultra needs a restart (it changes the renderer)" if names.size() > 3 else "Ultra is not offered on this device"))
+		Game.apply_preset(i), "Custom" if cur < 0 else (("Ultra needs a restart (it changes the renderer)" if Game.ultra_switches_renderer() else "Ultra: maximum detail on the same renderer") if names.size() > 3 else "Ultra is not offered on this device"))
 	_section("ADVANCED")
 	var st := _addon()
 	if st:
@@ -282,8 +282,28 @@ func _tab_graphics() -> void:
 		for axis in st.QUALITY_AXES:
 			var key := "quality." + str(axis[0])
 			_choice(str(axis[1]), levels, int(st.get_value(key, -1)) + 1, func(i):
-				st.set_value(key, i - 1))
-	_note.text = "Presets set world detail, frame cap and 3D resolution. Advanced rows override one feature each; 'Preset' follows the preset. World detail changes apply on the next race or screen load."
+				st.set_value(key, i - 1)
+				_render.call_deferred(), effect_text(str(axis[0])))
+	_note.text = "Presets set world detail, frame cap and 3D resolution. Each advanced row overrides one feature; 'Preset' returns it to the preset's value. Normal maps, crowd shadows and building distance apply on the next race or screen load."
+
+
+## What an advanced option is doing right now (VisualsManager.effective), shown under its name.
+static func effect_text(axis: String) -> String:
+	var e: Dictionary = VisualsManager.effective()[axis]
+	var lvl: String = ["Low", "Medium", "High", "Ultra"][int(e["level"])]
+	var how := "preset" if VisualsManager.override_of(axis) < 0 else "set"
+	match axis:
+		"shadows":
+			return "Now %s (%s): %s" % [lvl, how, ("off" if not e["sun"] else "%d m, %d cascade%s, %d px" % [int(e["range"]), e["cascades"], "s" if e["cascades"] > 1 else "", e["atlas"]])]
+		"textures":
+			return "Now %s (%s): mip bias %+.2f, anisotropy %s, normal maps %s" % [lvl, how, e["mip_bias"], ["off", "2x", "4x", "8x"][e["anisotropy"]], "on" if e["normal_maps"] else "off"]
+		"effects":
+			return "Now %s (%s): particles %d%%, road spray %s" % [lvl, how, roundi(e["particles"] * 100), "on" if e["spray"] else "off"]
+		"view_distance":
+			return "Now %s (%s): %d m, buildings %d m, LOD %.1f" % [lvl, how, int(e["far"]), int(e["buildings"]), e["lod_threshold"]]
+		"post":
+			return "Now %s (%s): glow %s, AA %s%s" % [lvl, how, "on" if e["glow"] else "off", {"none": "off", "fxaa": "FXAA", "msaa2": "MSAA 2x", "msaa4": "MSAA 4x"}[e["aa"]], ", SSAO + SSR" if e["ssao"] else ""]
+	return ""
 
 
 func _tab_controls() -> void:

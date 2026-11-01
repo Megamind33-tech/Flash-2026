@@ -31,7 +31,7 @@ static func tex_mat(name: String, tile: float, tint := Color.WHITE, rough := 0.9
 	var m := StandardMaterial3D.new()
 	m.albedo_texture = load(CITY + name + "_albedo.jpg")
 	m.albedo_color = tint
-	if Game.quality() >= 1 and ResourceLoader.exists(CITY + name + "_normal.jpg"):
+	if VisualsManager.effective()["textures"]["normal_maps"] and ResourceLoader.exists(CITY + name + "_normal.jpg"):
 		m.normal_enabled = true
 		m.normal_texture = load(CITY + name + "_normal.jpg")
 	m.roughness = rough

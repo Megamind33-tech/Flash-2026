@@ -87,7 +87,7 @@ static func _instances(root: Node3D, groups: Dictionary, name: String, range_end
 		mmi.name = name
 		mmi.multimesh = mm
 		mmi.visibility_range_end = range_end
-		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if Game.quality() < 2 else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if not VisualsManager.effective()["shadows"]["crowd_shadows"] else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 		root.add_child(mmi)
 
 

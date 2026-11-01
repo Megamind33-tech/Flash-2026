@@ -1020,7 +1020,7 @@ func _show(p: String) -> void:
 			subtitle.text = "   RESET CAREER?"
 			_item("Yes, reset my career", "", func(): Game.reset_career(); stack.clear(); _show("main"), false, true)
 			_item("Cancel", "", _back, true)
-			desc.text = "Money, reputation, records and history will be erased. Settings are kept."
+			desc.text = "Erases money, owned cars and paint, reputation, XP, race history, Team Owner company and club progress. Kept: settings and recorded ghost laps. This cannot be undone."
 	counter.text = "%d ITEMS   " % list.get_child_count()
 
 

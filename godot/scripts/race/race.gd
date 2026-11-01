@@ -437,9 +437,8 @@ func _build_environment() -> void:
 	env.fog_light_color = Color(0.7, 0.75, 0.8)
 	env.fog_density = 0.0012
 	env.fog_sky_affect = 0.3
-	if Game.quality() >= 2:
-		env.glow_enabled = true
-		env.glow_intensity = 0.3
+	env.glow_enabled = true   # gated by the Post Processing option (VisualsManager)
+	env.glow_intensity = 0.3
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
@@ -447,9 +446,8 @@ func _build_environment() -> void:
 	sun.rotation_degrees = Vector3(-42, -35, 0)
 	sun.light_color = Color(1.0, 0.95, 0.88)
 	sun.light_energy = 1.25
-	sun.shadow_enabled = Game.quality() >= 1
-	sun.directional_shadow_max_distance = 60.0 if Game.quality() == 1 else 90.0
-	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
+	sun.shadow_enabled = true   # range, cascades and on/off from the Shadows option (VisualsManager)
+	sun.set_meta("gl_reach", 1.0)
 	add_child(sun)
 
 
@@ -714,6 +712,19 @@ func reset_dynamic_resolution() -> void:
 	_dr_good = 0.0
 
 
+## Auto 3D resolution, one decision per measured second: below 90 % of the frame cap drop 8 % (floor 50 %);
+## above 97 % for 4 s in a row climb 5 % back toward the preset's scale. Returns [scale, seconds of headroom].
+static func auto_scale_step(scale: float, good: float, fps: float, target: float, top: float, dt: float) -> Array:
+	if fps < target * 0.9 and scale > 0.5:
+		return [maxf(0.5, scale - 0.08), 0.0]
+	if fps > target * 0.97 and scale < top:
+		good += dt
+		if good >= 4.0:
+			return [minf(top, scale + 0.05), 0.0]
+		return [scale, good]
+	return [scale, 0.0 if fps < target * 0.97 else good]
+
+
 func _dynamic_resolution(delta: float) -> void:
 	if not Game.auto_resolution() or get_tree().paused or autotest:
 		return
@@ -722,18 +733,11 @@ func _dynamic_resolution(delta: float) -> void:
 	if _dr_time < 1.0:
 		return
 	var fps := _dr_frames / _dr_time
-	var target := float(Engine.max_fps if Engine.max_fps > 0 else 60)
-	var top := Game.base_render_scale()
-	if fps < target * 0.9 and render_scale > 0.5:
-		render_scale = maxf(0.5, render_scale - 0.08)
+	var r := auto_scale_step(render_scale, _dr_good, fps, float(Engine.max_fps if Engine.max_fps > 0 else 60), Game.base_render_scale(), _dr_time)
+	if not is_equal_approx(r[0], render_scale):
+		render_scale = r[0]
 		Game.set_render_scale(render_scale)
-		_dr_good = 0.0
-	elif fps > target * 0.97 and render_scale < top:
-		_dr_good += _dr_time
-		if _dr_good >= 4.0:
-			render_scale = minf(top, render_scale + 0.05)
-			Game.set_render_scale(render_scale)
-			_dr_good = 0.0
+	_dr_good = r[1]
 	_dr_time = 0.0
 	_dr_frames = 0
 

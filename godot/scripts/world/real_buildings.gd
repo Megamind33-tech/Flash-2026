@@ -175,7 +175,7 @@ static func build(root: Node3D, data: Dictionary, plan_: Dictionary) -> Dictiona
 		(groups.get_or_add(p["id"], []) as Array).append(p["xform"])
 	# One MeshInstance per building (not a MultiMesh): each is frustum-culled, drops to the mesh's automatic LODs with
 	# distance and fades out past the tier's view distance, which a MultiMesh can only do for the whole group.
-	var view: float = [0.0, 380.0, 650.0, 900.0][clampi(Game.quality(), 0, 3)]
+	var view: float = VisualsManager.effective()["view_distance"]["buildings"]
 	var tris := 0
 	for id in groups:
 		var m := mesh(id)

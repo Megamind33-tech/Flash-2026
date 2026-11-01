@@ -47,7 +47,7 @@ func _physics_process(delta: float) -> void:
 	else:
 		# Pull back a little at speed and swing slightly wide of the turn so corners read better.
 		var pull := 1.0 + 0.12 * clampf(speed / 55.0, 0.0, 1.0)
-		var swing := -target.steering * 1.2
+		var swing := -target.steering * (0.5 if Game.reduce_motion() else 1.2)
 		var desired := target.global_position + rot * Vector3(swing, MODES[mode][1], -MODES[mode][0] * pull)
 		# Collision avoidance: pull the camera in front of walls/buildings between it and the car.
 		var pivot := target.global_position + Vector3.UP * 1.2
@@ -62,5 +62,5 @@ func _physics_process(delta: float) -> void:
 		global_position += Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * _shake * 0.25
 		_shake = maxf(0.0, _shake - delta * 1.2)
 	_kick = lerpf(_kick, boost_kick if Game.effect_on("motion_blur") else 0.0, clampf(delta * 4.0, 0.0, 1.0))
-	fov = lerpf(fov, 62.0 + 10.0 * clampf(speed / 55.0, 0.0, 1.0) + 9.0 * _kick, clampf(delta * 3.0, 0.0, 1.0))
+	fov = lerpf(fov, 62.0 + (4.0 if Game.reduce_motion() else 10.0) * clampf(speed / 55.0, 0.0, 1.0) + 9.0 * _kick, clampf(delta * 3.0, 0.0, 1.0))
 	_snap = false

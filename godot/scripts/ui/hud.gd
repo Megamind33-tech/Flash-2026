@@ -299,9 +299,10 @@ func _skill_line(title: String, value: String, color: Color) -> void:
 		skill_box.get_child(0).queue_free()
 		skill_box.remove_child(skill_box.get_child(0))
 	var tw := l.create_tween()
-	l.scale = Vector2(1.25, 1.25)
-	l.pivot_offset = Vector2(520, 20)
-	tw.tween_property(l, "scale", Vector2.ONE, 0.18)
+	if not Game.reduce_motion():   # reduce motion: no pop-in scale
+		l.scale = Vector2(1.25, 1.25)
+		l.pivot_offset = Vector2(520, 20)
+		tw.tween_property(l, "scale", Vector2.ONE, 0.18)
 	tw.tween_interval(2.6)
 	tw.tween_property(l, "modulate:a", 0.0, 0.6)
 	tw.tween_callback(l.queue_free)

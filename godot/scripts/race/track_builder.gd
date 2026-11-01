@@ -11,7 +11,7 @@ static func surface(name: String, tile: float, rough: float, tint: Color) -> Sta
 	var m := StandardMaterial3D.new()
 	m.albedo_texture = load(SURF + name + "_albedo.jpg")
 	m.albedo_color = tint
-	if Game.quality() >= 1:
+	if VisualsManager.effective()["textures"]["normal_maps"]:
 		m.normal_enabled = true
 		m.normal_texture = load(SURF + name + "_normal.jpg")
 	m.roughness = rough

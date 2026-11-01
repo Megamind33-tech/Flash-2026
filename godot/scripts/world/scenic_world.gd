@@ -215,6 +215,6 @@ static func _trees(root: Node3D, d: Dictionary, style: Dictionary) -> void:
 			var mat: StandardMaterial3D = m.surface_get_material(0).duplicate()
 			mat.albedo_color = tint
 			meshes[kind] = [m, mat]
-		CityWorld._multimesh(root, meshes[kind][0], meshes[kind][1], chunks[key][1], "Forest", Game.quality() >= 2)
+		CityWorld._multimesh(root, meshes[kind][0], meshes[kind][1], chunks[key][1], "Forest", VisualsManager.effective()["shadows"]["crowd_shadows"])
 		var last := root.get_child(root.get_child_count() - 1) as GeometryInstance3D
 		last.visibility_range_end = 1300.0
