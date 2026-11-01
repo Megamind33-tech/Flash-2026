@@ -8,7 +8,7 @@ uniform sampler2D normal_tex : hint_normal, filter_linear_mipmap_anisotropic;
 uniform bool has_normal = false;
 uniform vec3 centre = vec3(0.0);   // patch centre in mesh space
 uniform float radius = 1.0;        // fade reaches zero at this distance (metres, mesh space)
-uniform float wet = 0.0;
+global uniform float road_wet;   // the road's live surface film (Weather.update): patches wet and dry with the road
 uniform vec3 colour_match = vec3(1.0);   // road average / scan average, so the patch takes the city's asphalt colour
 
 varying vec3 mesh_pos;
@@ -19,11 +19,12 @@ void vertex() {
 
 void fragment() {
 	vec3 c = texture(albedo_tex, UV).rgb;
-	ALBEDO = c * colour_match * mix(1.0, 0.55, wet);
+	float wet = road_wet;
+	ALBEDO = c * colour_match * mix(1.0, 0.5, wet);
 	if (has_normal) {
 		NORMAL_MAP = texture(normal_tex, UV).rgb;
 	}
-	ROUGHNESS = mix(0.88, 0.32, wet);
+	ROUGHNESS = mix(0.88, 0.28, wet);
 	float r = length(mesh_pos.xz - centre.xz) / radius;
 	ALPHA = 1.0 - smoothstep(0.4, 0.84, r);   // starts early: the scans' own borders are lighter than the road
 }
