@@ -325,8 +325,9 @@ static func _circuit(root: Node3D, style: Dictionary, track: TrackPath) -> void:
 	barrier.commit(mesh, tex_mat("concrete_grey", 2.0, Color(0.92, 0.92, 0.9), 0.9))
 	var fm := StandardMaterial3D.new()
 	fm.albedo_texture = load(CITY + "fence_rgba.png")
-	fm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-	fm.alpha_scissor_threshold = 0.4
+	# Blended, not cut out: with mipmaps a cut-out wire mesh dissolves into nothing at distance (and without them
+	# it sparkled into random dots); blended, the distant fence reads as a faint grey screen, as a real one does.
+	fm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	fm.cull_mode = BaseMaterial3D.CULL_DISABLED
 	fm.uv1_scale = Vector3(1.0 / 2.0, 1.0 / 2.0, 1)
 	fm.metallic = 0.6

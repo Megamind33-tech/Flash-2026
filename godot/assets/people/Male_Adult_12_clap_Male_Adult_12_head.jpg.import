@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cxktrmnyn46io"
-path="res://.godot/imported/Male_Adult_12_clap_Male_Adult_12_head.jpg-4b6b521f6fd652936bd3618773e80fa8.ctex"
+path.s3tc="res://.godot/imported/Male_Adult_12_clap_Male_Adult_12_head.jpg-4b6b521f6fd652936bd3618773e80fa8.s3tc.ctex"
+path.etc2="res://.godot/imported/Male_Adult_12_clap_Male_Adult_12_head.jpg-4b6b521f6fd652936bd3618773e80fa8.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "d95ec3453af8613d6c8cc32808c46ca4"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/people/Male_Adult_12_clap_Male_Adult_12_head.jpg"
-dest_files=["res://.godot/imported/Male_Adult_12_clap_Male_Adult_12_head.jpg-4b6b521f6fd652936bd3618773e80fa8.ctex"]
+dest_files=["res://.godot/imported/Male_Adult_12_clap_Male_Adult_12_head.jpg-4b6b521f6fd652936bd3618773e80fa8.s3tc.ctex", "res://.godot/imported/Male_Adult_12_clap_Male_Adult_12_head.jpg-4b6b521f6fd652936bd3618773e80fa8.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

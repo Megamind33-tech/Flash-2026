@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bdom7h01yv0vt"
-path="res://.godot/imported/Sports_Male_02_idle_Sports_Male_02_body.jpg-860a021efc68f7b5417e248bedaebb77.ctex"
+path.s3tc="res://.godot/imported/Sports_Male_02_idle_Sports_Male_02_body.jpg-860a021efc68f7b5417e248bedaebb77.s3tc.ctex"
+path.etc2="res://.godot/imported/Sports_Male_02_idle_Sports_Male_02_body.jpg-860a021efc68f7b5417e248bedaebb77.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "1a75627785af2e2c2b528a5ff0c904e2"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/people/Sports_Male_02_idle_Sports_Male_02_body.jpg"
-dest_files=["res://.godot/imported/Sports_Male_02_idle_Sports_Male_02_body.jpg-860a021efc68f7b5417e248bedaebb77.ctex"]
+dest_files=["res://.godot/imported/Sports_Male_02_idle_Sports_Male_02_body.jpg-860a021efc68f7b5417e248bedaebb77.s3tc.ctex", "res://.godot/imported/Sports_Male_02_idle_Sports_Male_02_body.jpg-860a021efc68f7b5417e248bedaebb77.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

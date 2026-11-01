@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://budb6bfip485i"
-path="res://.godot/imported/Dannue_baseColor.jpg-adbffb541b3b63ebe55524185930da4a.ctex"
+path.s3tc="res://.godot/imported/Dannue_baseColor.jpg-adbffb541b3b63ebe55524185930da4a.s3tc.ctex"
+path.etc2="res://.godot/imported/Dannue_baseColor.jpg-adbffb541b3b63ebe55524185930da4a.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/buildings/real/hq_server_rack/textures/Dannue_baseColor.jpg"
-dest_files=["res://.godot/imported/Dannue_baseColor.jpg-adbffb541b3b63ebe55524185930da4a.ctex"]
+dest_files=["res://.godot/imported/Dannue_baseColor.jpg-adbffb541b3b63ebe55524185930da4a.s3tc.ctex", "res://.godot/imported/Dannue_baseColor.jpg-adbffb541b3b63ebe55524185930da4a.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -23,7 +25,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

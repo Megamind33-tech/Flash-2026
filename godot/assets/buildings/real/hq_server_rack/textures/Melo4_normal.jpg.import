@@ -3,27 +3,29 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b3qp31uhwgx13"
-path="res://.godot/imported/Melo4_normal.jpg-a907c4ab49012927e9e8bd43b67a8d3d.ctex"
+path.s3tc="res://.godot/imported/Melo4_normal.jpg-a907c4ab49012927e9e8bd43b67a8d3d.s3tc.ctex"
+path.etc2="res://.godot/imported/Melo4_normal.jpg-a907c4ab49012927e9e8bd43b67a8d3d.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/buildings/real/hq_server_rack/textures/Melo4_normal.jpg"
-dest_files=["res://.godot/imported/Melo4_normal.jpg-a907c4ab49012927e9e8bd43b67a8d3d.ctex"]
+dest_files=["res://.godot/imported/Melo4_normal.jpg-a907c4ab49012927e9e8bd43b67a8d3d.s3tc.ctex", "res://.godot/imported/Melo4_normal.jpg-a907c4ab49012927e9e8bd43b67a8d3d.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=0
+compress/normal_map=1
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

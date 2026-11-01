@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bc4o6er8p2qbu"
-path="res://.godot/imported/Male_Adult_05_cheer_Male_Adult_05_head.jpg-b7662e2fc750c1ddbdcf7c1afed0f174.ctex"
+path.s3tc="res://.godot/imported/Male_Adult_05_cheer_Male_Adult_05_head.jpg-b7662e2fc750c1ddbdcf7c1afed0f174.s3tc.ctex"
+path.etc2="res://.godot/imported/Male_Adult_05_cheer_Male_Adult_05_head.jpg-b7662e2fc750c1ddbdcf7c1afed0f174.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "cb0132209d75fe3e0ff7c3e3716e6ae2"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/people/Male_Adult_05_cheer_Male_Adult_05_head.jpg"
-dest_files=["res://.godot/imported/Male_Adult_05_cheer_Male_Adult_05_head.jpg-b7662e2fc750c1ddbdcf7c1afed0f174.ctex"]
+dest_files=["res://.godot/imported/Male_Adult_05_cheer_Male_Adult_05_head.jpg-b7662e2fc750c1ddbdcf7c1afed0f174.s3tc.ctex", "res://.godot/imported/Male_Adult_05_cheer_Male_Adult_05_head.jpg-b7662e2fc750c1ddbdcf7c1afed0f174.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

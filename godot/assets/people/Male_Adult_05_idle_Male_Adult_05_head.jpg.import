@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://camrjs8wq4mky"
-path="res://.godot/imported/Male_Adult_05_idle_Male_Adult_05_head.jpg-64db8f4af3553249c6fc932230729dbe.ctex"
+path.s3tc="res://.godot/imported/Male_Adult_05_idle_Male_Adult_05_head.jpg-64db8f4af3553249c6fc932230729dbe.s3tc.ctex"
+path.etc2="res://.godot/imported/Male_Adult_05_idle_Male_Adult_05_head.jpg-64db8f4af3553249c6fc932230729dbe.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "cb0132209d75fe3e0ff7c3e3716e6ae2"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/people/Male_Adult_05_idle_Male_Adult_05_head.jpg"
-dest_files=["res://.godot/imported/Male_Adult_05_idle_Male_Adult_05_head.jpg-64db8f4af3553249c6fc932230729dbe.ctex"]
+dest_files=["res://.godot/imported/Male_Adult_05_idle_Male_Adult_05_head.jpg-64db8f4af3553249c6fc932230729dbe.s3tc.ctex", "res://.godot/imported/Male_Adult_05_idle_Male_Adult_05_head.jpg-64db8f4af3553249c6fc932230729dbe.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

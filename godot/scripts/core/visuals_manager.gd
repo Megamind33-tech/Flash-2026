@@ -22,7 +22,7 @@ const AXES := ["shadows", "textures", "effects", "view_distance", "post"]
 const SHADOW_RANGE := [0.0, 70.0, 120.0, 170.0]
 const SHADOW_ATLAS := [1024, 1024, 2048, 4096]
 const POSITIONAL_ATLAS := [0, 1024, 2048, 4096]
-const MIP_BIAS := [0.8, 0.3, 0.0, -0.25]
+const MIP_BIAS := [0.5, 0.25, 0.0, 0.0]   # never negative: a sharpening bias brings the shimmer back at speed
 const CAMERA_FAR := [700.0, 1100.0, 1600.0, 2400.0]
 const LOD_THRESHOLD := [12.0, 6.0, 3.0, 1.5]
 const BUILDING_VIEW := [0.0, 380.0, 650.0, 900.0]
@@ -32,6 +32,14 @@ var _axes := {"shadows": -1, "textures": -1, "effects": -1, "view_distance": -1,
 
 
 func _ready() -> void:
+	# Evidence / A-B renders: --gfx post=0,shadows=2 overrides options for this run only (not saved).
+	var args := OS.get_cmdline_user_args()
+	var gi := args.find("--gfx")
+	if gi >= 0 and gi + 1 < args.size():
+		for kv in args[gi + 1].split(","):
+			var p := kv.split("=")
+			if p.size() == 2 and _axes.has(p[0]) and p[1].is_valid_int():
+				_axes[p[0]] = clampi(int(p[1]), -1, 3)
 	get_tree().node_added.connect(func(n):
 		if n is WorldEnvironment or n is Light3D or n is Camera3D or n is GPUParticles3D:
 			_apply_node.call_deferred(n))
@@ -63,7 +71,7 @@ func effective() -> Dictionary:
 	return {
 		"shadows": {"level": s, "sun": s > 0, "range": SHADOW_RANGE[s], "cascades": 2 if s >= 2 else 1, "atlas": SHADOW_ATLAS[s],
 			"positional_atlas": POSITIONAL_ATLAS[s], "soft": s >= 2, "crowd_shadows": s >= 2},
-		"textures": {"level": t, "mip_bias": MIP_BIAS[t], "anisotropy": [0, 1, 2, 3][t], "normal_maps": t >= 1},
+		"textures": {"level": t, "mip_bias": MIP_BIAS[t], "anisotropy": [1, 2, 3, 3][t], "normal_maps": t >= 1},   # 2x even on Low: roads seen at grazing angles
 		"effects": {"level": level("effects"), "particles": PARTICLES[level("effects")], "spray": level("effects") >= 1},
 		"view_distance": {"level": v, "far": CAMERA_FAR[v], "lod_threshold": LOD_THRESHOLD[v], "buildings": BUILDING_VIEW[v]},
 		"post": {"level": p, "glow": p >= 1, "aa": ["none", "fxaa", "msaa2", "msaa4"][p],

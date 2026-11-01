@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://s55652l6ewmq"
-path="res://.godot/imported/Female_Adult_02_cheer_Female_Adult_02_body.jpg-bf2162b7eb567735d329ca81ebc979e5.ctex"
+path.s3tc="res://.godot/imported/Female_Adult_02_cheer_Female_Adult_02_body.jpg-bf2162b7eb567735d329ca81ebc979e5.s3tc.ctex"
+path.etc2="res://.godot/imported/Female_Adult_02_cheer_Female_Adult_02_body.jpg-bf2162b7eb567735d329ca81ebc979e5.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "902b12dbffb3a7bb05f0c47d254085ee"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/people/Female_Adult_02_cheer_Female_Adult_02_body.jpg"
-dest_files=["res://.godot/imported/Female_Adult_02_cheer_Female_Adult_02_body.jpg-bf2162b7eb567735d329ca81ebc979e5.ctex"]
+dest_files=["res://.godot/imported/Female_Adult_02_cheer_Female_Adult_02_body.jpg-bf2162b7eb567735d329ca81ebc979e5.s3tc.ctex", "res://.godot/imported/Female_Adult_02_cheer_Female_Adult_02_body.jpg-bf2162b7eb567735d329ca81ebc979e5.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

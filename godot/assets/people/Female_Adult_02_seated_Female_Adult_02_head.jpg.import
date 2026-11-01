@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://deb8wq7456354"
-path="res://.godot/imported/Female_Adult_02_seated_Female_Adult_02_head.jpg-224108fea55f7da5fa16cdc3aeb8877a.ctex"
+path.s3tc="res://.godot/imported/Female_Adult_02_seated_Female_Adult_02_head.jpg-224108fea55f7da5fa16cdc3aeb8877a.s3tc.ctex"
+path.etc2="res://.godot/imported/Female_Adult_02_seated_Female_Adult_02_head.jpg-224108fea55f7da5fa16cdc3aeb8877a.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "23dc948ea68cd0df3e638086d838f6e8"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/people/Female_Adult_02_seated_Female_Adult_02_head.jpg"
-dest_files=["res://.godot/imported/Female_Adult_02_seated_Female_Adult_02_head.jpg-224108fea55f7da5fa16cdc3aeb8877a.ctex"]
+dest_files=["res://.godot/imported/Female_Adult_02_seated_Female_Adult_02_head.jpg-224108fea55f7da5fa16cdc3aeb8877a.s3tc.ctex", "res://.godot/imported/Female_Adult_02_seated_Female_Adult_02_head.jpg-224108fea55f7da5fa16cdc3aeb8877a.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

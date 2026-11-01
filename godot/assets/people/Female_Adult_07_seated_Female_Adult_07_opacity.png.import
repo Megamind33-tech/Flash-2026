@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://btq5dto5wdp4w"
-path="res://.godot/imported/Female_Adult_07_seated_Female_Adult_07_opacity.png-e315ac845d626238bab3c169b69fdbcc.ctex"
+path.s3tc="res://.godot/imported/Female_Adult_07_seated_Female_Adult_07_opacity.png-e315ac845d626238bab3c169b69fdbcc.s3tc.ctex"
+path.etc2="res://.godot/imported/Female_Adult_07_seated_Female_Adult_07_opacity.png-e315ac845d626238bab3c169b69fdbcc.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "d6ef5e0d333246180a9cf224afd79ed3"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/people/Female_Adult_07_seated_Female_Adult_07_opacity.png"
-dest_files=["res://.godot/imported/Female_Adult_07_seated_Female_Adult_07_opacity.png-e315ac845d626238bab3c169b69fdbcc.ctex"]
+dest_files=["res://.godot/imported/Female_Adult_07_seated_Female_Adult_07_opacity.png-e315ac845d626238bab3c169b69fdbcc.s3tc.ctex", "res://.godot/imported/Female_Adult_07_seated_Female_Adult_07_opacity.png-e315ac845d626238bab3c169b69fdbcc.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

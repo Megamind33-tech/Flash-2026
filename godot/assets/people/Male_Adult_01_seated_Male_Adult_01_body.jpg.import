@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bpmbejtmspfqh"
-path="res://.godot/imported/Male_Adult_01_seated_Male_Adult_01_body.jpg-0460bf82ef5bea0a93656f521bf1becd.ctex"
+path.s3tc="res://.godot/imported/Male_Adult_01_seated_Male_Adult_01_body.jpg-0460bf82ef5bea0a93656f521bf1becd.s3tc.ctex"
+path.etc2="res://.godot/imported/Male_Adult_01_seated_Male_Adult_01_body.jpg-0460bf82ef5bea0a93656f521bf1becd.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "73621a700a5127bf32c31efeae80a6ed"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/people/Male_Adult_01_seated_Male_Adult_01_body.jpg"
-dest_files=["res://.godot/imported/Male_Adult_01_seated_Male_Adult_01_body.jpg-0460bf82ef5bea0a93656f521bf1becd.ctex"]
+dest_files=["res://.godot/imported/Male_Adult_01_seated_Male_Adult_01_body.jpg-0460bf82ef5bea0a93656f521bf1becd.s3tc.ctex", "res://.godot/imported/Male_Adult_01_seated_Male_Adult_01_body.jpg-0460bf82ef5bea0a93656f521bf1becd.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
