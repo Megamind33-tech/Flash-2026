@@ -65,6 +65,30 @@ func _maybe_capture() -> void:
 	var path: String = args[i + 1]
 	var delay := float(args[i + 2])
 	await get_tree().create_timer(delay, true, true).timeout
+	if args.has("--profile"):   # repeatable preset profiling: wall time of the next N rendered frames
+		var n := int(args[args.find("--profile") + 1]) if args.find("--profile") + 1 < args.size() and args[args.find("--profile") + 1].is_valid_int() else 60
+		var ms: Array[float] = []
+		var dc := 0.0
+		var prim := 0.0
+		await RenderingServer.frame_post_draw
+		var t0 := Time.get_ticks_usec()
+		for k in n:
+			await RenderingServer.frame_post_draw
+			var t1 := Time.get_ticks_usec()
+			ms.append((t1 - t0) / 1000.0)
+			t0 = t1
+			dc += Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
+			prim += Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)
+		var sorted := ms.duplicate()
+		sorted.sort()
+		var mean := 0.0
+		for v in ms:
+			mean += v
+		mean /= maxf(1.0, ms.size())
+		print("[GRIDLINE] PROFILE preset=%s quality=%d renderer=%s frames=%d mean_ms=%.1f p95_ms=%.1f draw_calls=%.0f primitives=%.0f video_mem_mb=%.0f nodes=%d (software renderer: compare presets, not devices)" % [
+			PRESETS[quality()]["name"], quality(), ProjectSettings.get_setting("rendering/renderer/rendering_method"), ms.size(), mean,
+			sorted[int(sorted.size() * 0.95) - 1] if sorted.size() > 1 else mean, dc / n, prim / n,
+			Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0, Performance.get_monitor(Performance.OBJECT_NODE_COUNT)])
 	await RenderingServer.frame_post_draw
 	var img := get_viewport().get_texture().get_image()
 	img.save_png(path)

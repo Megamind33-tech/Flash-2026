@@ -61,7 +61,8 @@ func _ready() -> void:
 	autotest = "--autotest" in args
 	if autotest:
 		Game.session["autopilot"] = true
-		Game.session["affects_career"] = false
+		Game.session["affects_career"] = "--career-race" in args   # full-flow test: the autopiloted race pays into the career
+		Game.session["entry_paid"] = false
 		var i := args.find("--autotest")
 		if i + 1 < args.size() and args[i + 1].is_valid_int():
 			Game.session["laps_override"] = int(args[i + 1])
