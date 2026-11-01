@@ -42,6 +42,7 @@ func _process(delta: float) -> void:
 					check(menu.page == p and menu.list.get_child_count() > 0, "page %s (%d items)" % [p, menu.list.get_child_count()])
 					menu._back()
 				# Race events: one card screen, five tabs; every tab builds, every card has its action, nothing launches.
+				var save_before: Dictionary = Game.save.duplicate(true)   # ENTER on a cup starts a championship: undo it after
 				for p in ["competitions", "challenges", "campaigns", "pvp", "quick"]:
 					menu._go(p)
 					var es := menu.overlay as EventScreens
@@ -74,6 +75,9 @@ func _process(delta: float) -> void:
 							check(ev.get("weather", "") == "rain" and ev.get("format", "") == "duel" and int(ev.get("ai", -1)) == 1, "quick race START uses the chosen weather and format")
 						es.queue_free()
 						await get_tree().process_frame
+				Game.save = save_before
+				Game.persist()
+				check(not Game.championship()["active"] or save_before["championship"]["active"], "event screens test leaves the save as it found it")
 				# Two places: the dealership (its own showroom venue, buy/sell) and my garage (team HQ, owned cars only).
 				menu._go("dealership")
 				check(menu.studio is DealershipStudio and menu.studio.is_inside_tree(), "dealership opens the showroom venue")
