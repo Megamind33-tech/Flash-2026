@@ -50,6 +50,7 @@ var _rain_parts: GPUParticles3D
 var _wet_refl: WetReflections
 var _rain_audio: AudioStreamPlayer
 var _weather_offset := 0.0   # evidence only: --weather-t S shows the weather S seconds into a race
+var _weather_speed := 1.0    # evidence only: --weather-speed K runs the weather clock K x (time-lapse of a transition)
 var _flash := 0.0
 var format := "race"
 var medals: Array = []          # time attack targets (ms): gold, silver, bronze
@@ -69,6 +70,9 @@ func _ready() -> void:
 	var wti := args.find("--weather-t")
 	if wti >= 0 and wti + 1 < args.size():
 		_weather_offset = float(args[wti + 1])
+	var wsi := args.find("--weather-speed")
+	if wsi >= 0 and wsi + 1 < args.size():
+		_weather_speed = float(args[wsi + 1])
 	autotest = "--autotest" in args
 	if autotest:
 		Game.session["autopilot"] = true
@@ -765,7 +769,7 @@ func _physics_process(delta: float) -> void:
 		if ghost_car and not player.laps.finished:
 			ghost_car.global_transform = Ghosts.at(ghost["frames"], player.laps.current_lap_elapsed(race_time))
 	# Weather state follows the race clock (identical on every client); spray, rain and light follow the state.
-	Weather.update(race_time + _weather_offset)
+	Weather.update(race_time * _weather_speed + _weather_offset)
 	var spray_k := clampf(Weather.water * 1.3 + 0.25 * Weather.film, 0.0, 1.0)
 	for sp in _sprays:
 		var v := (sp[1] as RaceCarBody).speed_kmh
