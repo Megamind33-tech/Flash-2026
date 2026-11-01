@@ -133,6 +133,9 @@ func _ready() -> void:
 			dd.set_state("inspect" if ds == "inspect" else "browse")
 			if ds == "confirm":
 				dd._request_action()
+		if overlay is EventScreens and args.has("--campaign"):   # evidence: a campaign's chapter ladder
+			(overlay as EventScreens).sel_campaign = args[args.find("--campaign") + 1]
+			(overlay as EventScreens).render()
 		if overlay is DriverCards and args.has("--profile"):
 			(overlay as DriverCards)._profile(DriverCards.all_drivers()[int(args[args.find("--profile") + 1])])
 
