@@ -6,6 +6,8 @@ class_name TeamOwner
 extends RefCounted
 
 const TRAIN_COST := 2500
+const ACADEMY_FEE := 2000      # development contract: always within a new team's $5,000 (economy_test)
+const ACADEMY_SALARY := 350
 const SPONSORS := ["Kafue Cola", "Rift Coffee", "Nile Energy", "Savanna Air", "Volt Rush", "Sahel Solar", "Skyline Mobile",
 	"Baobab Freight", "Kiln Cement", "Zedbank", "Copperline Tyres", "Nordwerk", "Thames & Co"]
 const LEVELS := {"Local": 0, "National": 1, "Continental": 2, "International": 3}
@@ -138,9 +140,18 @@ static func scouts() -> Array:
 			"wet": clampi(base + rng.randi_range(-12, 10), 25, 90), "consistency": clampi(base + rng.randi_range(-10, 8), 30, 90),
 			"potential": clampi(base + int(10 + 22 * youth) + rng.randi_range(-4, 6), base + 4, 97),
 			"number": rng.randi_range(2, 99), "stats": {"starts": 0, "wins": 0, "podiums": 0, "points": 0}, "car": ""}
+		if i == 0:   # the weekly academy prospect: young, raw, high potential, on a development contract
+			d["age"] = rng.randi_range(17, 19)
+			for k in ["pace", "racecraft", "wet", "consistency"]:
+				d[k] = rng.randi_range(33, 42)
+			d["potential"] = rng.randi_range(72, 86)
+			d["academy"] = true
 		var ov := overall(d)
 		d["salary"] = int(round((300 + ov * ov * 0.35) / 50.0)) * 50
 		d["fee"] = int(round((ov * ov * 1.6 + float(d["potential"]) * 60) / 500.0)) * 500
+		if d.get("academy", false):
+			d["fee"] = ACADEMY_FEE
+			d["salary"] = ACADEMY_SALARY
 		if not (s["signed_scouts"] as Array).has(d["id"]):
 			out.append(d)
 	return out
@@ -346,14 +357,43 @@ static func run(comp: Dictionary, driver_ids: Array) -> Dictionary:
 ## Advance a week: salaries are paid, new scouts and sponsor offers appear, training sessions reset.
 static func advance_week() -> int:
 	var s := state()
+	# Wages the wallet cannot cover end the lowest-rated contract (the wallet never goes negative).
+	var left := []
+	var drivers: Array = (s["drivers"] as Array).duplicate()
+	drivers.sort_custom(func(a, b): return overall(a) > overall(b))
 	var wages := 0
-	for d in s["drivers"]:
+	for d in drivers:
 		wages += int(d["salary"])
+	while wages > money() and not drivers.is_empty():
+		var gone: Dictionary = drivers.pop_back()
+		wages -= int(gone["salary"])
+		left.append("%s %s" % [gone["first"], gone["last"]])
+		release(gone["id"])
 	if wages > 0:
 		Game._post(Game.save["career"], -wages, "Team", "Driver salaries, week %d" % int(s["week"]))
 	s["week"] = int(s["week"]) + 1
+	s["last_week_note"] = "" if left.is_empty() else "Contracts ended (wages unpaid): " + ", ".join(left)
 	Game.persist()
 	return wages
+
+
+## The next affordable step for this team, so an owner is never left without a way forward.
+static func next_step() -> String:
+	var s := state()
+	var m := money()
+	if (s["drivers"] as Array).is_empty():
+		var cheapest := 999999
+		for sc in scouts():
+			cheapest = mini(cheapest, int(sc["fee"]))
+		if cheapest <= m:
+			return "Sign your first driver in SCOUTING: the academy prospect costs $%s." % RaceHud._thousands(cheapest)
+		return "You need $%s to sign a driver. Race in Driver Career to earn it (entry from $%s)." % [RaceHud._thousands(cheapest - m), RaceHud._thousands(Game.entry_fee(Game.EVENTS[0]))]
+	if (s["sponsors"] as Array).is_empty() and not offers().is_empty():
+		return "Sign a partner in PARTNERS: they pay for every competition you enter."
+	var local: Dictionary = COMPETITIONS[0]
+	if int(local["fee"]) <= m:
+		return "Enter %s in COMPETITIONS (entry $%s per driver)." % [local["name"], RaceHud._thousands(int(local["fee"]))]
+	return "Entry costs $%s. Race in Driver Career or advance a week for partner income." % RaceHud._thousands(int(local["fee"]))
 
 
 ## Team drivers in the DriverCards format.

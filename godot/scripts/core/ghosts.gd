@@ -7,8 +7,15 @@ extends RefCounted
 const RATE := 0.1
 
 
+## Layout 2+ circuits (reshaped, e.g. Lusaka's chicanes) keep separate ghosts: a lap on the old line would be wrong.
+static var _layouts := {}
+
+
 static func path(city: String, who: String) -> String:
-	return "user://ghosts/%s_%s.json" % [city, who]
+	if not _layouts.has(city):
+		_layouts[city] = int(CityStyles.data(city).get("layout", 1)) if CityStyles.ALL.has(city) else 1
+	var v := int(_layouts[city])
+	return "user://ghosts/%s_%s%s.json" % [city, who, "" if v <= 1 else "_v%d" % v]
 
 
 static func load_ghost(city: String, who: String) -> Dictionary:

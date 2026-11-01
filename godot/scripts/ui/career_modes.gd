@@ -133,7 +133,8 @@ func _frame(title: String, sub: String, tabs: Array) -> void:
 	if mode == "team" and TeamOwner.founded():
 		var nw := _small("NEXT WEEK ›", func():
 			var w := TeamOwner.advance_week()
-			_toast("Week %d · salaries paid $%s" % [int(TeamOwner.state()["week"]), RaceHud._thousands(w)])
+			var note := str(TeamOwner.state().get("last_week_note", ""))
+			_toast(("Week %d · salaries paid $%s" % [int(TeamOwner.state()["week"]), RaceHud._thousands(w)]) + ("  ·  " + note if note != "" else ""))
 			_render(), Color.WHITE)
 		_tabs.add_child(Control.new())
 		_tabs.add_child(nw)
@@ -504,6 +505,12 @@ func _hq_overview(s: Dictionary) -> void:
 	hv.add_child(UiStyle.label(str(s["name"]).to_upper(), UiStyle.display(), 72, Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, false))
 	hv.add_child(UiStyle.label("HEADQUARTERS  ·  SEASON WEEK %d  ·  REPUTATION %d" % [int(s["week"]), int(s["reputation"])], UiStyle.cond_bold(), 24, team_col.lightened(0.35), HORIZONTAL_ALIGNMENT_LEFT, false))
 	head.add_child(hv)
+	var step := PanelContainer.new()   # the next affordable step: an owner is never left without a way forward
+	step.add_theme_stylebox_override("panel", UiStyle.box(Color(0.1, 0.075, 0.04, 0.95), 2, UiStyle.ACCENT, 8))
+	var sl := UiStyle.label("  NEXT STEP  ·  " + TeamOwner.next_step() + "  ", UiStyle.cond_bold(), 26, Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, false)
+	sl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	step.add_child(sl)
+	_body.add_child(step)
 	var wages := 0
 	for d in s["drivers"]:
 		wages += int(d["salary"])

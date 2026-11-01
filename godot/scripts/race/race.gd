@@ -25,6 +25,8 @@ var skill_bonus := 0
 var _music: AudioStreamPlayer
 var _crowd: AudioStreamPlayer3D
 var race_seed := 0
+var overtakes := 0        # places gained on track after the start (each pass counted once, by the passer)
+var car_contacts := 0     # car-to-car impacts above 2 m/s
 var player: Racer
 var standings: Array = []
 var reward := {}
@@ -125,6 +127,10 @@ func _ready() -> void:
 	camera.make_current()
 	Weather.attach_particles(camera)
 	_log_overlaps = "--log-overlaps" in args
+	for rr in racers:   # racecraft metric: car-to-car contacts (impact with another car within 6 m)
+		rr.car.impact.connect(func(strength: float):
+			if strength > 2.0 and racers.any(func(o): return o != rr and o.car.global_position.distance_to(rr.car.global_position) < 6.0):
+				car_contacts += 1)
 	if "--log-impacts" in args:   # diagnostics: every hard speed change, with what was near the car
 		for r in racers:
 			r.car.impact.connect(func(strength: float): _log_impact(r, strength))
@@ -186,6 +192,18 @@ func _ready() -> void:
 		pc.fov = 45.0
 		pc.look_at(player.car.to_global(Vector3(0.36, 0.75, -0.25)), Vector3.UP)
 		pc.make_current()
+		camera.set_physics_process(false)
+	var ctk := args.find("--cam-track")   # evidence: --cam-track <metres along the lap> [height] : looking down the road
+	if ctk >= 0 and ctk + 1 < args.size():
+		var tc := Camera3D.new()
+		add_child(tc)
+		tc.far = 3000.0
+		tc.fov = 60.0
+		var dd := track.wrapd(float(args[ctk + 1]))
+		var hh := float(args[ctk + 2]) if ctk + 2 < args.size() and args[ctk + 2].is_valid_float() else 1.3
+		tc.global_position = track.position_at(dd) + Vector3.UP * hh
+		tc.look_at(track.position_at(track.wrapd(dd + 55.0)) + Vector3.UP * (hh * 0.6), Vector3.UP)
+		tc.make_current()
 		camera.set_physics_process(false)
 	if args.has("--cam-card"):   # card art for the event screens: the grid from behind and above, looking down the road
 		var cc := Camera3D.new()
@@ -291,7 +309,7 @@ func _ready() -> void:
 		add_child(hud)
 		hud.bind(self)
 	# The opener ends by making the chase camera current, so skip it when a screenshot fixes the camera.
-	if DisplayServer.get_name() != "headless" and not (args.has("--cam-card") or args.has("--cam-ad") or args.has("--cam-prop") or args.has("--cam-pothole") or args.has("--cam-people") or args.has("--cam-driver") or args.has("--cam-water") or args.has("--cam-landmark") or args.has("--cam-node") or args.has("--cam-road")):
+	if DisplayServer.get_name() != "headless" and not (args.has("--cam-track") or args.has("--cam-card") or args.has("--cam-ad") or args.has("--cam-prop") or args.has("--cam-pothole") or args.has("--cam-people") or args.has("--cam-driver") or args.has("--cam-water") or args.has("--cam-landmark") or args.has("--cam-node") or args.has("--cam-road")):
 		await _intro()
 	await get_tree().create_timer(0.75).timeout
 	phase = Phase.COUNTDOWN
@@ -565,7 +583,30 @@ func _spawn_grid() -> void:
 	standings = _classify()
 
 
+## Slipstream for the AI cars, by the same rule the player's skill system uses (3-16 m behind, within 1.5 m
+## sideways, above 24 m/s): it cuts aero drag (RaceCarBody.draft), so a following car closes on the straights.
+func _ai_slipstream(delta: float) -> void:
+	for r in racers:
+		if r.is_player or r.car == null:
+			continue
+		var car := r.car
+		var fwd := car.global_basis.z
+		var drafting := false
+		if car.linear_velocity.length() > 24.0:
+			for o in racers:
+				if o == r or o.car == null:
+					continue
+				var rel := o.car.global_position - car.global_position
+				var ahead := rel.dot(fwd)
+				if ahead > 3.0 and ahead < 16.0 and absf(rel.dot(car.global_basis.x)) < 1.5:
+					drafting = true
+					break
+		car.draft = minf(1.0, car.draft + delta * 1.5) if drafting else maxf(0.0, car.draft - delta * 2.0)
+
+
 func _physics_process(delta: float) -> void:
+	if phase == Phase.RACING and not OS.has_environment("AI_NO_DRAFT"):   # env switch: A/B measurements only
+		_ai_slipstream(delta)
 	if Engine.get_physics_frames() % 3 == 0:   # crowd excitement: car positions to the spectator shader at 20 Hz
 		var car_pos := []
 		for r in racers:
@@ -779,6 +820,8 @@ func _classify() -> Array:
 	for i in order.size():
 		for r in racers:
 			if r.id == order[i]["id"]:
+				if race_time > 8.0 and r.position != i + 1 and r.position > i + 1:
+					overtakes += 1   # gained a place on track (racecraft metric, printed at the end)
 				r.position = i + 1
 	return order
 
@@ -853,6 +896,10 @@ func _complete() -> void:
 	print("[GRIDLINE] potholes=%d player_hits=%d all_hits=%d" % [Potholes.holes.size(), player.car.pothole_hits, Potholes.events])
 	print("[GRIDLINE] format=%s city=%s weather=%s/%s grip=%.2f eliminated=%d medal=%d ghost=%s" % [format, city_id, Weather.kind, Weather.time_of_day, Weather.grip, _eliminations, medal, str(not ghost.is_empty())])
 	print("[GRIDLINE] race complete seed=%d event=%s laps=%d player=P%d race_time=%.1fs avg_fps=%.1f worst_frame_ms=%.1f" % [race_seed, event["id"], total_laps, player.position, race_time, avg_fps, _worst_frame * 1000.0])
+	var gaps := []
+	for i in range(1, standings.size()):
+		gaps.append("%.1f" % ((racers.filter(func(x): return x.id == standings[i]["id"])[0].laps.finish_time - racers.filter(func(x): return x.id == standings[i - 1]["id"])[0].laps.finish_time)))
+	print("[GRIDLINE] racecraft overtakes=%d car_contacts=%d finish_gaps_s=%s" % [overtakes, car_contacts, str(gaps)])
 	for s in standings:
 		var r: Racer = racers.filter(func(x): return x.id == s["id"])[0]
 		print("[GRIDLINE]   P%d %-16s finished=%s laps=%d progress=%.0f best=%s recoveries=%d rejected=%d finish=%.4f laps_ms=%s" % [r.position, r.display_name, str(s["finished"]), s["laps"], s["progress"], Racer.format_ms(s["best"]), r.recoveries, r.laps.rejected_steps, r.laps.finish_time, str(r.laps.lap_times)])

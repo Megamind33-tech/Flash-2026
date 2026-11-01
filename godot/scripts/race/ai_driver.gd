@@ -62,7 +62,8 @@ func drive(delta: float) -> void:
 
 	var cap := _traffic(d, speed, delta)
 	_defend(d, speed, delta)
-	_lane = move_toward(_lane, _target_lane, 1.6 * delta)
+	var side := 0.0 if OS.has_environment("AI_NO_SIDE") else _side_room()   # env switch: A/B measurements only
+	_lane = move_toward(_lane, _target_lane + side, 1.6 * delta)
 
 	var lookahead := clampf(7.0 + maxf(speed, 0.0) * 0.55, 7.0, 30.0)
 	var ahead := d + lookahead
@@ -98,6 +99,24 @@ func drive(delta: float) -> void:
 	else:
 		car.throttle = 0.1
 		car.brake_input = 0.0
+
+
+## Side awareness: a car alongside (within 2.8 m of either flank, front or rear quarter) pushes this car's lane
+## away from it by up to 1.2 m, so side-by-side racing keeps a gap instead of leaning into the other car.
+func _side_room() -> float:
+	var space := car.get_world_3d().direct_space_state
+	var push := 0.0
+	var right := -car.global_basis.x   # car frame: +X is left
+	for along: float in [1.4, -1.4]:
+		var from := car.global_position + car.global_basis.z * along + Vector3.UP * 0.6
+		for s: float in [1.0, -1.0]:
+			var q := PhysicsRayQueryParameters3D.create(from, from + right * s * 2.8)
+			q.exclude = [car.get_rid()]
+			var hit := space.intersect_ray(q)
+			if not hit.is_empty() and hit["collider"] is RaceCarBody:
+				var gap := from.distance_to(hit["position"])
+				push -= s * clampf((2.8 - gap) / 1.6, 0.0, 1.0) * 1.2
+	return clampf(push, -1.2, 1.2)
 
 
 ## Defending: when a faster car closes from behind, move toward the inside of the next corner (once, briefly).

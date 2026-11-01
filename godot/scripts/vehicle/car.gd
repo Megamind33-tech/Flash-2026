@@ -55,7 +55,7 @@ const GEARS := 6
 ## Per-kilogram baselines tuned on the 1100 kg prototype (0-100 km/h ~4.2 s, ~200 km/h top speed); scaling
 ## every force with mass keeps acceleration and top speed while giving the car real weight in contacts.
 const ACCEL_PER_KG := 4800.0 / 1100.0
-const BRAKE_PER_KG := 28.0 / 1100.0
+const BRAKE_PER_KG := 40.0 / 1100.0   # with the per-car "brakes" rating: 100-0 in ~33-42 m (tests/handling_test)
 const DRAG_PER_KG := 1.55 / 1100.0
 const DOWNFORCE_PER_KG := 0.95 / 1100.0
 const GRAVITY_SCALE := 1.35       # planted arcade feel: cars land fast instead of floating
@@ -65,7 +65,7 @@ const GRAVITY_SCALE := 1.35       # planted arcade feel: cars land fast instead 
 func configure(spec: Dictionary) -> void:
 	mass = float(spec["mass"])
 	engine_force_max = ACCEL_PER_KG * mass * float(spec["power"])
-	brake_force = BRAKE_PER_KG * mass
+	brake_force = BRAKE_PER_KG * mass * float(spec.get("brakes", 1.0))
 	drag_coefficient = DRAG_PER_KG * mass
 	downforce = DOWNFORCE_PER_KG * mass * float(spec["aero"])
 	grip = 1.35 * float(spec["grip"])
@@ -120,7 +120,11 @@ func _physics_process(delta: float) -> void:
 		brake = brake_force
 	elif brk > 0.05 and fwd_speed > 1.0:
 		engine_force = 0.0
-		brake = brake_force * brk
+		# ABS: ease the pressure while a wheel locks (skid info near 0), so hard braking still steers and stops short.
+		var lock := 1.0
+		for w in _wheels:
+			lock = minf(lock, w.get_skidinfo())
+		brake = brake_force * brk * (0.62 if lock < 0.35 and speed > 4.0 else 1.0)
 	elif brk > 0.05:
 		brake = 0.0
 		engine_force = -engine_force_max * 0.45 * brk

@@ -9,15 +9,15 @@ const DEFAULT_CAR := "arden_v8"
 ## Fictional names only — the source models resemble real cars; no manufacturer names or badges are used.
 ## mass kg · power/grip/aero multipliers (1.0 = baseline) · rear-wheel or all-wheel drive.
 const ROSTER := {
-	"arden_v8": {"vmax": 60.0, "price": 0, "name": "Arden V8 Coupé", "class": "GT", "mass": 1570.0, "power": 1.00, "grip": 1.00, "aero": 1.0, "awd": true,
+	"arden_v8": {"brakes": 1.0, "vmax": 60.0, "price": 0, "name": "Arden V8 Coupé", "class": "GT", "mass": 1570.0, "power": 1.00, "grip": 1.00, "aero": 1.0, "awd": true,
 		"author": "Neubi (BlendSwap #17183)", "licence": "CC0"},
-	"arden_gt3": {"vmax": 62.5, "price": 32000, "name": "Arden GT3 R", "class": "GT3", "mass": 1310.0, "power": 0.97, "grip": 1.04, "aero": 1.6, "awd": false,
+	"arden_gt3": {"brakes": 1.3, "vmax": 62.5, "price": 32000, "name": "Arden GT3 R", "class": "GT3", "mass": 1310.0, "power": 0.97, "grip": 1.04, "aero": 1.6, "awd": false,
 		"author": "BlendSwap #91200 author", "licence": "CC0"},
-	"ravenna_hybrid": {"vmax": 64.0, "price": 60000, "name": "Ravenna Ibrido", "class": "Hypercar", "mass": 1480.0, "power": 1.05, "grip": 1.00, "aero": 1.2, "awd": false,
+	"ravenna_hybrid": {"brakes": 1.2, "vmax": 64.0, "price": 60000, "name": "Ravenna Ibrido", "class": "Hypercar", "mass": 1480.0, "power": 1.05, "grip": 1.00, "aero": 1.2, "awd": false,
 		"author": "zenox3d (BlendSwap #74782)", "licence": "CC BY-SA 3.0"},
-	"solano_concept": {"vmax": 60.5, "price": 18000, "name": "Solano Concepto S", "class": "GT", "mass": 1530.0, "power": 1.02, "grip": 0.99, "aero": 1.0, "awd": false,
+	"solano_concept": {"brakes": 1.08, "vmax": 60.5, "price": 18000, "name": "Solano Concepto S", "class": "GT", "mass": 1530.0, "power": 1.02, "grip": 0.99, "aero": 1.0, "awd": false,
 		"author": "zenox3d (BlendSwap #74332)", "licence": "CC BY-SA 3.0"},
-	"elektra_egt": {"vmax": 59.0, "price": 45000, "name": "Elektra E-GT", "class": "EV", "mass": 2050.0, "power": 1.03, "grip": 0.98, "aero": 0.9, "awd": true,
+	"elektra_egt": {"brakes": 0.95, "vmax": 59.0, "price": 45000, "name": "Elektra E-GT", "class": "EV", "mass": 2050.0, "power": 1.03, "grip": 0.98, "aero": 0.9, "awd": true,
 		"author": "Lee Rosario (BlendSwap #86736)", "licence": "CC BY 3.0"},
 }
 ## Team cars (each AI team races one model; the player picks theirs in the Garage).
