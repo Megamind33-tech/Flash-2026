@@ -1,0 +1,14 @@
+CAMERA UI ok   a new profile starts in Chase (Chase)
+CAMERA UI ok   HUD camera button exists
+CAMERA UI ok   tap: Chase -> Close chase (Close chase)
+CAMERA UI ok   tap: Close chase -> Hood (Hood)
+CAMERA UI ok   the chosen view is saved for the next race
+CAMERA UI ok   tap: Hood -> Chase (this car has no cockpit; Chase)
+CAMERA UI ok   cockpit unavailable without an interior (arden_v8)
+CAMERA UI ok   long press from Hood -> Chase (Chase)
+CAMERA UI ok   gamepad camera action cycles (Close chase)
+CAMERA UI ok   quick cycle visits only driving views [1, 2, 0]
+CAMERA UI ok   pause menu cycle reaches cinematic and wheel inspection [1, 2, 4, 5, 0, 1]
+CAMERA UI ok   from wheel inspection the camera button returns to Chase
+CAMERA UI ok   cockpit only for cars with a modelled interior
+CAMERA UI PASS failures=0

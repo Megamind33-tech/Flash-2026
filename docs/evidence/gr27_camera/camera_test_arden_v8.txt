@@ -1,0 +1,9 @@
+CAMERA Chase            ticks=537 speed<=146 km/h steer<=0.18 roll=0.00 deg dist=5.31..6.49 m local y=1.79..1.89 |x|<=0.85 off=0.09 blocked=0.0% jerk99=0.0024 cuts=0 fovstep=0.232 inside=0
+CAMERA Close chase      ticks=537 speed<=156 km/h steer<=0.05 roll=0.00 deg dist=4.03..5.16 m local y=1.42..1.48 |x|<=0.28 off=0.03 blocked=0.0% jerk99=0.0027 cuts=0 fovstep=0.186 inside=0
+CAMERA Hood             ticks=537 speed<=128 km/h steer<=0.30 roll=1.16 deg dist=1.60..1.61 m local y=1.28..1.28 |x|<=0.00 off=0.00 blocked=0.0% jerk99=0.0107 cuts=0 fovstep=0.069 inside=0
+CAMERA Cinematic        ticks=537 speed<=141 km/h steer<=0.02 roll=0.04 deg dist=8.09..35.65 m local y=3.64..4.63 |x|<=10.28 off=0.27 blocked=0.0% jerk99=0.0000 cuts=0 fovstep=0.400 inside=0
+CAMERA Wheel inspection ticks=537 speed<=151 km/h steer<=0.04 roll=0.00 deg dist=2.83..2.84 m local y=0.52..0.52 |x|<=2.08 off=0.00 blocked=0.0% jerk99=0.0007 cuts=0 fovstep=0.000 inside=0
+CAMERA Chase (barrier hit) ticks=298 speed<=133 km/h steer<=0.28 roll=0.00 deg dist=6.03..6.52 m local y=1.81..1.91 |x|<=0.97 off=0.09 blocked=0.0% jerk99=0.0039 cuts=0 fovstep=0.122 inside=0
+CAMERA Close chase (barrier hit) ticks=298 speed<=132 km/h steer<=0.23 roll=0.00 deg dist=4.11..4.97 m local y=1.05..2.04 |x|<=2.39 off=0.21 blocked=0.0% jerk99=0.0273 cuts=0 fovstep=0.211 inside=0
+CAMERA Hood (barrier hit) ticks=298 speed<=130 km/h steer<=0.29 roll=1.08 deg dist=1.60..1.61 m local y=1.28..1.28 |x|<=0.00 off=0.00 blocked=0.0% jerk99=0.0012 cuts=0 fovstep=0.063 inside=0
+CAMERA TEST PASS failures=0 views=8 car=arden_v8

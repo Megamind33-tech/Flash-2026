@@ -1,0 +1,11 @@
+CAMERA Chase            ticks=537 speed<=144 km/h steer<=0.42 roll=0.00 deg dist=5.20..6.42 m local y=1.78..2.25 |x|<=0.61 off=0.06 blocked=0.0% jerk99=0.0243 cuts=0 fovstep=0.229 inside=0
+CAMERA Close chase      ticks=537 speed<=103 km/h steer<=0.42 roll=0.00 deg dist=4.48..5.32 m local y=1.44..1.51 |x|<=0.56 off=0.08 blocked=0.0% jerk99=0.0086 cuts=0 fovstep=0.019 inside=0
+CAMERA Hood             ticks=537 speed<=160 km/h steer<=0.01 roll=0.20 deg dist=1.61..1.62 m local y=1.05..1.05 |x|<=0.00 off=0.00 blocked=0.0% jerk99=0.0001 cuts=0 fovstep=0.095 inside=0
+CAMERA Cockpit          ticks=537 speed<=130 km/h steer<=0.33 roll=0.96 deg dist=0.46..0.49 m local y=0.90..0.90 |x|<=0.36 off=0.00 blocked=0.0% jerk99=0.0058 cuts=0 fovstep=0.063 inside=0
+CAMERA Cinematic        ticks=537 speed<=145 km/h steer<=0.02 roll=0.04 deg dist=10.34..35.65 m local y=4.32..4.94 |x|<=12.24 off=0.28 blocked=0.0% jerk99=0.0000 cuts=0 fovstep=0.390 inside=0
+CAMERA Wheel inspection ticks=537 speed<=157 km/h steer<=0.04 roll=0.00 deg dist=2.81..2.83 m local y=0.47..0.47 |x|<=2.12 off=0.00 blocked=0.0% jerk99=0.0008 cuts=0 fovstep=0.000 inside=0
+CAMERA Chase (barrier hit) ticks=298 speed<=135 km/h steer<=0.31 roll=0.00 deg dist=5.81..6.59 m local y=1.76..1.91 |x|<=2.16 off=0.14 blocked=0.0% jerk99=0.0046 cuts=0 fovstep=0.109 inside=0
+CAMERA Close chase (barrier hit) ticks=298 speed<=135 km/h steer<=0.42 roll=0.00 deg dist=4.05..5.29 m local y=0.88..2.19 |x|<=4.10 off=0.47 blocked=0.0% jerk99=0.0660 cuts=0 fovstep=0.216 inside=0
+FAIL Close chase (barrier hit): shaking too hard (99th percentile 0.0660)
+CAMERA Hood (barrier hit) ticks=298 speed<=  2 km/h steer<=0.42 roll=0.35 deg dist=1.60..1.62 m local y=1.05..1.05 |x|<=0.00 off=0.00 blocked=0.0% jerk99=0.0045 cuts=0 fovstep=0.002 inside=0
+CAMERA TEST FAIL failures=1 views=9 car=ravenna_hybrid
