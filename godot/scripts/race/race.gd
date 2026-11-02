@@ -540,9 +540,12 @@ func _aim_sun() -> void:
 	var elev := deg_to_rad(8.0 if dusk else 22.0)
 	var dir := (travel * cos(elev) + Vector3.DOWN * sin(elev)).normalized()
 	sun.global_basis = Basis.looking_at(dir, Vector3.UP)
-	# the panorama's own sun and glow go where the light comes from
-	var env: Environment = _env["env"]
-	env.sky_rotation = Vector3(0.0, Weather.sky_yaw_for(str(_env.get("sky", "")), -travel), 0.0)
+	# day: the panorama's own sun and glow go where the light comes from (behind the camera, blue sky ahead).
+	# Dusk keeps the panorama as authored: its low-sun glow ahead of the grid is what lights the wet road (the
+	# rotated sunset put the glow out of frame and the dusk states lost their warmth - weather A/B sheet).
+	if not dusk:
+		var env: Environment = _env["env"]
+		env.sky_rotation = Vector3(0.0, Weather.sky_yaw_for(str(_env.get("sky", "")), -travel), 0.0)
 
 
 func _build_environment() -> void:
