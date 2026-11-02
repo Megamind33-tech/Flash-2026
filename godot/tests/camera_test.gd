@@ -41,6 +41,10 @@ func check(cond: bool, what: String) -> void:
 
 
 func _ready() -> void:
+	# Sample after the camera has moved this tick. The default order runs this node (the race's parent) first, which
+	# pairs the camera's previous-tick position with the car's current one: a skew of speed x dt (0.7 m at 40 m/s)
+	# that showed up as phantom jerk at every impact.
+	process_physics_priority = 1000
 	race = load("res://scenes/race.tscn").instantiate()
 	add_child(race)
 
