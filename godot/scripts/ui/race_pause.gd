@@ -49,9 +49,11 @@ func _build() -> void:
 		get_tree().paused = false
 		if race:
 			race.restart())
-	_big(grid, "Change Camera", func():
+	var cam_btn: Button = null
+	cam_btn = _big(grid, "Camera: " + ChaseCamera.view_label(race.camera.view), func():
 		if race:
-			race.camera.cycle())
+			race.camera.cycle_all()   # every view, including the explicit-choice cinematic and wheel inspection
+			cam_btn.text = "Camera: " + ChaseCamera.view_label(race.camera.view))
 	_big(grid, "Settings", _open_options)
 	_big(grid, "Edit Controls", func():   # drag the touch pads (HUD layout editor), race stays paused
 		visible = false

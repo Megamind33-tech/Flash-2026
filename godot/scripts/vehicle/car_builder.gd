@@ -169,31 +169,62 @@ static func material(slot: String, livery: String) -> Material:
 const CAR_LAYER := 2   # render layer of car bodies: the contact-shadow decal skips it
 
 
-static var _shadow_tex: Texture2D
+## Contact shadow: one decal on the road shaped like the car's footprint (the Mobile renderer has no SSAO). Darkest
+## in four tyre contact patches, a softer occlusion band under the body that fades out within about 0.3 m of the
+## sills, nothing beyond - not a round blob. The sun's real shadow is cast on top of it.
+static var _footprints := {}
+const FOOT_W := 64
+const FOOT_H := 128
 
 
-## Soft contact shadow under the car (a decal on the road), so it sits on the ground instead of floating.
-## Directional shadows alone leave a bright gap under the sills; ambient occlusion would close it but the
-## Mobile renderer has no SSAO.
-static func _contact_shadow(bmin: Vector3, bmax: Vector3) -> Decal:
-	if _shadow_tex == null:
-		var g := Gradient.new()
-		g.set_color(0, Color(0, 0, 0, 0.78))
-		g.set_color(1, Color(0, 0, 0, 0.0))
-		g.add_point(0.55, Color(0, 0, 0, 0.55))
-		var t := GradientTexture2D.new()
-		t.gradient = g
-		t.fill = GradientTexture2D.FILL_RADIAL
-		t.fill_from = Vector2(0.5, 0.5)
-		t.fill_to = Vector2(1.0, 0.5)
-		t.width = 128
-		t.height = 128
-		_shadow_tex = t
+static func _smooth(a: float, b: float, x: float) -> float:
+	var t := clampf((x - a) / (b - a), 0.0, 1.0)
+	return t * t * (3.0 - 2.0 * t)
+
+
+## Signed distance to a rounded box centred at c with half extents h and corner radius r (negative inside).
+static func _rbox(px: float, pz: float, cx: float, cz: float, hx: float, hz: float, r: float) -> float:
+	var qx := absf(px - cx) - (hx - r)
+	var qz := absf(pz - cz) - (hz - r)
+	return Vector2(maxf(qx, 0.0), maxf(qz, 0.0)).length() + minf(maxf(qx, qz), 0.0) - r
+
+
+static func _footprint(car_id: String, geo: Dictionary, size: Vector2, zc: float) -> Texture2D:
+	if _footprints.has(car_id):
+		return _footprints[car_id]
+	var bmin: Vector3 = geo["body_min"]
+	var bmax: Vector3 = geo["body_max"]
+	var wheels: Array[Vector3] = []
+	for k in ["Wheel_FL", "Wheel_FR", "Wheel_RL", "Wheel_RR"]:
+		wheels.append(geo[k][0])
+	var hx := (bmax.x - bmin.x) * 0.5 - 0.10        # the band under the body stops just inside the sills
+	var hz := (bmax.z - bmin.z) * 0.5 - 0.30
+	var bz := (bmin.z + bmax.z) * 0.5 - zc
+	var img := Image.create(FOOT_W, FOOT_H, false, Image.FORMAT_LA8)
+	for j in FOOT_H:
+		var z := (float(j) + 0.5) / FOOT_H * size.y - size.y * 0.5
+		for i in FOOT_W:
+			var x := (float(i) + 0.5) / FOOT_W * size.x - size.x * 0.5
+			var a := 0.55 * (1.0 - _smooth(-0.05, 0.34, _rbox(x, z, 0.0, bz, hx, hz, 0.55)))
+			for w in wheels:   # tyre patch: tyre width x 0.5 m, soft 0.12 m edge, much darker than the band
+				var d := _rbox(x, z, w.x, w.z - zc, 0.14, 0.26, 0.10)
+				a = maxf(a, 0.9 * (1.0 - _smooth(0.0, 0.14, d)))
+			img.set_pixel(i, j, Color(0.0, 0.0, 0.0, clampf(a, 0.0, 1.0)))
+	var tex := ImageTexture.create_from_image(img)
+	_footprints[car_id] = tex
+	return tex
+
+
+static func _contact_shadow(car_id: String, geo: Dictionary) -> Decal:
+	var bmin: Vector3 = geo["body_min"]
+	var bmax: Vector3 = geo["body_max"]
+	var zc := (bmin.z + bmax.z) * 0.5
 	var d := Decal.new()
 	d.name = "ContactShadow"
-	d.texture_albedo = _shadow_tex
-	d.size = Vector3((bmax.x - bmin.x) * 1.2, 1.2, (bmax.z - bmin.z) * 1.12)
-	d.position = Vector3(0, 0.3, (bmin.z + bmax.z) * 0.5)
+	var size := Vector2((bmax.x - bmin.x) + 0.9, (bmax.z - bmin.z) + 0.9)
+	d.size = Vector3(size.x, 1.2, size.y)
+	d.texture_albedo = _footprint(car_id, geo, size, zc)
+	d.position = Vector3(0, 0.3, zc)
 	d.cull_mask = 1               # project onto the world only, never onto the car itself
 	d.upper_fade = 0.3
 	d.lower_fade = 0.3
@@ -435,12 +466,7 @@ static func build(livery: String, with_audio: bool, car_id := DEFAULT_CAR) -> Ra
 			visual.add_child(copy)
 	model.free()
 	_reverse_lamps(car, tail_pts)
-	car.add_child(_contact_shadow(bmin, bmax))
-	var core := _contact_shadow(bmin, bmax)   # tighter, darker core under the body: the car sits on the floor
-	core.name = "ContactShadowCore"
-	core.size = Vector3((bmax.x - bmin.x) * 0.92, 0.8, (bmax.z - bmin.z) * 0.9)
-	core.modulate = Color(1, 1, 1, 0.85)
-	car.add_child(core)
+	car.add_child(_contact_shadow(car_id, geo))
 
 	# Axle-symmetric suspension points (the models are hand-built, so left/right can differ by a few mm).
 	for k in ["Wheel_FL", "Wheel_FR", "Wheel_RL", "Wheel_RR"]:

@@ -150,6 +150,12 @@ func _ready() -> void:
 	camera.target = player.car
 	camera.far = 1500.0
 	add_child(camera)
+	camera.rivals = racers.map(func(r): return r.car)
+	camera.select(camera.preferred(), false)   # the driving view chosen last time (Chase if this car cannot show it)
+	var cvi := args.find("--cam-view")   # tests / evidence: start in a named view (chase, close, hood, cockpit, cinematic, wheel)
+	if cvi >= 0 and cvi + 1 < args.size():
+		camera.select(maxi(0, ChaseCamera.VIEW_NAMES.map(func(n): return str(n).to_lower().split(" ")[0]).find(str(args[cvi + 1]).to_lower())), false)
+	camera.view_changed.connect(func(v: int): notice.emit("CAMERA: " + ChaseCamera.view_label(v).to_upper()))
 	camera.make_current()
 	_rain_parts = Weather.attach_particles(camera)
 	if float(Weather.STATE.get(Weather.kind, Weather.STATE["clear"])[0]) > 0.0:   # rainfall ambience (GR27)
@@ -251,6 +257,10 @@ func _ready() -> void:
 			sc.fov = 40.0
 			sc.position = Vector3(2.3, 0.45, 2.3)
 			sc.look_at(player.car.to_global(Vector3(0.75, 0.32, 1.3)), Vector3.UP)
+		elif view == "ground":   # rear three-quarter at tyre height: how the car meets the road (contact shadow, tyre patches)
+			sc.fov = 45.0
+			sc.position = Vector3(2.7, 0.42, -3.4)
+			sc.look_at(player.car.to_global(Vector3(0.0, 0.3, -0.4)), Vector3.UP)
 		elif view == "chase":   # behind and above, the road ahead
 			sc.fov = 62.0
 			sc.position = Vector3(0.0, 2.0, -6.2)
@@ -959,6 +969,11 @@ func _race_audio() -> void:
 			_music.play())
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if camera and event.is_action_pressed("camera") and phase in [Phase.COUNTDOWN, Phase.RACING, Phase.FINISHING]:
+		camera.cycle()   # gamepad Y (rebindable): next view; from cinematic / wheel straight back to Chase
+
+
 func _player_input() -> void:
 	var car := player.car
 	var s := Game.settings()
@@ -1098,6 +1113,8 @@ func _process(delta: float) -> void:
 		if ais.filter(func(a): return a.racer == player).is_empty():
 			ais.append(AIDriver.new(player, track, {"skill": 60, "experience": 50, "aggression": 20, "consistency": 90}, 7))
 		notice.emit("FINISH")
+		if camera and camera.view in ChaseCamera.DRIVING:   # the car drives itself now: the broadcast view takes over
+			camera.select(ChaseCamera.View.CINEMATIC, false)
 	var all_done := racers.all(func(r): return r.laps.finished or r.eliminated)
 	if Game.session.has("online") and Net.is_online():
 		# online the server decides the result: stay in the race (and connected, so the finish report is delivered)

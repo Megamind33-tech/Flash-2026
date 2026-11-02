@@ -46,6 +46,20 @@ void fragment() {
 	wall *= 1.0 - stains * (0.2 * streak + 0.35 * top);
 	wall *= mix(0.72, 1.0, smoothstep(0.0, 1.4, m.y));
 
+	// Cornice and parapet: a lit cap on the roofline with a shadow band under it, so the top edge reads as a
+	// structure and not a cut-off texture.
+	float cap = step(bh - 0.5, m.y);
+	float under_cap = smoothstep(bh - 1.15, bh - 0.5, m.y) * (1.0 - cap);
+	wall = mix(wall * mix(1.0, 0.8, under_cap), wall * 1.14, cap);
+	// Pilasters: on about half the buildings, a raised strip at every bay line (lit edge, shaded side).
+	float has_pil = step(0.5, h1(seed + 30.0));
+	float bx = m.x / bay;
+	float px = min(fract(bx), 1.0 - fract(bx));
+	float pil = has_pil * (1.0 - smoothstep(0.045, 0.075, px)) * step(1.0, m.y);
+	wall *= 1.0 + pil * (fract(bx) < 0.5 ? 0.08 : -0.12);
+	// Each building gets its own window proportions, so a street is not one window repeated.
+	vec2 wsz = win * vec2(mix(0.82, 1.14, h1(seed + 4.0)), mix(0.88, 1.1, h1(seed + 5.0)));
+
 	vec2 cell = vec2(m.x / bay, m.y / floor_h);
 	vec2 id = floor(cell);
 	vec2 f = fract(cell);
@@ -53,25 +67,58 @@ void fragment() {
 	float edge_ok = step(bay * 0.45, m.x) * step(m.x, wl - bay * 0.45);
 	float roof_ok = step(m.y, bh - 1.4);
 	float wsel = (1.0 - ground) * edge_ok * roof_ok;
-	float inner = step(abs(f.x - 0.5), win.x * 0.5) * step(abs(f.y - 0.52), win.y * 0.5) * wsel;
-	float outer = step(abs(f.x - 0.5), win.x * 0.5 + frame_w) * step(abs(f.y - 0.52), win.y * 0.5 + frame_w) * wsel;
+	float inner = step(abs(f.x - 0.5), wsz.x * 0.5) * step(abs(f.y - 0.52), wsz.y * 0.5) * wsel;
+	float outer = step(abs(f.x - 0.5), wsz.x * 0.5 + frame_w) * step(abs(f.y - 0.52), wsz.y * 0.5 + frame_w) * wsel;
 	float r = h2(id + seed);
 	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0);
 	vec3 sky = mix(vec3(0.42, 0.47, 0.52), vec3(0.78, 0.82, 0.86), f.y);
 	vec3 interior = mix(vec3(0.04, 0.045, 0.05), vec3(0.3, 0.24, 0.17), r * r);
 	vec3 glass = mix(interior, sky, 0.3 + 0.6 * fres);
-	float mull = clamp(step(abs(f.x - 0.5), 0.012) + step(abs(f.y - 0.64), 0.012), 0.0, 1.0);
+	// Recessed opening: the reveal shades the glass under the lintel and along the side away from the light.
+	float ex = abs(f.x - 0.5) / (wsz.x * 0.5);
+	float ey = (f.y - 0.52) / (wsz.y * 0.5);
+	float reveal = smoothstep(0.55, 1.0, ey) * 0.6 + smoothstep(0.8, 1.0, ex) * 0.3 * (f.x < 0.5 ? 1.0 : 0.5);
+	glass *= 1.0 - clamp(reveal, 0.0, 0.8);
+	// Window variety: some are blinded (a half-drawn blind), some shuttered.
+	float wv = h2(id + seed + 13.0);
+	float blind = step(0.78, wv) * step(wv, 0.9);
+	float blind_h = 0.25 + 0.6 * h2(id + seed + 15.0);
+	float below_blind = step(1.0 - (f.y - (0.52 - wsz.y * 0.5)) / wsz.y, blind_h);
+	vec3 blind_col = mix(vec3(0.78, 0.74, 0.66), vec3(0.62, 0.66, 0.7), h2(id + seed + 17.0)) * (0.85 + 0.15 * step(0.5, fract(f.y * 14.0)));
+	glass = mix(glass, blind_col * (1.0 - reveal * 0.5), blind * below_blind);
+	float shut = step(0.9, wv);
+	vec3 shut_col = mix(vec3(0.34, 0.37, 0.35), vec3(0.4, 0.3, 0.22), h2(id + seed + 19.0)) * (0.8 + 0.2 * step(0.5, fract(f.y * 18.0)));
+	glass = mix(glass, shut_col, shut);
+	float mull = clamp(step(abs(f.x - 0.5), 0.012) + step(abs(f.y - 0.64), 0.012), 0.0, 1.0) * (1.0 - shut);
 	vec3 col = mix(wall, frame_col, outer);
 	col = mix(col, glass, inner * (1.0 - mull));
-	float rough = mix(0.93, 0.06, inner);
-	float sill = step(abs(f.x - 0.5), win.x * 0.5 + frame_w * 2.0) *
-		step(abs(f.y - (0.52 - win.y * 0.5 - frame_w - 0.03)), 0.03) * wsel;
+	// A few units hang an air conditioner under the sill.
+	float ac = step(0.93, h2(id + seed + 21.0)) * wsel * step(abs(f.x - 0.5), 0.13) * step(abs(f.y - 0.16), 0.07);
+	col = mix(col, vec3(0.62, 0.63, 0.62) * (0.8 + 0.2 * step(0.5, fract(f.x * 22.0))), ac);
+	float rough = mix(0.93, mix(0.06, 0.7, max(blind * below_blind, shut)), inner);
+	float sill = step(abs(f.x - 0.5), wsz.x * 0.5 + frame_w * 2.0) *
+		step(abs(f.y - (0.52 - wsz.y * 0.5 - frame_w - 0.03)), 0.03) * wsel;
 	col = mix(col, wall * 1.2, sill);
 	vec3 emit = vec3(0.0);
 	float lit = step(0.5, h2(id + seed + 7.0)) * night;
 	emit += inner * (1.0 - mull) * lit * mix(vec3(1.0, 0.72, 0.42), vec3(0.85, 0.9, 1.0), h2(id + seed + 9.0)) * 1.8;
 
-	if (shop > 0.0 && ground > 0.5 && edge_ok > 0.5) {
+	// One entrance per building: a framed door with a glazed panel and a canopy, in a bay between the end bays.
+	float n_bays = floor(wl / bay);
+	float door_x = 1.0 + floor(h1(seed + 40.0) * max(n_bays - 2.0, 1.0));
+	bool is_door = ground > 0.5 && edge_ok > 0.5 && id.x == door_x && wl > bay * 3.0;
+	if (is_door) {
+		float dframe = step(abs(f.x - 0.5), 0.23) * step(f.y, 0.8);
+		float dleaf = step(abs(f.x - 0.5), 0.195) * step(f.y, 0.77);
+		float panel = step(0.36, f.y) * step(f.y, 0.7) * step(abs(f.x - 0.5), 0.13);
+		vec3 leaf_col = mix(vec3(0.16, 0.11, 0.08), vec3(0.1, 0.15, 0.18), h1(seed + 41.0));
+		col = mix(col, frame_col * 1.5, dframe);
+		col = mix(col, leaf_col, dleaf);
+		col = mix(col, mix(sky * 0.35, interior, 0.55), panel * dleaf);
+		float canopy = step(0.8, f.y) * step(f.y, 0.9) * step(abs(f.x - 0.5), 0.33);
+		col = mix(col, sign_a * 0.75, canopy);
+		rough = mix(rough, 0.45, max(dleaf, canopy));
+	} else if (shop > 0.0 && ground > 0.5 && edge_ok > 0.5) {
 		float sr = h2(vec2(id.x, seed + 11.0));
 		float front = step(abs(f.x - 0.5), 0.45) * step(0.05, f.y) * step(f.y, 0.76) * step(sr, shop);
 		float band = step(0.79, f.y) * step(f.y, 0.97) * step(abs(f.x - 0.5), 0.49) * step(sr, shop);

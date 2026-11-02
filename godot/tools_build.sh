@@ -30,6 +30,8 @@ echo "== menu nav";   timeout 500 "$G" --headless --path . res://tests/menu_nav_
 echo "== buttons";    timeout 300 "$G" --headless --path . res://tests/ui_buttons_test.tscn 2>&1 | grep -E "^BUTTONS|FAIL"
 echo "== restarts";     ./tools_flow.sh
 echo "== race start"; timeout 400 "$G" --headless --path . --audio-driver Dummy --fixed-fps 60 res://tests/race_start_test.tscn -- --autotest 1 --seed 4 --city lusaka --weather rain 2>&1 | grep -E "^RACE START|FAIL"
+echo "== camera views"; timeout 900 "$G" --headless --path . --audio-driver Dummy res://tests/camera_test.tscn -- --autotest 1 --seed 4 --car ravenna_hybrid 2>&1 | grep -E "^CAMERA|FAIL"
+echo "== camera ui";    timeout 400 "$G" --headless --path . --fixed-fps 60 res://tests/camera_ui_test.tscn 2>&1 | grep -E "^CAMERA UI"
 echo "== landmarks";   timeout 300 "$G" --headless --path . res://tests/landmark_test.tscn 2>&1 | grep -E "LANDMARK|SCRIPT ERROR"
 echo "== competition"; timeout 120 "$G" --headless --path . res://tests/competition_test.tscn 2>&1 | grep -E "^COMPETITION|FAIL"
 echo "== online 1v1"; timeout 600 "$G" --headless --path . res://tests/net_test.tscn 2>&1 | grep -E "^NET |FAIL"

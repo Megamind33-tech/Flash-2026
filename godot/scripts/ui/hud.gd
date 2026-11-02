@@ -385,7 +385,15 @@ func _build_buttons() -> void:
 	row.offset_top = 18
 	row.alignment = BoxContainer.ALIGNMENT_END
 	row.add_theme_constant_override("separation", 12)
-	row.add_child(_sprite_button("camera", func(): race.camera.cycle()))
+	var cam_btn := _sprite_button("camera", func(): pass)   # tap: next view; hold half a second: back to Chase
+	var cam_down := [0]
+	cam_btn.button_down.connect(func(): cam_down[0] = Time.get_ticks_msec())
+	cam_btn.button_up.connect(func():
+		if Time.get_ticks_msec() - int(cam_down[0]) >= 500:
+			race.camera.to_chase()
+		else:
+			race.camera.cycle())
+	row.add_child(cam_btn)
 	row.add_child(_sprite_button("pause", func(): _set_pause(true)))
 	row.add_child(_sprite_button("settings", func():   # straight into Settings (the race stays paused behind it)
 		_set_pause(true)
