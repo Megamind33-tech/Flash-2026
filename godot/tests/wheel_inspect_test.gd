@@ -72,7 +72,9 @@ func _inspect(id: String) -> void:
 	var body_pts := PackedVector3Array()   # bodywork vertices near the wheels, car space
 	var visual := car.get_node("Visual")
 	for c in visual.get_children():
-		if c is MeshInstance3D and not c.has_meta("gl_lod") and (c as MeshInstance3D).visible:
+		# the arch liners (CarBuilder._arch_liners) wrap the wheel by design: a steered or compressed tyre hides
+		# their inner face, so they are not bodywork the tyre can be seen to cut through
+		if c is MeshInstance3D and not c.has_meta("gl_lod") and (c as MeshInstance3D).visible and String(c.name) != "ArchLiners":
 			var mi := c as MeshInstance3D
 			for s in mi.mesh.get_surface_count():
 				for v in (mi.mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX] as PackedVector3Array):
