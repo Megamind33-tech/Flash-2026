@@ -31,6 +31,7 @@ var target: RaceCarBody
 var rivals: Array = []          # other cars: the chase rig lifts over a car that drives into it (set by Race)
 var view: int = View.CHASE
 var _yaw := 0.0
+var _yaw_vel := 0.0
 var _snap := true
 var _shake := 0.0
 var _shake_t := 0.0
@@ -179,21 +180,25 @@ func _update_chase(delta: float, car_yaw: float, speed: float) -> void:
 	var rig: Array = RIG[view]
 	var target_yaw := car_yaw
 	# In a slide, follow part of the direction of travel rather than only the nose, so a drift reads as an angle
-	# on screen instead of the world rotating around a fixed car.
+	# on screen instead of the world rotating around a fixed car. In a spin (the nose whipping round at several
+	# rad/s) follow the direction of travel almost entirely and answer more slowly: the car turns in the frame,
+	# the camera does not orbit it.
+	var spin := smoothstep(1.5, 4.5, absf(target.angular_velocity.y))
 	var vel := target.linear_velocity
 	vel.y = 0.0
 	if vel.length() > 8.0:
 		var vyaw := atan2(vel.x, vel.z)
 		var diff := wrapf(vyaw - target_yaw, -PI, PI)
-		if absf(diff) < 1.2:
-			target_yaw += diff * SLIP_FOLLOW * (0.5 if Game.reduce_motion() else 1.0)
+		if absf(diff) < lerpf(1.2, 2.6, spin):
+			target_yaw += diff * lerpf(SLIP_FOLLOW * (0.5 if Game.reduce_motion() else 1.0), 0.9, spin)
 	if _snap:
 		_yaw = target_yaw
+		_yaw_vel = 0.0
 		_swing = 0.0
 		_lead = 0.0
 		_lift = 0.0
 		_arm = 1.0
-	_yaw = lerp_angle(_yaw, target_yaw, clampf(delta * 6.0, 0.0, 1.0))
+	_yaw = _smooth_damp_angle(_yaw, target_yaw, lerpf(0.15, 0.32, spin), delta)
 	var rot := Basis(Vector3.UP, _yaw)
 	var calm := 0.5 if Game.reduce_motion() else 1.0
 	# Pull back a little at speed and swing slightly wide of the turn so corners read better.
@@ -213,8 +218,20 @@ func _update_chase(delta: float, car_yaw: float, speed: float) -> void:
 	var pos := desired if _snap else (global_position + target.linear_velocity * delta).lerp(desired, clampf(delta * 8.0, 0.0, 1.0))
 	var arm := _wall_fraction(pivot, pos)
 	_arm = arm if _snap else lerpf(_arm, arm, clampf(delta * (20.0 if arm < _arm else 2.5), 0.0, 1.0))
-	global_position = pivot + (pos - pivot) * _arm
+	global_position = pivot + (pos - pivot) * _arm + Vector3.UP * ((1.0 - _arm) * 1.4)   # pushed in by a wall: it rises and looks down over the car
 	look_at(target.global_position + Vector3.UP * 0.95 + rot * Vector3(_lead, 0, 6.0), Vector3.UP)
+
+
+## Critically damped follow of an angle (a spring with no overshoot): velocity stays continuous, so a sudden change of
+## the target turns the camera up to speed smoothly instead of kicking it. smooth_time ~ the time to close most of the gap.
+func _smooth_damp_angle(current: float, target_angle: float, smooth_time: float, delta: float) -> float:
+	var omega := 2.0 / maxf(smooth_time, 0.0001)
+	var x := omega * delta
+	var e := 1.0 / (1.0 + x + 0.48 * x * x + 0.235 * x * x * x)
+	var change := wrapf(current - target_angle, -PI, PI)
+	var temp := (_yaw_vel + omega * change) * delta
+	_yaw_vel = (_yaw_vel - omega * temp) * e
+	return wrapf(target_angle + (change + temp) * e, -PI, PI)
 
 
 ## Share (0..1) of the way from the pivot to p that is free of scenery; 1 = nothing in the way.
@@ -225,7 +242,7 @@ func _wall_fraction(pivot: Vector3, p: Vector3) -> float:
 	if hit.is_empty() or hit["collider"] is RaceCarBody:
 		return 1.0
 	var len_ := maxf(pivot.distance_to(p), 0.01)
-	return clampf((pivot.distance_to(hit["position"] as Vector3) - 0.4) / len_, 0.1, 1.0)
+	return clampf((pivot.distance_to(hit["position"] as Vector3) - 0.4) / len_, minf(3.0 / len_, 1.0), 1.0)   # never closer than 3 m
 
 
 ## Extra height needed to clear any rival whose body the rig position (car-relative) falls inside.
