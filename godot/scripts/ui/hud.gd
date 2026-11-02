@@ -4,6 +4,7 @@ class_name RaceHud
 extends CanvasLayer
 
 const RPM_SEGMENTS := 22
+const BOARD_ROWS := 6     # compact tower: with more cars it shows the top 3 and the player with the cars either side
 const HUD27 := "res://assets/ui/hud27/"
 const TEAM_COLORS := {"player": UiStyle.GOLD}
 
@@ -207,7 +208,7 @@ func _build_board() -> void:
 	info["lap"] = lapv
 	var y := 20.0 + 108.0 * k
 	var rh := 45.0 * k
-	for i in race.racers.size():
+	for i in mini(race.racers.size(), BOARD_ROWS):
 		var row := TextureRect.new()
 		row.texture = _row_tex
 		row.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -239,10 +240,17 @@ func _build_board() -> void:
 	var foot := TextureRect.new()
 	foot.texture = load(HUD27 + "lb_footer.png")
 	foot.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	foot.position = Vector2(24, y + race.racers.size() * rh - 2)
+	foot.position = Vector2(24, y + mini(race.racers.size(), BOARD_ROWS) * rh - 2)
 	foot.size = Vector2(330, 14 * k)
 	foot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud_layer.add_child(foot)
+	# online team race: format and live team score under the tower (points as the field stands now)
+	if Game.session.has("online"):
+		var chip := UiStyle.label("", UiStyle.font("BarlowCondensed-ExtraBold"), 24, Color.WHITE, HORIZONTAL_ALIGNMENT_LEFT, true)
+		chip.position = Vector2(30, y + mini(race.racers.size(), BOARD_ROWS) * rh + 14)
+		chip.size = Vector2(330, 30)
+		hud_layer.add_child(chip)
+		info["online"] = chip
 
 
 
@@ -360,7 +368,8 @@ func _icon_button(icon: String, cb: Callable) -> Button:
 	b.add_theme_stylebox_override("normal", UiStyle.box(Color(0, 0, 0, 0.6)))
 	b.add_theme_stylebox_override("hover", UiStyle.box(Color(0, 0, 0, 0.75)))
 	b.add_theme_stylebox_override("pressed", UiStyle.box(Color(1, 1, 1, 1)))
-	b.icon = load("res://assets/icons/ic_%s.png" % icon)
+	if icon != "":
+		b.icon = load("res://assets/icons/ic_%s.png" % icon)
 	b.expand_icon = true
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	b.add_theme_constant_override("icon_max_width", 40)
@@ -443,7 +452,7 @@ func release_controls() -> void:
 
 ## Touch control drawn with a GRINDLINE 27 sprite (normal / pressed). A TouchScreenButton is the input: true
 ## multi-touch, slide between buttons (passby), action press/release; its shape matches the sprite.
-func _sprite_pad(parent: Control, action: String, pos: Vector2, sz: Vector2, sprite: String, round := false) -> void:
+func _sprite_pad(parent: Control, action: String, pos: Vector2, sz: Vector2, sprite: String, round := false) -> Control:
 	var holder := Control.new()
 	holder.position = pos
 	holder.size = sz
@@ -467,11 +476,26 @@ func _sprite_pad(parent: Control, action: String, pos: Vector2, sz: Vector2, spr
 	tsb.action = action
 	tsb.passby_press = true
 	holder.add_child(tsb)
+	return holder
+
+
+## Progressive pedal (scripts/ui/touch_pedal.gd): strength from the finger's height on the pedal.
+func _pedal_pad(parent: Control, action: String, pos: Vector2, sz: Vector2, sprite: String, tint: Color) -> Control:
+	var p := TouchPedal.new()
+	p.action = action
+	p.tint = tint
+	p.texture = load(HUD27 + sprite + ".png")
+	if ResourceLoader.exists(HUD27 + sprite + "_pressed.png"):
+		p.texture_pressed = load(HUD27 + sprite + "_pressed.png")
+	p.position = pos
+	p.size = sz
+	parent.add_child(p)
+	return p
 
 
 ## Steering pad: a dark, semi-transparent disc with a clear white arrow and a hairline edge (no metal ring);
 ## brightens while held. TouchScreenButton input (multi-touch, slide between pads).
-func _steer_pad(parent: Control, action: String, pos: Vector2, icon: String) -> void:
+func _steer_pad(parent: Control, action: String, pos: Vector2, icon: String) -> Control:
 	var sz := Vector2(210, 210)
 	var disc := Control.new()
 	disc.position = pos
@@ -504,6 +528,7 @@ func _steer_pad(parent: Control, action: String, pos: Vector2, icon: String) -> 
 		disc.set_meta("held", false)
 		disc.queue_redraw())
 	disc.add_child(tsb)
+	return disc
 
 
 ## Pedal-style touch pad (brake / accelerator): a rounded plate with a grip-dot pattern, lit in its colour while held.
@@ -543,13 +568,22 @@ func _build_controls() -> void:
 	right.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	controls.add_child(right)
 	var tilt: bool = Game.settings()["steering"] == "tilt"
+	var pads := {}
 	if not tilt:
-		_steer_pad(left, "steer_left", Vector2(50, -270), "chevron_left")
-		_steer_pad(left, "steer_right", Vector2(300, -270), "chevron_right")
-	_sprite_pad(right, "brake", Vector2(-540, -236), Vector2(230, 212), "brake")
-	_sprite_pad(right, "accelerate", Vector2(-262, -320), Vector2(206, 290), "accelerator")
-	_sprite_pad(right, "handbrake", Vector2(-500, -420), Vector2(130, 144), "handbrake")
-	_sprite_pad(left, "boost", Vector2(50, -470), Vector2(170, 173), "nos", true)
+		pads["steer_left"] = _steer_pad(left, "steer_left", Vector2(50, -270), "chevron_left")
+		pads["steer_right"] = _steer_pad(left, "steer_right", Vector2(300, -270), "chevron_right")
+	pads["brake"] = _pedal_pad(right, "brake", Vector2(-540, -236), Vector2(230, 212), "brake", Color(1.0, 0.35, 0.3))
+	pads["accelerate"] = _pedal_pad(right, "accelerate", Vector2(-262, -320), Vector2(206, 290), "accelerator", Color(0.35, 0.95, 0.5))
+	pads["handbrake"] = _sprite_pad(right, "handbrake", Vector2(-500, -420), Vector2(130, 144), "handbrake")
+	pads["boost"] = _sprite_pad(left, "boost", Vector2(50, -470), Vector2(170, 173), "nos", true)
+	# Player layout (pause menu > Edit Controls): each pad's saved position replaces its default.
+	var layout: Dictionary = Game.settings().get("controlsLayout", {})
+	for id in pads:
+		var pad: Control = pads[id]
+		pad.set_meta("pad", id)
+		pad.set_meta("default_pos", pad.position)
+		if layout.has(id):
+			pad.position = Vector2(float(layout[id][0]), float(layout[id][1]))
 	# Player-configurable size and transparency (Settings), scaled toward each screen corner.
 	var sc := float(Game.settings().get("controlsSize", 1.0))
 	left.scale = Vector2(sc, sc)
@@ -639,6 +673,83 @@ static func _clock(seconds: float) -> String:
 	return "%02d:%02d.%02d" % [cs / 6000, cs / 100 % 60, cs % 100]
 
 
+## Control layout editor (pause menu > Edit Controls): drag any pad to move it; DONE saves the layout in the
+## settings, RESET puts every pad back. The race stays paused while editing.
+var _editor: Control
+
+
+func edit_layout() -> void:
+	if _editor or controls == null:
+		return
+	controls.visible = true
+	for p in _pads():
+		if p is TouchPedal:
+			(p as TouchPedal).editing = true
+	_editor = Control.new()
+	_editor.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_editor.mouse_filter = Control.MOUSE_FILTER_STOP
+	hud_layer.add_child(_editor)
+	var shade := ColorRect.new()
+	shade.color = Color(0, 0, 0, 0.35)
+	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_editor.add_child(shade)
+	hud_layer.move_child(controls, -1)
+	hud_layer.move_child(_editor, -1)
+	var bar := HBoxContainer.new()
+	bar.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	bar.offset_left = -420
+	bar.offset_right = 420
+	bar.offset_top = 40
+	bar.alignment = BoxContainer.ALIGNMENT_CENTER
+	bar.add_theme_constant_override("separation", 18)
+	_editor.add_child(bar)
+	bar.add_child(UiStyle.label("DRAG THE CONTROLS", UiStyle.display(), 44, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER))
+	bar.add_child(_prompt("", "RESET", func():
+		for p in _pads():
+			p.position = p.get_meta("default_pos")))
+	bar.add_child(_prompt("", "DONE", _end_layout))
+	var held := [null, Vector2.ZERO]
+	_editor.gui_input.connect(func(e: InputEvent):
+		var pos := Vector2.ZERO
+		if e is InputEventScreenTouch or e is InputEventMouseButton:
+			pos = e.position + _editor.get_global_rect().position
+			if e.pressed:
+				held[0] = null
+				for p in _pads():
+					var local: Vector2 = (p as Control).get_global_transform_with_canvas().affine_inverse() * pos
+					if Rect2(Vector2.ZERO, (p as Control).size).has_point(local):
+						held[0] = p
+				held[1] = pos
+			else:
+				held[0] = null
+		elif (e is InputEventScreenDrag or e is InputEventMouseMotion) and held[0] != null:
+			pos = e.position + _editor.get_global_rect().position
+			var p: Control = held[0]
+			var sc: Vector2 = p.get_parent().scale
+			p.position += (pos - held[1]) / sc
+			held[1] = pos)
+
+
+func _pads() -> Array:
+	return controls.find_children("*", "Control", true, false).filter(func(c): return c.has_meta("pad")) if controls else []
+
+
+func _end_layout() -> void:
+	var layout := {}
+	for p in _pads():
+		var c: Control = p
+		if c.position != c.get_meta("default_pos"):
+			layout[c.get_meta("pad")] = [c.position.x, c.position.y]
+		if c is TouchPedal:
+			(c as TouchPedal).editing = false
+	Game.settings()["controlsLayout"] = layout
+	Game.persist()
+	_editor.queue_free()
+	_editor = null
+	controls.visible = not Game.session["autopilot"] or "--show-controls" in OS.get_cmdline_user_args()
+
+
 func _process(delta: float) -> void:
 	if race == null or race.player == null:
 		return
@@ -708,9 +819,21 @@ func _update_board() -> void:
 		return
 	var leader: Dictionary = rows[0]
 	var pace := maxf(10.0, leader["progress"] / race.race_time) if race.race_time > 5.0 else 0.0
-	for i in mini(rows.size(), board_rows.size()):
+	var show := range(rows.size())
+	if rows.size() > board_rows.size():   # top 3, then the player's neighbourhood
+		var me := 0
+		for i in rows.size():
+			if rows[i]["player"]:
+				me = i
+		var lo := clampi(me - 1, 3, rows.size() - (board_rows.size() - 3))
+		show = [0, 1, 2] + range(lo, lo + board_rows.size() - 3)
+	for j in board_rows.size():
+		if j >= show.size():
+			break
+		var i: int = show[j]
 		var r: Dictionary = rows[i]
-		var w: Array = board_rows[i]
+		var w: Array = board_rows[j]
+		(w[4] as Label).text = str(i + 1)
 		var player: bool = r["player"]
 		(w[0] as TextureRect).texture = _row_player_tex if player else _row_tex
 		(w[4] as Label).add_theme_color_override("font_color", Color(0.06, 0.06, 0.07) if player else Color.WHITE)
@@ -720,6 +843,19 @@ func _update_board() -> void:
 		(w[3] as Label).add_theme_color_override("font_color", Color(0.07, 0.06, 0.04) if player else Color.WHITE)
 		var gap := "FIN" if r["finished"] else ("INTERVAL" if i == 0 else ("+%.3f" % ((leader["progress"] - r["progress"]) / pace) if pace > 0.0 else ""))
 		(w[3] as Label).text = gap
+	if info.has("online"):   # live team score: race points for the order as it stands (the server scores the finish)
+		var pts := {"A": 0, "B": 0}
+		var me_team := ""
+		for i in rows.size():
+			var rc: Array = race.racers.filter(func(x): return x.id == rows[i]["id"])
+			var team := str(rc[0].driver.get("team", "")) if not rc.is_empty() else ""
+			if rows[i]["player"]:
+				me_team = team
+			if pts.has(team) and i < Competition.POINTS.size():
+				pts[team] += Competition.POINTS[i]
+		var net_state := "ONLINE" if Net.is_online() else "CONNECTION LOST"
+		(info["online"] as Label).text = "%s · %s · TEAM %s   A %d – %d B" % [net_state, str(Game.session["online"].get("format", "")).to_upper(), me_team, pts["A"], pts["B"]]
+		(info["online"] as Label).add_theme_color_override("font_color", Color.WHITE if Net.is_online() else UiStyle.RED)
 
 
 ## Results in the graphite-and-amber house style (UiStyle CHARCOAL/GRAPHITE/LINE/ACCENT, as the home screen and
@@ -904,7 +1040,8 @@ static func _thousands(n: int) -> String:
 func _prompt(icon: String, text: String, cb: Callable) -> Button:
 	var b := Button.new()
 	b.text = "  " + text + "  "
-	b.icon = load("res://assets/icons/ic_%s.png" % icon)
+	if icon != "":
+		b.icon = load("res://assets/icons/ic_%s.png" % icon)
 	b.custom_minimum_size = Vector2(0, 76)
 	b.focus_mode = Control.FOCUS_NONE
 	b.add_theme_font_override("font", UiStyle.cond_bold())

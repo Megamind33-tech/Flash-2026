@@ -53,6 +53,11 @@ func _build() -> void:
 		if race:
 			race.camera.cycle())
 	_big(grid, "Settings", _open_options)
+	_big(grid, "Edit Controls", func():   # drag the touch pads (HUD layout editor), race stays paused
+		visible = false
+		if race and race.hud:
+			race.hud.edit_layout()
+			race.hud._editor.tree_exited.connect(func(): visible = true; _restore_focus()))
 	var retire := _big(col, "Retire to Menu", _main_menu)
 	retire.add_theme_color_override("font_color", Color(1, 0.5, 0.45))
 	var note := UiStyle.label("Retiring forfeits the entry fee.",

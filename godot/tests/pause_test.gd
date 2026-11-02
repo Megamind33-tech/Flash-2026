@@ -26,22 +26,33 @@ func _ready() -> void:
 		await tree.physics_frame
 	var cap := Engine.max_fps
 	# Stuck-touch check: a finger on GAS when the game pauses, lifted while paused (the release never arrives).
-	var gas: TouchScreenButton = null
+	var gas: TouchPedal = null
 	if race.hud:
 		race.hud.controls.visible = true
-		for b in race.hud.controls.find_children("*", "TouchScreenButton", true, false):
-			if (b as TouchScreenButton).action == "accelerate":
+		for b in race.hud.controls.find_children("*", "TouchPedal", true, false):
+			if (b as TouchPedal).action == "accelerate":
 				gas = b
 	var touch_ok := gas != null
 	if gas:
+		# progressive pedal: a finger low on GAS is part throttle, sliding it up presses harder
+		var to_screen := func(local: Vector2) -> Vector2:
+			return gas.get_viewport().get_screen_transform() * (gas.get_global_transform_with_canvas() * local)
 		var ev := InputEventScreenTouch.new()
 		ev.index = 3
 		ev.pressed = true
-		var centre := gas.texture_normal.get_size() * 0.5 if gas.texture_normal else Vector2.ZERO
-		ev.position = gas.get_viewport().get_screen_transform() * (gas.get_global_transform_with_canvas() * centre)
+		ev.position = to_screen.call(Vector2(gas.size.x * 0.5, gas.size.y * 0.95))
 		Input.parse_input_event(ev)
 		await tree.process_frame
 		await tree.process_frame
+		var low := Input.get_action_strength("accelerate")
+		var drag := InputEventScreenDrag.new()
+		drag.index = 3
+		drag.position = to_screen.call(Vector2(gas.size.x * 0.5, gas.size.y * 0.1))
+		Input.parse_input_event(drag)
+		await tree.process_frame
+		await tree.process_frame
+		var high := Input.get_action_strength("accelerate")
+		check(low > 0.3 and low < 0.5 and high > 0.95, "progressive GAS: low on the pedal %.2f, slid to the top %.2f" % [low, high])
 		touch_ok = Input.is_action_pressed("accelerate")
 		check(touch_ok, "simulated finger on GAS presses accelerate")
 	var before: Array = race.racers.map(func(r): return [r.car.global_position, r.car.linear_velocity.length()])
@@ -77,5 +88,39 @@ func _ready() -> void:
 	check(upright and grounded >= race.racers.size() - 1, "cars upright and on the ground after resume (%d grounded)" % grounded)
 	check(Engine.max_fps == cap, "frame cap unchanged by pause / resume (%d)" % cap)
 	check(race.race_time > clock + 1.5, "race clock runs again after resume")
+	if race.hud:   # control layout editor: drag BRAKE 150 px left, DONE saves it, rebuilt pads use it
+		var saved_layout = Game.settings().get("controlsLayout", null)
+		tree.paused = true
+		race.hud.edit_layout()
+		await tree.process_frame
+		var brake: Control = race.hud._pads().filter(func(p): return p.get_meta("pad") == "brake")[0]
+		var start: Vector2 = brake.position
+		var scr: Transform2D = brake.get_viewport().get_screen_transform()
+		var at: Vector2 = brake.get_global_transform_with_canvas() * (brake.size * 0.5)
+		for e in [[true, at], [null, at + Vector2(-75, 0)], [null, at + Vector2(-150, 0)], [false, at + Vector2(-150, 0)]]:
+			var ev2: InputEvent
+			if e[0] == null:
+				ev2 = InputEventMouseMotion.new()
+				ev2.button_mask = MOUSE_BUTTON_MASK_LEFT
+			else:
+				ev2 = InputEventMouseButton.new()
+				ev2.button_index = MOUSE_BUTTON_LEFT
+				ev2.pressed = e[0]
+			ev2.position = scr * (e[1] as Vector2)
+			Input.parse_input_event(ev2)
+			await tree.process_frame
+		var moved_px: float = (start - brake.position).x * brake.get_parent().scale.x
+		var expect: Vector2 = brake.position
+		race.hud._end_layout()
+		race.hud.release_controls()   # rebuild the pads: the saved layout must be applied
+		var rebuilt: Control = race.hud._pads().filter(func(p): return p.get_meta("pad") == "brake")[0]
+		check(absf(moved_px - 150.0) < 4.0 and rebuilt.position.distance_to(expect) < 1.0 and Game.settings()["controlsLayout"].has("brake"),
+			"layout editor: BRAKE dragged %.0f px, saved and applied after rebuild" % moved_px)
+		if saved_layout == null:
+			Game.settings().erase("controlsLayout")
+		else:
+			Game.settings()["controlsLayout"] = saved_layout
+		Game.persist()
+		tree.paused = false
 	print("PAUSE %s failures=%d" % ["PASS" if fails == 0 else "FAIL", fails])
 	tree.quit(0 if fails == 0 else 1)
