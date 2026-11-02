@@ -166,10 +166,10 @@ static func material(slot: String, livery: String) -> Material:
 	return m
 
 
-const CAR_LAYER := 2   # render layer of car bodies: the contact-shadow decal skips it
+const CAR_LAYER := 2   # render layer of car bodies (and their contact shadow): reflection probes skip it
 
 
-## Contact shadow: one decal on the road shaped like the car's footprint (the Mobile renderer has no SSAO). Darkest
+## Contact shadow: one quad on the road shaped like the car's footprint (the Mobile renderer has no SSAO). Darkest
 ## in four tyre contact patches, a softer occlusion band under the body that fades out within about 0.3 m of the
 ## sills, nothing beyond - not a round blob. The sun's real shadow is cast on top of it.
 static var _footprints := {}
@@ -215,20 +215,38 @@ static func _footprint(car_id: String, geo: Dictionary, size: Vector2, zc: float
 	return tex
 
 
-static func _contact_shadow(car_id: String, geo: Dictionary) -> Decal:
+static var _footprint_mats := {}
+
+
+## The footprint as a flat alpha-blended quad 2 cm above the road, not a Decal node: Godot's decals did not show on the
+## road's own ShaderMaterial in a race (tools/shadow_probe: visible on a plain pad, no pixel changed on the circuit).
+## One extra draw call per car; on the car render layer, so reflection probes (which skip it) never capture it.
+static func _contact_shadow(car_id: String, geo: Dictionary) -> MeshInstance3D:
 	var bmin: Vector3 = geo["body_min"]
 	var bmax: Vector3 = geo["body_max"]
 	var zc := (bmin.z + bmax.z) * 0.5
-	var d := Decal.new()
-	d.name = "ContactShadow"
 	var size := Vector2((bmax.x - bmin.x) + 0.9, (bmax.z - bmin.z) + 0.9)
-	d.size = Vector3(size.x, 1.2, size.y)
-	d.texture_albedo = _footprint(car_id, geo, size, zc)
-	d.position = Vector3(0, 0.3, zc)
-	d.cull_mask = 1               # project onto the world only, never onto the car itself
-	d.upper_fade = 0.3
-	d.lower_fade = 0.3
-	return d
+	if not _footprint_mats.has(car_id):
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.albedo_color = Color(0, 0, 0, 1)
+		m.albedo_texture = _footprint(car_id, geo, size, zc)
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		m.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+		m.disable_receive_shadows = true
+		_footprint_mats[car_id] = m
+	var q := QuadMesh.new()
+	q.size = size
+	q.orientation = PlaneMesh.FACE_Y   # lies flat, facing up
+	var mi := MeshInstance3D.new()
+	mi.name = "ContactShadow"
+	mi.mesh = q
+	mi.material_override = _footprint_mats[car_id]
+	mi.position = Vector3(0, 0.02, zc)
+	mi.layers = CAR_LAYER
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return mi
 
 
 ## Reverse lamps: a small white emissive lens at the inboard end of each tail-light cluster (measured from the

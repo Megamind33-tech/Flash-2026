@@ -155,6 +155,11 @@ func _ready() -> void:
 	var cvi := args.find("--cam-view")   # tests / evidence: start in a named view (chase, close, hood, cockpit, cinematic, wheel)
 	if cvi >= 0 and cvi + 1 < args.size():
 		camera.select(maxi(0, ChaseCamera.VIEW_NAMES.map(func(n): return str(n).to_lower().split(" ")[0]).find(str(args[cvi + 1]).to_lower())), false)
+	if args.has("--hide-car-shadows"):   # evidence: the cars' ContactShadow footprints off, for before/after renders
+		for rr2 in racers:
+			var dd := rr2.car.get_node_or_null("ContactShadow")
+			if dd:
+				dd.visible = false
 	camera.view_changed.connect(func(v: int): notice.emit("CAMERA: " + ChaseCamera.view_label(v).to_upper()))
 	camera.make_current()
 	_rain_parts = Weather.attach_particles(camera)
