@@ -27,6 +27,7 @@ var m := {}
 var prev_local := Vector3.ZERO
 var prev_d := Vector3.ZERO
 var prev_rel := Vector3.ZERO
+var prev_car_pos := Vector3.ZERO
 var debug := OS.get_cmdline_user_args().has("--debug")
 var prev_fov := 0.0
 var jerks: Array = []
@@ -133,7 +134,7 @@ func _physics_process(delta: float) -> void:
 	var rel := cam.global_position - car.global_position
 	var d := rel - prev_rel
 	if v != ChaseCamera.View.CINEMATIC:
-		if tick > SETTLE + 2:
+		if tick > SETTLE + 2 and (car.global_position - prev_car_pos).length() < 6.0:   # a recovery teleport is a deliberate cut
 			jerks.append((d - prev_d).length())
 			if debug and (d - prev_d).length() > 0.08:
 				print("JERK %.3f view=%s tick=%d t=%.2f rel=%s d=%s car_v=%.1f wy=%.2f up=%.2f cam_yaw_err=%.1f deg arm=%.2f" % [(d - prev_d).length(), ChaseCamera.view_label(v), tick, race.race_time, rel, d, car.linear_velocity.length(), car.angular_velocity.y, car.global_basis.y.y, rad_to_deg(wrapf(atan2(-cam.global_basis.z.x, -cam.global_basis.z.z) - atan2(car.global_basis.z.x, car.global_basis.z.z), -PI, PI)), cam._arm])
@@ -143,6 +144,7 @@ func _physics_process(delta: float) -> void:
 				print("CUT view=%s t=%.2f local=%s prev=%s rel=%s speed=%.0f" % [ChaseCamera.view_label(v), race.race_time, local, prev_local, rel, car.speed_kmh])
 	m["fovstep"] = maxf(m["fovstep"], absf(cam.fov - prev_fov))
 	prev_local = local
+	prev_car_pos = car.global_position
 	prev_rel = rel
 	prev_d = d
 	prev_fov = cam.fov

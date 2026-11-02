@@ -36,6 +36,7 @@ var _snap := true
 var _shake := 0.0
 var _shake_t := 0.0
 var _last_pos := Vector3.ZERO
+var _car_delta := Vector3.ZERO
 var _bound: RaceCarBody
 var boost_kick := 0.0
 var _kick := 0.0
@@ -141,6 +142,7 @@ func _physics_process(delta: float) -> void:
 	if not _snap and target.global_position.distance_to(_last_pos) > 6.0:   # recovered / respawned: cut, don't fly across the map
 		_snap = true
 		_cine_set = false
+	_car_delta = target.global_position - _last_pos   # what the car actually moved this tick (not its velocity: an impact changes that at once)
 	_last_pos = target.global_position
 	var fs := target.linear_velocity.dot(target.global_basis.z)
 	var acc := (fs - _last_fwd_speed) / maxf(delta, 0.001)
@@ -215,7 +217,7 @@ func _update_chase(delta: float, car_yaw: float, speed: float) -> void:
 	var pivot := target.global_position + Vector3.UP * 1.2
 	# Move with the car, then smooth only the offset: a plain lerp toward the target trailed by speed / 9 (4 m at
 	# 140 km/h), so the car shrank in frame exactly when racing. Deliberate lag comes from the surge term above.
-	var pos := desired if _snap else (global_position + target.linear_velocity * delta).lerp(desired, clampf(delta * 8.0, 0.0, 1.0))
+	var pos := desired if _snap else (global_position + _car_delta).lerp(desired, clampf(delta * 8.0, 0.0, 1.0))
 	var arm := _wall_fraction(pivot, pos)
 	_arm = arm if _snap else lerpf(_arm, arm, clampf(delta * (20.0 if arm < _arm else 2.5), 0.0, 1.0))
 	global_position = pivot + (pos - pivot) * _arm + Vector3.UP * ((1.0 - _arm) * 1.4)   # pushed in by a wall: it rises and looks down over the car
