@@ -531,11 +531,18 @@ func _aim_sun() -> void:
 	if t.length() < 0.1:
 		return
 	# dusk (GR27): a low sun (8 degrees) from the side: long building shadows across the street, warm light on one
+	# side and glare on the wet road ahead.
+	# Day (GRINDLINE 27 premium pass): the sun stands behind the start camera and to its left, 22 degrees up - the
+	# grid is front-lit like a photograph taken with the sun at your back: blue sky ahead, readable shadows falling
+	# forward, lit car bodies. It used to sit ahead of the camera, so the hero view looked into the glare and haze.
 	var dusk := Weather.time_of_day == "dusk"
-	var toward_cam := (-t.normalized()).rotated(Vector3.UP, deg_to_rad(65.0 if dusk else 28.0))   # dusk: side light, long shadows across the street
-	var elev := deg_to_rad(8.0 if dusk else 18.0)
-	var dir := (toward_cam * cos(elev) + Vector3.DOWN * sin(elev)).normalized()
+	var travel := (-t.normalized()).rotated(Vector3.UP, deg_to_rad(65.0)) if dusk else t.normalized().rotated(Vector3.UP, deg_to_rad(-35.0))
+	var elev := deg_to_rad(8.0 if dusk else 22.0)
+	var dir := (travel * cos(elev) + Vector3.DOWN * sin(elev)).normalized()
 	sun.global_basis = Basis.looking_at(dir, Vector3.UP)
+	# the panorama's own sun and glow go where the light comes from
+	var env: Environment = _env["env"]
+	env.sky_rotation = Vector3(0.0, Weather.sky_yaw_for(str(_env.get("sky", "")), -travel), 0.0)
 
 
 func _build_environment() -> void:
@@ -1013,7 +1020,63 @@ func _dynamic_resolution(delta: float) -> void:
 	_dr_frames = 0
 
 
+## Venue boards (CityWorld._gantry): start lights through the countdown, the lap board and the timing tower.
+var _venue := {}
+var _venue_t := 0.0
+
+
+func _venue_boards(delta: float) -> void:
+	if _venue.is_empty():
+		var g := get_node_or_null("CityWorld/Gantry") if has_node("CityWorld/Gantry") else find_child("Gantry", true, false)
+		if g == null:
+			_venue = {"none": true}
+			return
+		_venue = {"lamps": [], "lap": g.find_child("LapBoard", true, false), "rows": []}
+		var sl := g.find_child("StartLights", true, false)
+		if sl:
+			for pod in sl.get_children():
+				_venue["lamps"].append(pod.get_children().map(func(l): return (l as MeshInstance3D).material_override))
+		var tw := g.find_child("TimingTower", true, false)
+		if tw:
+			for k in 6:
+				_venue["rows"].append(tw.get_node_or_null("Row%d" % k))
+	if _venue.has("none"):
+		return
+	# lights come on one pod at a time over the countdown; all five go out at GO
+	var lit := 0
+	if phase == Phase.COUNTDOWN:
+		lit = clampi(int((COUNTDOWN - countdown_left) / (COUNTDOWN / 5.0)) + 1, 1, 5)
+	for k in (_venue["lamps"] as Array).size():
+		for m in _venue["lamps"][k]:
+			(m as StandardMaterial3D).emission_energy_multiplier = 7.0 if k < lit else 0.0
+	_venue_t -= delta
+	if _venue_t > 0.0 or standings.is_empty():
+		return
+	_venue_t = 0.5
+	var lead_lap := 1
+	for r in racers:
+		lead_lap = maxi(lead_lap, mini(r.laps.current_lap(), total_laps))
+	if _venue["lap"]:
+		(_venue["lap"] as Label3D).text = "LAP %d / %d" % [lead_lap, total_laps]
+	var leader: Dictionary = standings[0]
+	var pace := maxf(10.0, leader["progress"] / race_time) if race_time > 5.0 else 0.0
+	for k in (_venue["rows"] as Array).size():
+		var row: Label3D = _venue["rows"][k]
+		if row == null:
+			continue
+		if k >= standings.size():
+			row.text = ""
+			continue
+		var st: Dictionary = standings[k]
+		var code := String(st["name"]).split(" ")[-1].substr(0, 3).to_upper()
+		var gap := "" if k == 0 or pace <= 0.0 else "+%.1f" % ((leader["progress"] - st["progress"]) / pace)
+		row.text = "%d  %-4s %s" % [k + 1, code, gap]
+		row.modulate = Color(1.0, 0.86, 0.35) if not st["player"] else Color(0.55, 0.95, 1.0)
+
+
 func _process(delta: float) -> void:
+	if _built:
+		_venue_boards(delta)
 	if not _built:
 		return
 	_frames += 1

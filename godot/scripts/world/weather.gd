@@ -10,7 +10,9 @@ const LABEL := {"clear": "Clear", "cloudy": "Overcast", "after_rain": "After rai
 ## grip: tyre grip multiplier · aqua: extra grip loss per m/s above 25 m/s · wind: crosswind accel (m/s^2)
 ## fog: depth fog density · rain: particle share · wet: road/wall wetness · sun: light energy
 const PRESET := {
-	"clear":  {"grip": 1.0, "aqua": 0.0, "wind": 0.0, "fog": 0.00035, "rain": 0.0, "wet": 0.0, "sun": 1.35, "sky": "clear"},
+	# clear day uses the "partly" panorama: deep blue sky with fair-weather cumulus and a high sun. sky_clear.hdr is
+	# a low-sun sky whose white horizon glow was all a low racing camera saw (the washed-out look).
+	"clear":  {"grip": 1.0, "aqua": 0.0, "wind": 0.0, "fog": 0.00035, "rain": 0.0, "wet": 0.0, "sun": 1.35, "sky": "partly"},
 	"cloudy": {"grip": 0.99, "aqua": 0.0, "wind": 0.0, "fog": 0.0016, "rain": 0.0, "wet": 0.0, "sun": 0.7, "sky": "partly"},
 	# the shower has passed: low sun on wet streets (reflections, beaded cars), nothing falling
 	"after_rain": {"grip": 0.88, "aqua": 0.001, "wind": 0.0, "fog": 0.0008, "rain": 0.0, "wet": 0.7, "sun": 1.25, "sky": "partly"},
@@ -166,6 +168,19 @@ static func label() -> String:
 
 
 ## Builds WorldEnvironment, sun/moon, sky and weather particles under `parent`. Returns {env, sun, particles}.
+## Where each panorama's sun sits (equirect u, measured from the brightest texel of the HDR): the sky is rotated
+## so its sun and glow line up with the scene's sun light (race._aim_sun).
+const SKY_SUN_U := {"clear": 0.613, "partly": 0.595, "overcast": 0.581, "sunset": 0.601, "misty": 0.619}
+
+
+## Yaw (radians) for Environment.sky_rotation that puts the panorama's sun in the horizontal direction `toward_sun`.
+static func sky_yaw_for(sky_name: String, toward_sun: Vector3) -> float:
+	var a := (float(SKY_SUN_U.get(sky_name, 0.6)) - 0.5) * TAU   # panorama azimuth of its sun: atan2(x, -z)
+	var want := atan2(toward_sun.x, -toward_sun.z)
+	# sign measured (A/B render, sky brightness ahead of the grid camera 224 vs 203): Godot rotates the lookup
+	return wrapf(want - a, -PI, PI)
+
+
 static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 	var p: Dictionary = PRESET[kind]
 	var env := Environment.new()
@@ -280,7 +295,7 @@ static func build_environment(parent: Node3D, style: Dictionary) -> Dictionary:
 	sun.shadow_blur = 1.2
 	sun.set_meta("gl_reach", reach)
 	parent.add_child(sun)
-	return {"env": env, "sun": sun}
+	return {"env": env, "sun": sun, "sky": sky_name}
 
 
 static var _grade_tex: Texture2D

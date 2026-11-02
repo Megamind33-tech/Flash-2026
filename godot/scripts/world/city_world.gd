@@ -54,7 +54,10 @@ static func road_mat(style: Dictionary, half_width: float, track: TrackPath = nu
 	m.set_shader_parameter("wear", float(style.get("wear", style.get("stains", 0.6))))
 	m.set_shader_parameter("wet", float(Weather.PRESET[Weather.kind]["wet"]))
 	m.set_shader_parameter("crack_fade", float(style.get("crack_fade", 0.0)))
-	m.set_shader_parameter("damp", float(style.get("damp", 0.0)) if Weather.time_of_day != "night" else 0.0)
+	# dry-weather damp patches only under cloud or fog: on a clear (or dusty) day the asphalt is fully dry, and the
+	# satin patches mirrored the blue sky like puddles (GRINDLINE 27: dry and wet roads must be distinguishable)
+	var damp_ok := Weather.time_of_day != "night" and Weather.kind in ["cloudy", "fog"]
+	m.set_shader_parameter("damp", float(style.get("damp", 0.0)) if damp_ok else 0.0)
 	var rh := road_half if road_half > 0.0 else half_width + BARRIER
 	m.set_shader_parameter("road_half", rh)
 	if track:
@@ -359,6 +362,7 @@ static func _circuit(root: Node3D, style: Dictionary, track: TrackPath) -> void:
 	steel.roughness = 0.45
 	_multimesh(root, fp, steel, fence_posts, "CatchFencePosts", false)
 	_gantry(root, track)
+	_gantry_line(root, track, root.get_node("Gantry"))
 
 
 static func _right(track: TrackPath, i: int) -> Vector3:
@@ -380,6 +384,9 @@ static func _paint(c: Color) -> StandardMaterial3D:
 	return m
 
 
+## Start gantry (GRINDLINE 27 premium pass): a lattice truss on two legs instead of a solid box, the series name, a
+## row of five start lights over the grid (race.gd lights them through the countdown, all out = go) and a digital
+## lap board; beside the line a timing tower lists the running order (race.gd updates both from the live standings).
 static func _gantry(root: Node3D, track: TrackPath) -> void:
 	var hw := track.half_width
 	var p := track.position_at(0.0)
@@ -389,35 +396,168 @@ static func _gantry(root: Node3D, track: TrackPath) -> void:
 	g.name = "Gantry"
 	g.transform = Transform3D(Basis(r, Vector3.UP, -t), p)
 	root.add_child(g)
-	var steel := _paint(Color(0.16, 0.17, 0.19))
-	steel.metallic = 0.7
-	for s: float in [-1.0, 1.0]:
-		var col := MeshInstance3D.new()
-		var bm := BoxMesh.new()
-		bm.size = Vector3(0.6, 7.0, 0.6)
-		col.mesh = bm
-		col.material_override = steel
-		col.position = Vector3(s * (hw + BARRIER + 0.3), 3.5, 0)
-		g.add_child(col)
-	var beam := MeshInstance3D.new()
-	var bb := BoxMesh.new()
-	bb.size = Vector3(2 * (hw + BARRIER + 0.6), 1.4, 0.8)
-	beam.mesh = bb
-	beam.material_override = steel
-	beam.position = Vector3(0, 6.6, 0)
-	g.add_child(beam)
-	var label := Label3D.new()
-	label.text = "GRIDLINE"
-	label.font_size = 160
-	label.pixel_size = 0.006
-	label.position = Vector3(0, 6.6, 0.42)
-	label.modulate = Color(1, 1, 1)
-	label.outline_size = 0
-	g.add_child(label)
-	var back: Label3D = label.duplicate()
-	back.position.z = -0.42
-	back.rotation.y = PI
-	g.add_child(back)
+	var steel := _paint(Color(0.2, 0.21, 0.23))
+	steel.metallic = 0.75
+	steel.roughness = 0.42
+	var span := 2.0 * (hw + BARRIER + 0.6)
+	var truss := Bucket.new()
+	var bars := []   # [from, to, thickness]
+	for s: float in [-1.0, 1.0]:   # legs: four tubes with ladder bracing
+		var x := s * (hw + BARRIER + 0.3)
+		for dx in [-0.25, 0.25]:
+			for dz in [-0.25, 0.25]:
+				bars.append([Vector3(x + dx, 0, dz), Vector3(x + dx, 7.3, dz), 0.09])
+		for k in 7:
+			bars.append([Vector3(x - 0.25, k + 0.5, 0.25), Vector3(x + 0.25, k + 1.0, 0.25), 0.05])
+			bars.append([Vector3(x - 0.25, k + 0.5, -0.25), Vector3(x + 0.25, k + 1.0, -0.25), 0.05])
+	for y in [5.9, 7.3]:   # box truss over the road: four chords and zig-zag diagonals
+		for z in [-0.4, 0.4]:
+			bars.append([Vector3(-span * 0.5, y, z), Vector3(span * 0.5, y, z), 0.09])
+	var n := int(span / 1.4)
+	for k in n:
+		var x0 := -span * 0.5 + k * span / n
+		var x1 := x0 + span / n
+		for z in [-0.4, 0.4]:
+			bars.append([Vector3(x0, 5.9, z), Vector3(x1, 7.3, z), 0.05])
+		bars.append([Vector3(x0, 7.3, -0.4), Vector3(x0, 7.3, 0.4), 0.05])
+		bars.append([Vector3(x0, 5.9, -0.4), Vector3(x0, 5.9, 0.4), 0.05])
+	for b in bars:
+		_bar(truss, b[0], b[1], b[2])
+	var tm := ArrayMesh.new()
+	truss.commit(tm, steel)
+	var tmi := MeshInstance3D.new()
+	tmi.name = "Truss"
+	tmi.mesh = tm
+	g.add_child(tmi)
+	# name board on the truss (both faces)
+	var board_mat := _paint(Color(0.06, 0.065, 0.075))
+	var board := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(span * 0.55, 1.0, 0.12)
+	board.mesh = bm
+	board.material_override = board_mat
+	board.position = Vector3(0, 6.6, 0)
+	g.add_child(board)
+	for face in [1.0, -1.0]:
+		var label := Label3D.new()
+		label.text = "GRINDLINE 27"
+		label.font_size = 150
+		label.pixel_size = 0.005
+		label.position = Vector3(0, 6.6, 0.07 * face)
+		label.rotation.y = 0.0 if face > 0.0 else PI
+		label.modulate = Color(1, 1, 1)
+		label.outline_size = 0
+		label.font = load("res://assets/fonts/BebasNeue-Regular.ttf") if ResourceLoader.exists("res://assets/fonts/BebasNeue-Regular.ttf") else null
+		g.add_child(label)
+	# five start lights facing the grid (behind the line: local -z faces back down the track)
+	var lights := Node3D.new()
+	lights.name = "StartLights"
+	g.add_child(lights)
+	for k in 5:
+		var pod := MeshInstance3D.new()
+		var pm := BoxMesh.new()
+		pm.size = Vector3(0.62, 0.62, 0.3)
+		pod.mesh = pm
+		pod.material_override = board_mat
+		pod.position = Vector3((k - 2) * 0.85, 5.35, 0.45)   # +z faces back down the grid
+		lights.add_child(pod)
+		for lamp_y in [0.14, -0.14]:
+			var lamp := MeshInstance3D.new()
+			var sm := SphereMesh.new()
+			sm.radius = 0.12
+			sm.height = 0.12
+			sm.radial_segments = 12
+			sm.rings = 4
+			lamp.mesh = sm
+			var lm := StandardMaterial3D.new()
+			lm.albedo_color = Color(0.25, 0.02, 0.02)
+			lm.emission_enabled = true
+			lm.emission = Color(1.0, 0.08, 0.05)
+			lm.emission_energy_multiplier = 0.0
+			lamp.material_override = lm
+			lamp.position = Vector3(0, lamp_y, 0.16)
+			pod.add_child(lamp)
+	# digital lap board under the truss, facing the grid
+	var lap := _led_label("LAP 1", 110)
+	lap.name = "LapBoard"
+	lap.position = Vector3(span * 0.32, 5.35, 0.45)
+	g.add_child(lap)
+	var lap_bg := MeshInstance3D.new()
+	var lb := BoxMesh.new()
+	lb.size = Vector3(2.4, 0.8, 0.1)
+	lap_bg.mesh = lb
+	lap_bg.material_override = board_mat
+	lap_bg.position = Vector3(span * 0.32, 5.35, 0.38)
+	g.add_child(lap_bg)
+	_timing_tower(g, hw)
+
+
+## Trackside timing tower beside the start line: a dark LED panel listing the running order (race.gd fills it).
+static func _timing_tower(g: Node3D, hw: float) -> void:
+	var tower := Node3D.new()
+	tower.name = "TimingTower"
+	tower.position = Vector3(-(hw + BARRIER + 2.6), 0, -10.0)   # just past the line, left side, facing the grid
+	tower.rotation.y = deg_to_rad(-25.0)   # angled toward the approaching cars
+	g.add_child(tower)
+	var frame := _paint(Color(0.2, 0.21, 0.23))
+	frame.metallic = 0.7
+	var post := MeshInstance3D.new()
+	var pm := BoxMesh.new()
+	pm.size = Vector3(0.5, 4.0, 0.5)
+	post.mesh = pm
+	post.material_override = frame
+	post.position = Vector3(0, 2.0, 0.2)
+	tower.add_child(post)
+	var panel := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(2.6, 4.6, 0.25)
+	panel.mesh = bm
+	panel.material_override = _paint(Color(0.025, 0.027, 0.032))
+	panel.position = Vector3(0, 6.2, 0)
+	tower.add_child(panel)
+	var head := _led_label("GRINDLINE 27", 64)
+	head.position = Vector3(0, 8.2, 0.14)
+	head.modulate = Color(1.0, 0.62, 0.2)
+	tower.add_child(head)
+	for k in 6:
+		var row := _led_label("", 58)
+		row.name = "Row%d" % k
+		row.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		row.position = Vector3(-1.1, 7.6 - k * 0.6, 0.14)
+		tower.add_child(row)
+
+
+static func _led_label(text: String, size: int) -> Label3D:
+	var l := Label3D.new()
+	l.text = text
+	l.font_size = size
+	l.pixel_size = 0.006
+	l.modulate = Color(1.0, 0.86, 0.35)
+	l.outline_size = 0
+	l.shaded = false   # self-lit like an LED panel
+	l.double_sided = false
+	var f := "res://assets/fonts/BarlowCondensed-Bold.ttf"
+	if ResourceLoader.exists(f):
+		l.font = load(f)
+	return l
+
+
+## A square tube from a to b (truss member) into a bucket.
+static func _bar(bk: Bucket, a: Vector3, b: Vector3, th: float) -> void:
+	var d := (b - a).normalized()
+	var up := Vector3.UP if absf(d.dot(Vector3.UP)) < 0.9 else Vector3.RIGHT
+	var u := d.cross(up).normalized() * th * 0.5
+	var v := d.cross(u).normalized() * th * 0.5
+	var c := [u + v, -u + v, -u - v, u - v]
+	for i in 4:
+		var p0: Vector3 = c[i]
+		var p1: Vector3 = c[(i + 1) % 4]
+		var nrm := (p0 + p1).normalized()
+		bk.quad(a + p0, b + p0, b + p1, a + p1, nrm, Vector2.ZERO, Vector2.RIGHT, Vector2.ONE, Vector2.DOWN)
+
+
+static func _gantry_line(root: Node3D, track: TrackPath, g: Node3D) -> void:
+	var hw := track.half_width
 	# chequered start line + grid boxes
 	var img := Image.create(8, 2, false, Image.FORMAT_RGB8)
 	for x in 8:
@@ -473,16 +613,22 @@ static func billboards(root: Node3D, list: Array) -> void:
 	if list.is_empty():
 		return
 	var panel := Bucket.new()
+	var led := Bucket.new()   # every third board is a digital screen (scripts/world/led_screen.gdshader)
 	var legs := []
-	for b in list:
+	for bi in list.size():
+		var b: Array = list[bi]
 		var base: Vector3 = b[0]
 		var basis := Basis(Vector3.UP, float(b[1]))
 		var r := _ad_uv(int(b[2]))
 		var w := 6.0
 		var c := [Vector3(-w, 4.0, 0), Vector3(w, 4.0, 0), Vector3(w, 9.0, 0), Vector3(-w, 9.0, 0)]
 		var q := c.map(func(v): return base + basis * v)
-		panel.quad(q[0], q[3], q[2], q[1], basis * Vector3(0, 0, 1),
-			Vector2(r.position.x, r.end.y), r.position, Vector2(r.end.x, r.position.y), r.end)
+		if bi % 3 == 1:
+			led.quad(q[0], q[3], q[2], q[1], basis * Vector3(0, 0, 1), Vector2(0, 0.25), Vector2.ZERO, Vector2(0.25, 0), Vector2(0.25, 0.25),
+				Color(float(int(b[2]) % 16) / 16.0, 0, 0))
+		else:
+			panel.quad(q[0], q[3], q[2], q[1], basis * Vector3(0, 0, 1),
+				Vector2(r.position.x, r.end.y), r.position, Vector2(r.end.x, r.position.y), r.end)
 		for lx in [-3.5, 3.5]:
 			legs.append(Transform3D(basis, base + basis * Vector3(lx, 2.2, -0.15)))
 	var mesh := ArrayMesh.new()
@@ -491,6 +637,17 @@ static func billboards(root: Node3D, list: Array) -> void:
 	mi.name = "Billboards"
 	mi.mesh = mesh
 	root.add_child(mi)
+	if led.v.size() > 0:
+		var lm := ArrayMesh.new()
+		var sm := ShaderMaterial.new()
+		sm.shader = load("res://scripts/world/led_screen.gdshader")
+		sm.set_shader_parameter("atlas", load("res://assets/ads/ads_atlas.png"))
+		sm.set_shader_parameter("brightness", 1.15 if Weather.time_of_day == "day" else 0.8)
+		led.commit(lm, sm)
+		var lmi := MeshInstance3D.new()
+		lmi.name = "LedScreens"
+		lmi.mesh = lm
+		root.add_child(lmi)
 	var leg := BoxMesh.new()
 	leg.size = Vector3(0.35, 4.4, 0.35)
 	_multimesh(root, leg, _paint(Color(0.3, 0.31, 0.33)), legs, "BillboardLegs")
