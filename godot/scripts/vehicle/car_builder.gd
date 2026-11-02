@@ -477,7 +477,8 @@ static func build(livery: String, with_audio: bool, car_id := DEFAULT_CAR) -> Ra
 		car.add_child(wheel)
 
 	_front_calipers(car, visual, geo, car_id)
-	visual.add_child(_arch_liners(geo, car_id))
+	if not LINER_SKIP.has(car_id):
+		visual.add_child(_arch_liners(geo, car_id))
 
 	if with_audio:
 		EngineAudio.attach(car, true)   # layered CC0 engine loops + wind + boost (vehicle/engine_audio.gd)
@@ -497,6 +498,9 @@ static func build(livery: String, with_audio: bool, car_id := DEFAULT_CAR) -> Ra
 	return car
 
 
+## Widebody kits with a gap between the bolt-on flare and the body: a liner shows through it as a black band
+## (vehicle_sheet before/after), and the kit's own arch already hides the wheel well.
+const LINER_SKIP := ["kaze_gt35"]
 static var _liner_cache := {}
 static var _liner_mat: StandardMaterial3D
 
