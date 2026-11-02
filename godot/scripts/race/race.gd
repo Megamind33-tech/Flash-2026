@@ -155,6 +155,17 @@ func _ready() -> void:
 	var cvi := args.find("--cam-view")   # tests / evidence: start in a named view (chase, close, hood, cockpit, cinematic, wheel)
 	if cvi >= 0 and cvi + 1 < args.size():
 		camera.select(maxi(0, ChaseCamera.VIEW_NAMES.map(func(n): return str(n).to_lower().split(" ")[0]).find(str(args[cvi + 1]).to_lower())), false)
+	# Render quirk (GR27, tools/shadow_probe): while ANY Decal node is in the scene, the Mobile renderer under the
+	# software rasteriser lights opaque ground without its sun (about 35-50 % darker and bluer: sky light only). The
+	# cars used to carry Decal contact shadows, so every approved render of the circuit has that darker road. The cars
+	# now use a quad, so this inert decal keeps the road looking exactly as it did. NOT understood: if a phone shows
+	# the road brighter than these renders, or if the road looks flat and blue on device, test with --no-decal-keeper.
+	if not args.has("--no-decal-keeper"):
+		var keeper := Decal.new()
+		keeper.name = "DecalKeeper"
+		keeper.size = Vector3(0.2, 0.2, 0.2)
+		keeper.position = Vector3(0, -50, 0)
+		add_child(keeper)
 	if args.has("--hide-car-shadows"):   # evidence: the cars' ContactShadow footprints off, for before/after renders
 		for rr2 in racers:
 			var dd := rr2.car.get_node_or_null("ContactShadow")
