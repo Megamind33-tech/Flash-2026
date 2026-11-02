@@ -63,7 +63,7 @@ func _physics_process(delta: float) -> void:
 				if a.begins_with("--views="):
 					only = a.trim_prefix("--views=")
 			for v in [ChaseCamera.View.CHASE, ChaseCamera.View.CLOSE, ChaseCamera.View.HOOD, ChaseCamera.View.COCKPIT, ChaseCamera.View.CINEMATIC, ChaseCamera.View.WHEEL]:
-				if cam.available(v) and (only == "" or str(v) in only.split(",")):
+				if cam.available(v) and (only == "" or str(v) in only.split(",")) and not OS.get_cmdline_user_args().has("--crash-only"):
 					order.append(v)
 			for v in [ChaseCamera.View.CHASE, ChaseCamera.View.CLOSE, ChaseCamera.View.HOOD]:   # then each driving view through a barrier hit
 				if cam.available(v) and (only == "" or str(v) in only.split(",")) and not OS.get_cmdline_user_args().has("--no-crash"):
@@ -135,6 +135,8 @@ func _physics_process(delta: float) -> void:
 	if v != ChaseCamera.View.CINEMATIC:
 		if tick > SETTLE + 2:
 			jerks.append((d - prev_d).length())
+			if debug and (d - prev_d).length() > 0.08:
+				print("JERK %.3f view=%s tick=%d t=%.2f rel=%s d=%s car_v=%.1f wy=%.2f up=%.2f cam_yaw_err=%.1f deg arm=%.2f" % [(d - prev_d).length(), ChaseCamera.view_label(v), tick, race.race_time, rel, d, car.linear_velocity.length(), car.angular_velocity.y, car.global_basis.y.y, rad_to_deg(wrapf(atan2(-cam.global_basis.z.x, -cam.global_basis.z.z) - atan2(car.global_basis.z.x, car.global_basis.z.z), -PI, PI)), cam._arm])
 		if (local - prev_local).length() > 1.5:
 			m["cuts"] += 1
 			if debug:

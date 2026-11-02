@@ -43,6 +43,7 @@ var _last_fwd_speed := 0.0
 var _swing := 0.0        # smoothed sideways offset of the chase rig (outside of the turn)
 var _lead := 0.0         # smoothed look-into-the-turn offset
 var _lift := 0.0         # extra height while a rival car overlaps the rig
+var _arm := 1.0          # share of the rig's length kept clear of walls
 var _tilt_pitch := 0.0   # filtered body pitch / roll for the in-car views
 var _tilt_roll := 0.0
 var _cine_pos := Vector3.ZERO
@@ -191,6 +192,7 @@ func _update_chase(delta: float, car_yaw: float, speed: float) -> void:
 		_swing = 0.0
 		_lead = 0.0
 		_lift = 0.0
+		_arm = 1.0
 	_yaw = lerp_angle(_yaw, target_yaw, clampf(delta * 6.0, 0.0, 1.0))
 	var rot := Basis(Vector3.UP, _yaw)
 	var calm := 0.5 if Game.reduce_motion() else 1.0
@@ -203,23 +205,27 @@ func _update_chase(delta: float, car_yaw: float, speed: float) -> void:
 	var want_lift := _rival_lift(rot * Vector3(_swing, float(rig[1]), -float(rig[0]) * pull))
 	_lift = lerpf(_lift, want_lift, clampf(delta * (10.0 if want_lift > _lift else 3.0), 0.0, 1.0))
 	var desired := target.global_position + rot * Vector3(_swing, float(rig[1]) + _lift, -float(rig[0]) * pull)
-	# Collision avoidance: pull the camera in front of walls/buildings between it and the car.
+	# Collision avoidance: the camera comes in front of any wall or building between it and the car - quickly when
+	# one appears, and lets out slowly after, so a barrier that flickers in and out of the line never makes it jitter.
 	var pivot := target.global_position + Vector3.UP * 1.2
-	desired = _clear_of_walls(pivot, desired)
 	# Move with the car, then smooth only the offset: a plain lerp toward the target trailed by speed / 9 (4 m at
 	# 140 km/h), so the car shrank in frame exactly when racing. Deliberate lag comes from the surge term above.
 	var pos := desired if _snap else (global_position + target.linear_velocity * delta).lerp(desired, clampf(delta * 8.0, 0.0, 1.0))
-	global_position = _clear_of_walls(pivot, pos)   # the smoothed position can still cut a corner of a building
+	var arm := _wall_fraction(pivot, pos)
+	_arm = arm if _snap else lerpf(_arm, arm, clampf(delta * (20.0 if arm < _arm else 2.5), 0.0, 1.0))
+	global_position = pivot + (pos - pivot) * _arm
 	look_at(target.global_position + Vector3.UP * 0.95 + rot * Vector3(_lead, 0, 6.0), Vector3.UP)
 
 
-func _clear_of_walls(pivot: Vector3, p: Vector3) -> Vector3:
+## Share (0..1) of the way from the pivot to p that is free of scenery; 1 = nothing in the way.
+func _wall_fraction(pivot: Vector3, p: Vector3) -> float:
 	var q := PhysicsRayQueryParameters3D.create(pivot, p)
 	q.exclude = [target.get_rid()]
 	var hit := get_world_3d().direct_space_state.intersect_ray(q)
-	if not hit.is_empty() and not (hit["collider"] is RaceCarBody):
-		return (hit["position"] as Vector3) + (pivot - p).normalized() * 0.4
-	return p
+	if hit.is_empty() or hit["collider"] is RaceCarBody:
+		return 1.0
+	var len_ := maxf(pivot.distance_to(p), 0.01)
+	return clampf((pivot.distance_to(hit["position"] as Vector3) - 0.4) / len_, 0.1, 1.0)
 
 
 ## Extra height needed to clear any rival whose body the rig position (car-relative) falls inside.
