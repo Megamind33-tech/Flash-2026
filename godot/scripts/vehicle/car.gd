@@ -53,6 +53,7 @@ var _engine: AudioStreamPlayer3D
 var _skid: AudioStreamPlayer3D
 var _impact: AudioStreamPlayer3D
 var _reverse_lights: Node3D
+var knuckles := {}   # front VehicleWheel3D -> knuckle node carrying the brake caliper (CarBuilder._front_calipers)
 
 const GEARS := 6
 ## Deceleration when coasting (no pedal): tyre rolling resistance plus engine braking in the current gear, in m/s^2.
@@ -127,6 +128,13 @@ func _ready() -> void:
 	_skid = get_node_or_null("Skid") as AudioStreamPlayer3D
 	_impact = get_node_or_null("Impact") as AudioStreamPlayer3D
 	_reverse_lights = get_node_or_null("ReverseLights") as Node3D
+
+
+## Calipers follow the wheel's suspension travel and steering angle, never its spin.
+func _process(_delta: float) -> void:
+	for w in knuckles:
+		var k: Node3D = knuckles[w]
+		k.transform = Transform3D(Basis(Vector3.UP, (w as VehicleWheel3D).steering), (w as VehicleWheel3D).transform.origin)
 
 
 func _physics_process(delta: float) -> void:

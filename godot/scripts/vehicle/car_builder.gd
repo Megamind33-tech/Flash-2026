@@ -476,6 +476,9 @@ static func build(livery: String, with_audio: bool, car_id := DEFAULT_CAR) -> Ra
 				m.add_child(lo)
 		car.add_child(wheel)
 
+	_front_calipers(car, visual, geo, car_id)
+	visual.add_child(_arch_liners(geo, car_id))
+
 	if with_audio:
 		EngineAudio.attach(car, true)   # layered CC0 engine loops + wind + boost (vehicle/engine_audio.gd)
 		var skid := AudioStreamPlayer3D.new()
@@ -492,6 +495,164 @@ static func build(livery: String, with_audio: bool, car_id := DEFAULT_CAR) -> Ra
 		hit.stream = load("res://assets/audio/carhit2.wav")
 		car.add_child(hit)
 	return car
+
+
+static var _liner_cache := {}
+static var _liner_mat: StandardMaterial3D
+
+
+## Wheel-arch liners: a black textured-plastic shell over each wheel and a wall on its inboard side. The source
+## models leave the arches open (the light body paint inside, or a view into the engine bay), which made a
+## wheel look detached from the car. Fronts get more clearance for the steered tyre's corners.
+static func _arch_liners(geo: Dictionary, car_id: String) -> MeshInstance3D:
+	if not _liner_cache.has(car_id):
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		for k in ["Wheel_FL", "Wheel_FR", "Wheel_RL", "Wheel_RR"]:
+			var c: Vector3 = geo[k][0]
+			var r: float = geo[k][1]
+			var w: float = geo[k][2]
+			var rr := r + (0.06 if k.contains("_F") else 0.04)
+			var side := signf(c.x)
+			var x_in := c.x - side * (w * 0.5 + 0.07)
+			var x_out := c.x + side * (w * 0.5 - 0.09)   # inboard of the fender lip: never visible on the outside skin
+			var n := 24
+			for i in n:
+				var a0 := deg_to_rad(lerpf(-12.0, 192.0, float(i) / n))
+				var a1 := deg_to_rad(lerpf(-12.0, 192.0, float(i + 1) / n))
+				var p0 := Vector3(0, sin(a0), cos(a0)) * rr
+				var p1 := Vector3(0, sin(a1), cos(a1)) * rr
+				var q := [c + p0 + Vector3(x_in - c.x, 0, 0), c + p1 + Vector3(x_in - c.x, 0, 0), c + p1 + Vector3(x_out - c.x, 0, 0), c + p0 + Vector3(x_out - c.x, 0, 0)]
+				st.set_normal(-p0.normalized()); st.set_uv(Vector2(0, float(i) / n)); st.add_vertex(q[0])
+				st.set_normal(-p1.normalized()); st.set_uv(Vector2(0, float(i + 1) / n)); st.add_vertex(q[1])
+				st.set_normal(-p1.normalized()); st.set_uv(Vector2(1, float(i + 1) / n)); st.add_vertex(q[2])
+				st.set_normal(-p0.normalized()); st.set_uv(Vector2(0, float(i) / n)); st.add_vertex(q[0])
+				st.set_normal(-p1.normalized()); st.set_uv(Vector2(1, float(i + 1) / n)); st.add_vertex(q[2])
+				st.set_normal(-p0.normalized()); st.set_uv(Vector2(1, float(i) / n)); st.add_vertex(q[3])
+				# inboard wall: closes the view through the arch into the engine bay / the other side
+				var wn := Vector3(side, 0, 0)
+				var ctr := Vector3(x_in, c.y - r * 0.15, c.z)
+				st.set_normal(wn); st.set_uv(Vector2(0.5, 0.5)); st.add_vertex(ctr)
+				st.set_normal(wn); st.set_uv(Vector2(0, 0)); st.add_vertex(q[0])
+				st.set_normal(wn); st.set_uv(Vector2(0, 1)); st.add_vertex(q[1])
+		_liner_cache[car_id] = st.commit()
+	if _liner_mat == null:
+		_liner_mat = StandardMaterial3D.new()
+		_liner_mat.resource_name = "GL_arch_liner"
+		_liner_mat.albedo_color = Color(0.035, 0.035, 0.037)
+		_liner_mat.roughness = 0.88
+		_liner_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		_liner_mat.normal_enabled = true
+		_liner_mat.normal_texture = load("res://assets/textures/surfaces/asphalt_normal.jpg")   # fine grain, like moulded plastic
+		_liner_mat.normal_scale = 0.35
+		_liner_mat.uv1_scale = Vector3(3, 6, 1)
+	var mi := MeshInstance3D.new()
+	mi.name = "ArchLiners"
+	mi.mesh = _liner_cache[car_id]
+	mi.material_override = _liner_mat
+	mi.layers = CAR_LAYER
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return mi
+
+
+static var _caliper_cache := {}   # car_id -> {body mesh name: ArrayMesh without front calipers, "FL"/"FR": [mesh, material]}
+
+
+## Front brake calipers belong to the steering knuckle: they turn with the steering but never spin with the wheel.
+## The converter leaves every caliper on the body (so none spins); here the front ones are cut out of the body mesh
+## and mounted on a knuckle node per front wheel that RaceCarBody turns with the steering angle and moves with the
+## suspension, so at full lock the caliper stays inside the rim instead of floating where the straight wheel was.
+static func _front_calipers(car: RaceCarBody, visual: Node3D, geo: Dictionary, car_id: String) -> void:
+	if not _caliper_cache.has(car_id):
+		_caliper_cache[car_id] = _split_calipers(visual, geo)
+	var cache: Dictionary = _caliper_cache[car_id]
+	for mi in visual.get_children():
+		if mi is MeshInstance3D and cache.has(String(mi.name)):
+			var overrides := []
+			for si in mi.mesh.get_surface_count():
+				overrides.append(mi.get_surface_override_material(si))
+			mi.mesh = cache[String(mi.name)]
+			for si in overrides.size():
+				mi.set_surface_override_material(si, overrides[si])
+	for k in ["FL", "FR"]:
+		if not cache.has(k):
+			continue
+		var wheel := car.get_node("Wheel_" + k) as VehicleWheel3D
+		var knuckle := Node3D.new()
+		knuckle.name = "Knuckle_" + k
+		knuckle.position = wheel.position
+		var cal := MeshInstance3D.new()
+		cal.name = "Caliper_" + k
+		cal.mesh = cache[k][0]
+		cal.layers = CAR_LAYER
+		var centre: Vector3 = geo["Wheel_" + k][0]
+		cal.position = Vector3(centre.x - wheel.position.x, centre.y - wheel.position.y, centre.z - wheel.position.z)
+		knuckle.add_child(cal)
+		car.add_child(knuckle)
+		car.knuckles[wheel] = knuckle
+
+
+static func _split_calipers(visual: Node3D, geo: Dictionary) -> Dictionary:
+	var out := {}
+	var parts := {"FL": [], "FR": []}   # [arrays, indices, material]
+	for mi in visual.get_children():
+		if not (mi is MeshInstance3D) or String(mi.name).begins_with("Body_LOD"):
+			continue
+		var mesh: Mesh = mi.mesh
+		var touched := false
+		var nm := ArrayMesh.new()
+		for si in mesh.get_surface_count():
+			var mat: Material = mesh.surface_get_material(si)
+			var arrays: Array = mesh.surface_get_arrays(si)
+			var is_cal := mat != null and String(mat.resource_name).to_lower().contains("caliper")
+			if is_cal and arrays[Mesh.ARRAY_INDEX] != null:
+				var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+				var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+				var keep := PackedInt32Array()
+				var split := {"FL": PackedInt32Array(), "FR": PackedInt32Array()}
+				for ti in range(0, idx.size(), 3):
+					var cpos: Vector3 = mi.transform * ((verts[idx[ti]] + verts[idx[ti + 1]] + verts[idx[ti + 2]]) / 3.0)
+					var to := ""
+					for k in ["FL", "FR"]:
+						var c: Vector3 = geo["Wheel_" + k][0]
+						if cpos.distance_to(c) < float(geo["Wheel_" + k][1]) * 1.02:
+							to = k
+					if to == "":
+						keep.append_array([idx[ti], idx[ti + 1], idx[ti + 2]])
+					else:
+						(split[to] as PackedInt32Array).append_array([idx[ti], idx[ti + 1], idx[ti + 2]])
+				for k in split:
+					if (split[k] as PackedInt32Array).size() > 0:
+						touched = true
+						parts[k].append([arrays, split[k], mat, mi.transform])
+				if keep.is_empty():
+					keep = PackedInt32Array([0, 0, 0])   # keep the surface slot (override indices) with nothing drawn
+				var a2 := arrays.duplicate()
+				a2[Mesh.ARRAY_INDEX] = keep
+				nm.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a2)
+			else:
+				nm.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+			nm.surface_set_material(si, mat)
+			nm.surface_set_name(si, mesh.surface_get_name(si))
+		if touched:
+			out[String(mi.name)] = nm
+	for k in parts:
+		if (parts[k] as Array).is_empty():
+			continue
+		var cm := ArrayMesh.new()
+		var c: Vector3 = geo["Wheel_" + k][0]
+		for p in parts[k]:
+			var a: Array = (p[0] as Array).duplicate()
+			var xf: Transform3D = p[3]
+			var vs: PackedVector3Array = (a[Mesh.ARRAY_VERTEX] as PackedVector3Array).duplicate()
+			for vi in vs.size():
+				vs[vi] = xf * vs[vi] - c   # knuckle space: centred on the wheel hub
+			a[Mesh.ARRAY_VERTEX] = vs
+			a[Mesh.ARRAY_INDEX] = p[1]
+			cm.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a)
+			cm.surface_set_material(cm.get_surface_count() - 1, p[2])
+		out[k] = [cm, null]
+	return out
 
 
 static func _accumulated(node: Node3D) -> Transform3D:

@@ -91,6 +91,7 @@ func _ready() -> void:
 			for wh in car.get_children():
 				if wh is VehicleWheel3D and (wh as VehicleWheel3D).use_as_steering:
 					(wh as VehicleWheel3D).rotation.y = (car as RaceCarBody).max_steer
+					(wh as VehicleWheel3D).steering = (car as RaceCarBody).max_steer   # the caliper knuckle follows this
 		if rear:
 			car.tail_lights.emission_energy_multiplier = 4.0
 		await _settle()
