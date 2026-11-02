@@ -182,6 +182,25 @@ Full write-up: `docs/GR27_REPORT.md`.
   - Voice uses mu-law, not Opus. That is fine on Wi-Fi, but heavy on mobile data; add an Opus GDExtension.
   - Not tested on Android devices or over a real internet connection.
 
+## GRINDLINE 27 premium pass (vehicles, lighting, venue, HUD)
+
+Evidence: `docs/evidence/gr27_premium/` (vehicle sheets, wheel before/after, dynamics table, HUD at five aspect
+ratios, two gameplay clips recorded with Godot Movie Maker).
+- **Vehicles:** front brake calipers on steering knuckles (`CarBuilder._front_calipers`, they steer, never spin);
+  black arch liners (`_arch_liners`, skipped on the widebody kaze_gt35); `tools/vehicle_sheet.gd` renders 9 views per
+  car (3/4 front/rear, wheel close-ups, full lock, driven at 40 and 120 km/h, braking dive, cornering roll).
+- **Dynamics:** `tests/dynamics_test.tscn` (DYNAMICS PASS 12/12): wheel/road speed sync within 1.5 %, no speed gain
+  after throttle release (after 2 ticks of input latency), braking 1.1-1.4 g with nose dive, wet 100-0 about 48 %
+  longer, roll in corners, nitro faster than plain throttle.
+- **Lighting:** the day sun is behind-left of the start camera; the sky panorama is rotated to match (day only,
+  dusk keeps its glow ahead); clear day uses the blue `partly` sky; no damp sheen patches on clear days.
+- **Venue:** truss start gantry, start lights driven by the countdown, lap board, timing tower, LED billboards
+  (`led_screen.gdshader`).
+- **HUD:** progressive pedals (`touch_pedal.gd`), Pause › Edit Controls (drag, saved in settings), tower capped at 6
+  rows, online team score line. `pause_test` covers pedals and the editor.
+- **Not done:** no Android device measurements (only software-renderer counts per preset); the timing tower is
+  small from the grid camera; trademark review of car designs still open.
+
 ## Known open items
 
 - **Real Android testing.** Not done. Settings › Display › Run benchmark produces a copyable report (FPS, 1 % low,
