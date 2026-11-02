@@ -85,6 +85,8 @@ func _car(id: String, probe: bool) -> void:
 		await get_tree().physics_frame
 	var pts: Dictionary = CarCameras.points(id, car)
 	print("CAMSHEET %s hood=%s eye=%s interior=%s" % [id, pts["hood"], pts["eye"], pts["interior"]])
+	var h: Vector3 = pts["hood"]
+	print("HOODTABLE \t\"%s\": Vector3(%.3f, %.3f, %.3f)," % [id, h.x, h.y, h.z])
 	_view(car, pts["hood"], CarCameras.HOOD_FOV)
 	await _shot("%s_hood" % id)
 	_view(car, pts["eye"], CarCameras.COCKPIT_FOV)

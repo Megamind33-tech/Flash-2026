@@ -9,8 +9,8 @@ extends RefCounted
 const HOOD_FOV := 66.0
 const COCKPIT_FOV := 72.0
 ## Hood camera: height above the bonnet surface and the lookahead pitch (negative = down).
-const HOOD_LIFT := 0.30
-const HOOD_PITCH := -0.045
+const HOOD_LIFT := 0.22
+const HOOD_PITCH := -0.04
 
 ## Cars with a usable interior and the driver's eye point in the car frame (x = left of centre). Filled from the
 ## camera_sheet renders (docs/evidence/gr27_camera/): of the twelve models only the two Ravenna cars have a modelled
@@ -20,6 +20,10 @@ const COCKPIT := {
 	"ravenna_quaranta": Vector3(0.38, 0.88, -0.12),
 }
 
+## Hood camera point per car, measured by tools/camera_sheet.tscn (-- --hood-table) and pasted here, so the game never
+## ray-casts a 100k-triangle body at run time. A car missing here falls back to compute_hood().
+const HOOD := {}
+
 static var _cache := {}
 
 
@@ -27,7 +31,8 @@ static func has_interior(car_id: String) -> bool:
 	return COCKPIT.has(car_id)
 
 
-## Hood and cockpit camera points for a built car (it must be in the tree so its meshes have transforms).
+## Hood and cockpit camera points for a built car. The hood point comes from the HOOD table; without an entry the car
+## must be in the tree so compute_hood() can measure its bodywork.
 static func points(car_id: String, car: Node3D) -> Dictionary:
 	if _cache.has(car_id):
 		return _cache[car_id]
@@ -36,12 +41,7 @@ static func points(car_id: String, car: Node3D) -> Dictionary:
 	var bmax: Vector3 = geo["body_max"]
 	var front_axle: float = (geo["Wheel_FL"][0] as Vector3).z
 	var rear_axle: float = (geo["Wheel_RL"][0] as Vector3).z
-	# nose minus 0.9 m: the bonnet's front edge then sits about a quarter of the frame up from the bottom
-	var hood_z := maxf(front_axle - 0.1, bmax.z - 0.9)
-	var hood_y := _surface_y(car, hood_z, 0.0)
-	if hood_y <= 0.0:
-		hood_y = bmax.y * 0.55
-	var hood := Vector3(0.0, hood_y + HOOD_LIFT, hood_z)
+	var hood: Vector3 = HOOD[car_id] if HOOD.has(car_id) else compute_hood(car, geo)
 	var eye: Vector3
 	if COCKPIT.has(car_id):
 		eye = COCKPIT[car_id]
@@ -52,23 +52,51 @@ static func points(car_id: String, car: Node3D) -> Dictionary:
 	return out
 
 
-## Highest bodywork surface at (x, z) in car space, 0 if nothing is hit. Ray-casts every non-LOD body mesh.
-static func _surface_y(car: Node3D, z: float, x: float) -> float:
-	var best := 0.0
+## Picks the hood camera spot by measurement: scanning forward along the bonnet's centre line from the windscreen base,
+## 0.22 m above the surface, it stops where the bonnet's front edge sits TARGET_EDGE_DEG below the horizon, which puts
+## that edge about a quarter of the way up the frame (bonnets slope away, so a fixed offset from the nose does not).
+static func compute_hood(car: Node3D, geo: Dictionary) -> Vector3:
+	var bmax: Vector3 = geo["body_max"]
+	var front_axle: float = (geo["Wheel_FL"][0] as Vector3).z
 	var inv := car.global_transform.affine_inverse()
+	var parts: Array = []
 	for mi in car.find_children("Body*", "MeshInstance3D", true, false):
 		var m := mi as MeshInstance3D
 		if m.mesh == null or String(m.name).begins_with("Body_LOD"):
 			continue
 		var tm := m.mesh.generate_triangle_mesh()
-		if tm == null:
-			continue
-		var to_mesh := (inv * m.global_transform).affine_inverse()   # car space -> mesh space
-		var from: Vector3 = to_mesh * Vector3(x, 3.0, z)
-		var to: Vector3 = to_mesh * Vector3(x, -0.2, z)
+		if tm != null:
+			parts.append([tm, inv * m.global_transform])
+	var nose_z := bmax.z - 0.12
+	var nose_y := _top(parts, nose_z)
+	var best := Vector3(0.0, 0.0, front_axle)
+	var z := front_axle - 0.3
+	while z <= nose_z - 0.5:
+		var y := _top(parts, z)
+		if y > 0.0:
+			best = Vector3(0.0, y + HOOD_LIFT, z)
+			var angle := rad_to_deg(atan2(best.y - nose_y, nose_z - z))
+			if angle >= TARGET_EDGE_DEG:
+				break
+		z += 0.05
+	if best.y <= 0.0:
+		best.y = bmax.y * 0.6
+	return best
+
+
+const TARGET_EDGE_DEG := 16.0
+
+
+## Highest bodywork point on the centre line at car-space z (0 when nothing is hit).
+static func _top(parts: Array, z: float) -> float:
+	var best := 0.0
+	for part in parts:
+		var tm: TriangleMesh = part[0]
+		var xf: Transform3D = part[1]
+		var to_mesh := xf.affine_inverse()
+		var from: Vector3 = to_mesh * Vector3(0.0, 3.0, z)
+		var to: Vector3 = to_mesh * Vector3(0.0, -0.2, z)
 		var hit := tm.intersect_ray(from, (to - from).normalized())
-		if hit.is_empty():
-			continue
-		var p: Vector3 = (inv * m.global_transform) * (hit["position"] as Vector3)
-		best = maxf(best, p.y)
+		if not hit.is_empty():
+			best = maxf(best, (xf * (hit["position"] as Vector3)).y)
 	return best
