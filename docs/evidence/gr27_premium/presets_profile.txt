@@ -1,0 +1,10 @@
+PROFILE preset=Performance quality=0 renderer=mobile frames=60 mean_ms=295.3 p95_ms=322.5 draw_calls=223 primitives=683322 video_mem_mb=167 static_mem_mb=96 nodes=695 (software renderer: compare presets, not devices)
+PROFILE preset=Balanced quality=1 renderer=mobile frames=60 mean_ms=663.9 p95_ms=830.1 draw_calls=398 primitives=1613345 video_mem_mb=317 static_mem_mb=123 nodes=1439 (software renderer: compare presets, not devices)
+PROFILE preset=Quality quality=2 renderer=mobile frames=60 mean_ms=1260.8 p95_ms=1806.0 draw_calls=435 primitives=2327915 video_mem_mb=326 static_mem_mb=123 nodes=1420 (software renderer: compare presets, not devices)
+PROFILE preset=Ultra quality=3 renderer=mobile frames=60 mean_ms=1901.3 p95_ms=2401.7 draw_calls=439 primitives=2402459 video_mem_mb=362 static_mem_mb=123 nodes=1420 (software renderer: compare presets, not devices)
+
+Lusaka, heavy rain (the heaviest state), 1280x720, 60 frames each, measured in this container with Mesa llvmpipe
+(software Vulkan on CPU). The millisecond values are NOT phone frame times; compare presets only. Draw calls,
+primitives (triangles), video memory and static memory are renderer-independent workload counts that do carry over
+to a device. No Android device measurement has been made yet: use Settings > Display > Run benchmark on the target
+phones for FPS, 1% low, frame times, memory and temperature.
